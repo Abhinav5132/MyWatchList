@@ -1,0 +1,43 @@
+# =====================================
+# Rust / Cargo general
+# =====================================
+/target
+**/target/
+**/*.rs.bk
+
+# If using Cargo workspaces or multiple projects:
+**/Cargo.lock
+
+# Avoid including debug logs
+*.log
+
+# Ignore backups and temporary files
+*~
+*.swp
+.DS_Store
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.iml
+
+# Dioxus specific (web + desktop builds)
+dist/
+build/
+.dioxus/
+
+# Actix Web specific
+*.pem
+*.crt
+*.key
+
+# SQLx specific (offline mode DB cache)
+sqlx-data.json
+
+# dotenv (if you're using environment files)
+.env
+.env.*
+
+anime.db
+anime-offline-database.json
+anime-offline-database.schema.json
