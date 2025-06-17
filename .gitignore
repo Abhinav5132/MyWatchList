@@ -38,6 +38,6 @@ sqlx-data.json
 .env
 .env.*
 
-anime.db
+
 anime-offline-database.json
 anime-offline-database.schema.json
