@@ -1,8 +1,8 @@
-use dioxus::prelude::*;
+use dioxus::{html::{img::src, img::alt}, prelude::*};
 use reqwest::Client;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-
+const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
 pub fn main() {
     dioxus::launch(App);
 }
@@ -42,15 +42,18 @@ pub fn App() -> Element {
         });
         ()
     });
-
+// add reactive drop shadow that increases on hover
+// if user types somethins and then removes it the search results default to printing all the shows
     rsx! {
+        document::Link{rel: "stylesheet", href: MAIN_CSS}
         div {
-            document::Link{rel: "stylesheet", href: MAIN_CSS}
-            h1 { "Search for an anime" }
+            id:"top_div",
+            h1 { "My Watch List" }
             div {
+                id:"input_div",
                 input {
                     id: "Search_Bar",
-                    type: "search",
+                    type: "text",
                     value: "{search_input}",
                     oninput: move |event| {
                         search_input.set(event.value());
@@ -65,11 +68,16 @@ pub fn App() -> Element {
                 onclick: move |_| {
                     submitted_title.set(search_input.read().clone());
                 },
-                "search"
-                }
+                img { 
+                    id: "Search_Icon",
+                    src: "{SEARCH_ICON}",
+                    alt: "search",
+                 }
+                } 
             ul {
+                id: "Result_list",
                 for anime in search_results.read().iter(){
-                    li {"{anime.title}"}
+                    li {id: "List_Item","{anime.title}"}
                 }
             }
 

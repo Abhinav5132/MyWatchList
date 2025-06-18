@@ -1,0 +1,53 @@
+body {
+    background-color: rgb(30, 30, 30);
+    font-family:Arial, Helvetica, sans-serif ;
+    padding: 20px;
+    margin: 10px;
+}
+#top_div {
+    text-align: center;
+    background-color: rgb(35, 35, 35);
+    border-radius: 20px;
+    padding: 50px 20px;
+    box-shadow:  0 4px 8px rgba(104, 26, 100, 0.5);
+}
+h1 {
+    
+    color: rgb(147, 78, 213);
+    padding: 10px 20px;
+    box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
+    display: inline-block;
+    margin: 20px;
+    background-color: rgb(40, 40, 40);
+    border-radius: 10px;
+    text-align: center;
+}
+
+#Search_Bar {
+    color: rgb(0, 0, 0);
+    width: 85%;
+    max-width: 400%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 2px solid #000000;
+    border-radius: 10px;
+    background-color: #ffffff;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
+    
+}
+
+#Search_buttone{
+    width: 8%;
+    font-size:  1rem;
+    border-radius: 10px;
+    padding: 10px;
+    border: 2px solid black;
+    background-color:rgb(147, 78, 213);
+}
+
+#Search_Icon{
+    width: 16px; 
+    height: 16px; 
+    margin-right: 4px;
+}
