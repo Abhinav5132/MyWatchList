@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Responder, get, web};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
 
 mod initialize;
@@ -10,8 +10,18 @@ use initialize::initialize_database;
 struct SearchQuery {
     query: String,
 }
+
+#[derive(Serialize)]
+struct AnimeResult {
+    title: String,
+    thumbnail: Option<String>,
+}
+
 fn main() {
-    setup_backend();
+   let result = setup_backend();
+    if !result.is_err(){
+        println!("unable to start backend");
+    }
 }
 
 #[actix_web::main]
@@ -50,19 +60,20 @@ async fn setup_backend() -> std::io::Result<()> {
 #[get("/search")]
 async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {
     let title = format!("%{}%", query.query);
-    match sqlx::query("SELECT title FROM anime WHERE title LIKE ? LIMIT 5")
+    match sqlx::query("SELECT title, thumbnail FROM anime WHERE title LIKE ? LIMIT 5")
         .bind(&title)
         .fetch_all(db.get_ref())
         .await
     {
         Ok(rows) => {
-            let names: Vec<String> = rows.into_iter()
-            .filter_map(|r| r.try_get::<String,_>("title")
-            .ok())
+            let names: Vec<AnimeResult> = rows.into_iter()
+            .map(|r| AnimeResult{
+                title: r.try_get("title").unwrap_or_default(),
+                thumbnail: r.try_get("thumbnail").ok(),
+            })
             .collect();
             if names.is_empty() {
                 // this later needs to fetch everything in the anime table using this anime id so we can create anime structs
-                let mut names:Vec<String> = vec![];
                 match sqlx::query(
                     "
                 SELECT title FROM anime 
@@ -75,15 +86,24 @@ async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> 
                 .await
                 {
                     Ok(rows) => {
-                        let names: Vec<String> = rows.into_iter()
-                        .filter_map(|r| r.try_get::<String, _>("title").ok()).collect();
+                        let names: Vec<AnimeResult> = rows.into_iter().map(|r| AnimeResult{
+                            title: r.try_get("title").unwrap_or_default(),
+                            thumbnail: r.try_get("thumbnail").ok(),
+                    }).collect();
+                        
                         return web::Json(names);
                     }
-                    Err(_) =>  {return web::Json(vec!["error querying the database".to_string()]);}
+                    Err(_) =>  {return web::Json(vec![AnimeResult{
+                        title: "Unable to query the database".into(),
+                        thumbnail: None,
+                    }])}
                 }
             }
             web::Json(names)
         }
-        Err(_) => web::Json(vec!["error querying the database".to_string()]),
+        Err(_) => web::Json(vec![AnimeResult{
+                        title: "Unable to query the database".into(),
+                        thumbnail: None,
+                    }]),
     }
 }

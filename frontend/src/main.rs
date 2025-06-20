@@ -1,14 +1,17 @@
 use dioxus::{html::{img::src, img::alt}, prelude::*};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
 pub fn main() {
     dioxus::launch(App);
 }
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct Anime {
     title: String,
+    thumbnail: Option<String>,
 }
 
 #[component]
@@ -33,9 +36,8 @@ pub fn App() -> Element {
                 .send()
                 .await
             {
-                if let Ok(names) = res.json::<Vec<String>>().await {
-                    let anime_list = names.into_iter().map(|title| Anime { title }).collect();
-                        results.set(anime_list);
+                if let Ok(names) = res.json::<Vec<Anime>>().await {
+                    results.set(names);
                     
                 }
             }
@@ -72,17 +74,25 @@ pub fn App() -> Element {
                     id: "Search_Icon",
                     src: "{SEARCH_ICON}",
                     alt: "search",
-                 }
-                } 
-            ul {
-                id: "Result_list",
-                for anime in search_results.read().iter(){
-                    li {id: "List_Item","{anime.title}"}
                 }
-            }
-
+            } 
         }
 
     }
+    if !search_results.read().is_empty() {
+        div {  
+            class: "dropdown",
+            for anime in search_results.read().iter() {
+                img {  
+                    class: "dropdown_images",
+                    src: anime.thumbnail.clone().unwrap_or("{SEARCH_ICON}".to_string()),
+                    alt: "thumbanil"
+            }
+            span {  
+                "{anime.title}"
+            }
+        }
+        }
+}
 }
 }
