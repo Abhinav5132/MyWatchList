@@ -36,7 +36,7 @@ h1 {
     
 }
 
-#Search_buttone{
+#Search_button{
     width: 8%;
     font-size:  1rem;
     border-radius: 10px;
@@ -66,49 +66,63 @@ h1 {
     box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
 }
 
+.dropdown{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+    padding-top: 10px;
+    align-items: center;
+    
+}
+
 .dropdown::-webkit-scrollbar {
     margin-left: 4%;
-    padding: 10px;
     position: absolute;
-    border: 1px solid rgb(0, 0, 0);
-    max-height: 600px;
     overflow-y: auto;
     width: 75%;
     z-index: 100;
     border-radius: 5px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
 .dropdown::-webkit-scrollbar-thumb{
     background-color: rgba(147, 78, 213, 0.5);
     border-radius: 3px;
 }
 
-.dropdown_images{
-    height: 120px;
-    width: 85px;
+.dropdown_images {
+    height: 280px;
+    width: 195px;
     object-fit: contain;
-    display: flex;
-    align-items: center;
-    padding: 5px;
+    display: block;
+    border-radius: 10px;
+    background-color: transparent;
     transition: background 0.2s ease-in-out;
-    border-radius: 5px;
-    margin-right: 10px;
-    background-color: black;
-}
-
-.dropdown span {
-    color: white;
-    font-size: 1rem;
+    margin: 0 auto 10px auto; /* Adds space below image */
 }
 
 .dropdown_items {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 8px;
+    padding: 12px;
+    text-align: center;
     transition: background 0.2s ease-in-out;
     cursor: pointer;
+    border-radius: 8px;
+    background-color: transparent;
 }
 
 .dropdown_items:hover {
     background-color: rgba(147, 78, 213, 0.1);
+}
+
+.span_items{
+    padding-top: 10px;
+    max-width: 100%; /* take full container width */
+    color: white;
+    overflow: hidden;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: large;
 }

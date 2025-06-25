@@ -68,7 +68,7 @@ pub fn App() -> Element {
                     }
                 }
             button {
-                id: "Search_buttone",
+                id: "Search_button",
                 onclick: move |_| {
                     submitted_title.set(search_input.read().clone());
                 },
@@ -93,7 +93,8 @@ pub fn App() -> Element {
                     alt: "thumbanil"
                 }
                 span {  
-                "{anime.title}"
+                    class: "span_items",
+                    "{anime.title}"
                 } }
             }
         } 
