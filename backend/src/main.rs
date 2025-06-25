@@ -1,7 +1,14 @@
+
+
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Responder, get, web};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
+use std::path::Path;
+
+
+mod popularity;
+
 
 mod initialize;
 use initialize::initialize_database;
@@ -14,11 +21,20 @@ struct SearchQuery {
 #[derive(Serialize)]
 struct AnimeResult {
     title: String,
-    thumbnail: Option<String>,
+    picture: Option<String>,
 }
 
 fn main() {
-   let result = setup_backend();
+    dotenvy::dotenv().ok();
+    
+    let popularity_json = Path::new("popularity.json").exists();
+    if !popularity_json{
+       match popularity::popu_main() {
+        Ok(_) => println!("Popularity estabiished succesfully"),
+        Err(e) => println!("{e} failed to estabilsh popularity")
+       }
+    }
+    let result = setup_backend();
     if !result.is_err(){
         println!("unable to start backend");
     }
@@ -31,7 +47,6 @@ async fn setup_backend() -> std::io::Result<()> {
         .create_if_missing(true);
 
     let connection = sqlite::SqlitePool::connect_with(opt).await.unwrap();
-
     let schema = std::fs::read_to_string("anime.sql").unwrap();
     connection.execute(&*schema).await.unwrap();
 
@@ -58,9 +73,15 @@ async fn setup_backend() -> std::io::Result<()> {
 }
 
 #[get("/search")]
-async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {
+async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {    
     let title = format!("%{}%", query.query);
-    match sqlx::query("SELECT title, thumbnail FROM anime WHERE title LIKE ? LIMIT 5")
+    match sqlx::query("
+            SELECT anime.title, anime.thumbnail
+            FROM anime
+            WHERE anime.title LIKE ? COLLATE NOCASE
+            ORDER BY anime.popularity DESC 
+            LIMIT 10"
+        )
         .bind(&title)
         .fetch_all(db.get_ref())
         .await
@@ -69,7 +90,7 @@ async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> 
             let names: Vec<AnimeResult> = rows.into_iter()
             .map(|r| AnimeResult{
                 title: r.try_get("title").unwrap_or_default(),
-                thumbnail: r.try_get("thumbnail").ok(),
+                picture: r.try_get("picture").ok(),
             })
             .collect();
             if names.is_empty() {
@@ -78,7 +99,7 @@ async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> 
                     "
                 SELECT title FROM anime 
                 JOIN synonyms ON anime.id = synonyms.anime_id
-                WHERE synonyms.synonym LIKE ? LIMIT 5
+                WHERE synonyms.synonym LIKE ? LIMIT 10
                 ",
                 )
                 .bind(&title)
@@ -88,14 +109,14 @@ async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> 
                     Ok(rows) => {
                         let names: Vec<AnimeResult> = rows.into_iter().map(|r| AnimeResult{
                             title: r.try_get("title").unwrap_or_default(),
-                            thumbnail: r.try_get("thumbnail").ok(),
+                            picture: r.try_get("picture").ok(),
                     }).collect();
                         
                         return web::Json(names);
                     }
                     Err(_) =>  {return web::Json(vec![AnimeResult{
                         title: "Unable to query the database".into(),
-                        thumbnail: None,
+                        picture: None,
                     }])}
                 }
             }
@@ -103,7 +124,15 @@ async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> 
         }
         Err(_) => web::Json(vec![AnimeResult{
                         title: "Unable to query the database".into(),
-                        thumbnail: None,
+                        picture: None,
                     }]),
     }
+}
+
+
+pub async fn update_index_tables(conn: Pool<Sqlite>) {
+    // Fetch all anime rows using dynamic query
+    
+
+    println!("FTS index updated entries.");
 }

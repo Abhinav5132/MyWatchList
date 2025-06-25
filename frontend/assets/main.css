@@ -1,14 +1,13 @@
 body {
     background-color: rgb(30, 30, 30);
     font-family:Arial, Helvetica, sans-serif ;
-    padding: 20px;
-    margin: 10px;
+    padding: 10px;
 }
 #top_div {
     text-align: center;
     background-color: rgb(35, 35, 35);
     border-radius: 20px;
-    padding: 50px 20px;
+    padding: 20px 20px;
     box-shadow:  0 4px 8px rgba(104, 26, 100, 0.5);
 }
 h1 {
@@ -78,4 +77,38 @@ h1 {
     z-index: 100;
     border-radius: 5px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+.dropdown::-webkit-scrollbar-thumb{
+    background-color: rgba(147, 78, 213, 0.5);
+    border-radius: 3px;
+}
+
+.dropdown_images{
+    height: 100px;
+    width: 80px;
+    object-fit: contain;
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    transition: background 0.2s ease-in-out;
+    border-radius: 5px;
+    margin-right: 10px;
+    background-color: black;
+}
+
+.dropdown span {
+    color: white;
+    font-size: 1rem;
+}
+
+.dropdown_items {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    transition: background 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.dropdown_items:hover {
+    background-color: rgba(147, 78, 213, 0.1);
 }

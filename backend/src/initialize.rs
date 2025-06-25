@@ -1,8 +1,14 @@
 use std::{fs::File};
 use std::io::Read;
+use reqwest::header::Entry;
 use sqlx::Sqlite;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize,};
 use sqlx::Pool;
+use serde_json::Value;
+use std::collections::HashMap;
+use sqlx::Row;
+
+use crate::popularity;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AnimeDatabase{
@@ -19,7 +25,6 @@ pub struct AnimeEntry {
     status: String,
     animeSeason: Option<AnimeSeason>,
     picture: String,
-    thumbnail: String,
     duration: Option<AnimeDuration>,
     score: Option<AnimeScore>,
     synonyms: Vec<String>,
@@ -51,15 +56,25 @@ pub struct AnimeScore{
 
 pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn std::error::Error>> {
     println!("INITIALIZING");
+    // opeing file for database json
     let mut file = File::open("anime-offline-database.json")?;
     let mut contents = String::new();
-
     file.read_to_string(&mut contents)?;
-
     let parsed_json: AnimeDatabase = serde_json::from_str(&contents)?;
-
     let mut tx = connection.begin().await?;
+    // opening file for popularity index
+    let mut anilist_file = File::open("popularity.json").unwrap();
+    let mut anilist_contents = String::new();
+    anilist_file.read_to_string(&mut anilist_contents)?;
+    let anilist_data: Vec<Value> = serde_json::from_str(&anilist_contents)?;
 
+    
+    let mut anilist_lookup = HashMap::new();
+    for entry in anilist_data{
+        if let Some(title) = entry["title"]["romaji"].as_str(){
+            anilist_lookup.insert(title.to_lowercase(), entry.clone());
+        }
+    }
     for anime in parsed_json.data.iter() {
     let title = anime.title.clone();
     let format = anime.anime_type.clone();
@@ -73,10 +88,6 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
     let anime_year = anime.animeSeason.as_ref()
         .and_then(|s| s.year)
         .unwrap_or(0);
-    
-    let picture = anime.picture.clone();
-    let thumbnail = anime.thumbnail.clone();
-
     let duration = anime.duration.as_ref().map(|d| d.value).unwrap_or(0); // always in seconds
     
     let score = anime.score.as_ref().and_then(|s| s.arithmeticGeometricMean).unwrap_or(0.0);
@@ -86,10 +97,18 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
     let producers = anime.producers.clone();
     let related = anime.related.clone();
     let tags = anime.tags.clone();
+    let popularity = anilist_lookup
+    .get(&title.to_lowercase())
+    .and_then(|entry| entry["popularity"].as_i64());
+
+    let picture = anilist_lookup.get(&title.to_lowercase().clone())
+    .and_then(|entry| entry["coverImage"]["extraLarge"].as_str())
+    .map(|s| s.to_string());
+
     println!("{title}");
     let anime_id = sqlx::query(
         "INSERT INTO anime
-        (title, format, episodes, status, anime_season, anime_year, picture, thumbnail, duration, score) 
+        (title, format, episodes, status, anime_season, anime_year, picture, duration, score, popularity) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(title)
@@ -99,9 +118,9 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
     .bind(anime_season)
     .bind(anime_year)
     .bind(picture)
-    .bind(thumbnail)
     .bind(duration)
     .bind(score)
+    .bind(popularity)
     .execute(&mut *tx).await?
     .last_insert_rowid();
 
@@ -179,8 +198,9 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
         .bind(tag_id)
         .execute(&mut *tx)
         .await?;
+
 }
-}
+}   
     tx.commit().await?;
     Ok(())
 

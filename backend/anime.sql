@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS anime (
     picture TEXT,
     thumbnail TEXT,
     duration INT,
+    popularity INT,
     score FLOAT
 );
 

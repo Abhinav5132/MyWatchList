@@ -11,7 +11,7 @@ pub fn main() {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct Anime {
     title: String,
-    thumbnail: Option<String>,
+    picture: Option<String>,
 }
 
 #[component]
@@ -45,7 +45,11 @@ pub fn App() -> Element {
         ()
     });
 // add reactive drop shadow that increases on hover
+// populariy.json has slightly different names casueing images to not be loaded.
 // if user types somethins and then removes it the search results default to printing all the shows
+// if images dont exist fetch them from anilist.
+// Change databse to have randing, frequency and more accurate searches
+// change to check names and synonyms together and ignore if it already exists
     rsx! {
         document::Link{rel: "stylesheet", href: MAIN_CSS}
         div {
@@ -83,16 +87,23 @@ pub fn App() -> Element {
         div {  
             class: "dropdown",
             for anime in search_results.read().iter() {
+                div { 
+                    class: "dropdown_items", 
                 img {  
                     class: "dropdown_images",
-                    src: anime.thumbnail.clone().unwrap_or("{SEARCH_ICON}".to_string()),
+                    src: anime.picture.clone().unwrap_or("{SEARCH_ICON}".to_string()),
                     alt: "thumbanil"
-            }
-            span {  
+                }
+                span {  
                 "{anime.title}"
+                } }
             }
-        }
-        }
-}
+        } 
+
+        button { 
+            id: "Show_more",
+            "Show More"
+         }
+    }
 }
 }
