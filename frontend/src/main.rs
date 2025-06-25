@@ -45,11 +45,9 @@ pub fn App() -> Element {
         ()
     });
 // add reactive drop shadow that increases on hover
-// populariy.json has slightly different names casueing images to not be loaded.
 // if user types somethins and then removes it the search results default to printing all the shows
-// if images dont exist fetch them from anilist.
-// Change databse to have randing, frequency and more accurate searches
 // change to check names and synonyms together and ignore if it already exists
+// change results to show up in bigger grids 
     rsx! {
         document::Link{rel: "stylesheet", href: MAIN_CSS}
         div {

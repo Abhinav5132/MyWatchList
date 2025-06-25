@@ -1,13 +1,7 @@
-
-
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, Responder, get, web};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
-use std::path::Path;
-
-
-mod popularity;
 
 
 mod initialize;
@@ -24,16 +18,12 @@ struct AnimeResult {
     picture: Option<String>,
 }
 
+// backend is missing descriptions for anime
+//also fetch english names for search as some just dont exist under syninyms eg Shigatsu wa Kimi no Uso
+
 fn main() {
     dotenvy::dotenv().ok();
-    
-    let popularity_json = Path::new("popularity.json").exists();
-    if !popularity_json{
-       match popularity::popu_main() {
-        Ok(_) => println!("Popularity estabiished succesfully"),
-        Err(e) => println!("{e} failed to estabilsh popularity")
-       }
-    }
+
     let result = setup_backend();
     if !result.is_err(){
         println!("unable to start backend");
@@ -76,7 +66,7 @@ async fn setup_backend() -> std::io::Result<()> {
 async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {    
     let title = format!("%{}%", query.query);
     match sqlx::query("
-            SELECT anime.title, anime.thumbnail
+            SELECT anime.title, anime.picture
             FROM anime
             WHERE anime.title LIKE ? COLLATE NOCASE
             ORDER BY anime.popularity DESC 
@@ -127,12 +117,4 @@ async fn search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> 
                         picture: None,
                     }]),
     }
-}
-
-
-pub async fn update_index_tables(conn: Pool<Sqlite>) {
-    // Fetch all anime rows using dynamic query
-    
-
-    println!("FTS index updated entries.");
 }

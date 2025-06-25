@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS anime (
     anime_season TEXT,
     anime_year INT,
     picture TEXT,
-    thumbnail TEXT,
     duration INT,
     popularity INT,
     score FLOAT
