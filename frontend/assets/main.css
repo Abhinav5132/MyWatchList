@@ -1,17 +1,18 @@
 body {
     background-color: rgb(30, 30, 30);
-    font-family:Arial, Helvetica, sans-serif ;
+    font-family: Arial, Helvetica, sans-serif;
     padding: 10px;
 }
+
 #top_div {
     text-align: center;
     background-color: rgb(35, 35, 35);
     border-radius: 20px;
     padding: 20px 20px;
-    box-shadow:  0 4px 8px rgba(104, 26, 100, 0.5);
+    box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
 }
+
 h1 {
-    
     color: rgb(147, 78, 213);
     padding: 10px 20px;
     box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
@@ -33,21 +34,20 @@ h1 {
     background-color: #ffffff;
     margin-bottom: 10px;
     box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
-    
 }
 
-#Search_button{
+#Search_button {
     width: 8%;
-    font-size:  1rem;
+    font-size: 1rem;
     border-radius: 10px;
     padding: 10px;
     border: 2px solid black;
-    background-color:rgb(147, 78, 213);
+    background-color: rgb(147, 78, 213);
 }
 
-#Search_Icon{
-    width: 16px; 
-    height: 16px; 
+#Search_Icon {
+    width: 16px;
+    height: 16px;
     margin-right: 4px;
 }
 
@@ -66,12 +66,12 @@ h1 {
     box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
 }
 
-.dropdown{
+.dropdown {
     display: grid;
+    gap: 23px;
     grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
     padding-top: 10px;
-    align-items: center;
-    
+    justify-items: center;
 }
 
 .dropdown::-webkit-scrollbar {
@@ -82,7 +82,8 @@ h1 {
     z-index: 100;
     border-radius: 5px;
 }
-.dropdown::-webkit-scrollbar-thumb{
+
+.dropdown::-webkit-scrollbar-thumb {
     background-color: rgba(147, 78, 213, 0.5);
     border-radius: 3px;
 }
@@ -90,12 +91,11 @@ h1 {
 .dropdown_images {
     height: 280px;
     width: 195px;
-    object-fit: contain;
+    object-fit: cover;
     display: block;
     border-radius: 10px;
     background-color: transparent;
     transition: background 0.2s ease-in-out;
-    margin: 0 auto 10px auto; /* Adds space below image */
 }
 
 .dropdown_items {
@@ -114,9 +114,9 @@ h1 {
     background-color: rgba(147, 78, 213, 0.1);
 }
 
-.span_items{
+.span_items {
     padding-top: 10px;
-    max-width: 100%; /* take full container width */
+    max-width: 100%;
     color: white;
     overflow: hidden;
     text-align: left;

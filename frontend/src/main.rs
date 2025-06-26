@@ -99,10 +99,6 @@ pub fn App() -> Element {
             }
         } 
 
-        button { 
-            id: "Show_more",
-            "Show More"
-         }
     }
 }
 }
