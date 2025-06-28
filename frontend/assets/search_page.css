@@ -68,7 +68,7 @@ h1 {
 
 .dropdown {
     display: grid;
-    gap: 23px;
+    gap: 2px;
     grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
     padding-top: 10px;
     justify-items: center;

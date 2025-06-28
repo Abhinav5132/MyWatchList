@@ -3,7 +3,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 
-const MAIN_CSS: Asset = asset!("/assets/main.css");
+const MAIN_CSS: Asset = asset!("/assets/search_page.css");
 const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
 pub fn main() {
     dioxus::launch(App);
