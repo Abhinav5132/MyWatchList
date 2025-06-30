@@ -18,24 +18,24 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
 
         //synonyms
         let mut r = sqlx::query("SELECT s.synonym FROM synonyms s WHERE s.anime_id = ?")
-        .bind(id.clone()).fetch_all(db.as_ref()).await;
-        let synonyms = r.unwrap_or(vec![]).into_iter().map(|s| s.try_get("synonyms").ok()).collect();
+        .bind(id.clone()).fetch_all(db.as_ref()).await.unwrap_or_default();
+        let synonyms = r.into_iter().filter_map(|s| s.try_get("synonym").ok()).collect();
         
         // studios
         r = sqlx::query("SELECT s.name 
                  FROM studios s
                  JOIN anime_studio ast ON s.id = ast.studio_id
-                 WHERE ast.anime_id = ?").bind(id.clone()).fetch_all(db.as_ref()).await;
+                 WHERE ast.anime_id = ?").bind(id.clone()).fetch_all(db.as_ref()).await.unwrap_or_default();
 
-        let studios = r.unwrap_or(vec![]).into_iter().map(|s| s.try_get("studios").ok()).collect();
+        let studios = r.into_iter().filter_map(|s| s.try_get("name").ok()).collect();
         
         // tags
         r = sqlx::query("SELECT t.tag
                  FROM tags t
                  JOIN anime_tags at ON t.id = at.tag_id
                  WHERE at.anime_id = ?
-        ").bind(id.clone()).fetch_all(db.as_ref()).await;
-        let tags = r.unwrap_or(vec![]).into_iter().map(|t| t.try_get("tags").ok()).collect();
+        ").bind(id.clone()).fetch_all(db.as_ref()).await.unwrap_or_default();
+        let tags = r.into_iter().filter_map(|t| t.try_get("tag").ok()).collect();
 
         let anime_deatils = FullAnimeResult{
             title: title,
