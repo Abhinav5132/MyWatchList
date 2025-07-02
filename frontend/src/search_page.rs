@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 const MAIN_CSS: Asset = asset!("/assets/search_page.css");
 const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
+const PREV: Asset = asset!("/assets/prev-page.png");
+const NEXT: Asset = asset!("/assets/next-page.png");
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct Anime {
@@ -19,19 +21,19 @@ pub fn Searchpg() -> Element {
     let mut submitted_title = use_signal(|| String::new());
     let navigator = use_navigator();
     let mut search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
-
+    let mut page:Signal<i32> = use_signal(|| 1);
     use_effect(move || {
         let query = search_input.read().clone();
+        let page = page.read().clone();
         let mut results = search_results.clone();
         spawn(async move {
             if query.is_empty() {
                 results.set(vec![]);
                 return;
             }
-
             let client = Client::new();
             if let Ok(res) = client
-                .get(format!("http://localhost:3000/search?query={}", query))
+                .get(format!("http://localhost:3000/search?query={}&page={}", query, page))
                 .send()
                 .await
             {
@@ -92,6 +94,7 @@ pub fn Searchpg() -> Element {
                     },
                 img {  
                     class: "dropdown_images",
+                    loading: "lazy",
                     src: anime.picture.clone().unwrap_or("{SEARCH_ICON}".to_string()),
                     alt: "thumbanil"
                 }
@@ -100,8 +103,30 @@ pub fn Searchpg() -> Element {
                     "{anime.title}"
                 } }
             }
-        } 
+            div {  
+            button {  
+                onclick: move |_| {
+                    page.with_mut(|p| {
+                    *p = (*p - 1).max(1);
+                    });
+                    },
+                    img { 
+                        src: "{PREV}",
+                    }
 
+            }
+
+            button {  
+                onclick: move |_| {
+                    page.with_mut(|p| *p += 1);
+                    },
+                    img { 
+                        src: "{NEXT}",
+                    }
+
+            }
+        } 
+    }
     }
 }
 }

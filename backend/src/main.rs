@@ -62,6 +62,10 @@ async fn setup_backend() -> std::io::Result<()> {
     let connection = sqlite::SqlitePool::connect_with(opt).await.unwrap();
     let schema = std::fs::read_to_string("anime.sql").unwrap();
     connection.execute(&*schema).await.unwrap();
+    
+    let _ = sqlx::query("PRAGMA journal_mode = WAL;")
+        .execute(&connection)
+        .await;
 
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM anime")
         .fetch_one(&connection)

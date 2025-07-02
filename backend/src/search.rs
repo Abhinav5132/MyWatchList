@@ -1,16 +1,25 @@
 use crate::*;
 
+#[derive(Deserialize)]
+struct SearchQueryPage {
+    query: String,
+    page: Option<u32>,
+}
+
 #[get("/search")]
-pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {    
+pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQueryPage>) -> impl Responder {    
     let title = format!("%{}%", query.query);
+    let page = query.page.unwrap_or_default();
+    let offset = (page - 1) * 28;
     match sqlx::query("
             SELECT anime.title, anime.picture, anime.id
             FROM anime
             WHERE anime.title LIKE ? COLLATE NOCASE
             ORDER BY anime.popularity DESC 
-            LIMIT 10"
+            LIMIT 28 OFFSET ?"
         )
         .bind(&title)
+        .bind(offset)
         .fetch_all(db.get_ref())
         .await
     {
@@ -23,15 +32,15 @@ pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
             })
             .collect();
             if names.is_empty() {
-                // this later needs to fetch everything in the anime table using this anime id so we can create anime structs
                 match sqlx::query(
                     "
                 SELECT title, picture, id FROM anime 
                 JOIN synonyms ON anime.id = synonyms.anime_id
-                WHERE synonyms.synonym LIKE ? LIMIT 10
+                WHERE synonyms.synonym LIKE ? LIMIT 28 OFFSET ?
                 ",
                 )
                 .bind(&title)
+                .bind(offset)
                 .fetch_all(db.as_ref())
                 .await
                 {

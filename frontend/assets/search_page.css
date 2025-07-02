@@ -1,12 +1,12 @@
 body {
-    background-color: rgb(30, 30, 30);
+    background-color: rgb(18, 18, 18);
     font-family: Arial, Helvetica, sans-serif;
     padding: 10px;
 }
 
 #top_div {
     text-align: center;
-    background-color: rgb(35, 35, 35);
+    background-color: rgb(30, 30, 30);
     border-radius: 20px;
     padding: 20px 20px;
     box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
