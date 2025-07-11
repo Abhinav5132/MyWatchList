@@ -46,8 +46,13 @@ pub fn Details(id: i32) -> Element{
             document::Link{rel: "stylesheet", href: DETAILS_CSS},
             div{
                 id:"Title_div",
-            h3 { "{ details.title }" },
+            h3 { id: "Title", 
+                "{ details.title }" },
             }
+
+            div{
+                id: "Anime_div",
+            
             div {  
                 id:"picture_div",
                 img {
@@ -55,17 +60,20 @@ pub fn Details(id: i32) -> Element{
                     src: "{ details.picture }",
                     alt: "picture"
                     }
-                }
+                h5 {  " episodes: {details.episodes}"}
                 
-
-
+    
+            }
+    
                 button {  
                     onclick: move |_| {
                         navigator.push(crate::router::routes::Searchpg {  });
                     }
                 }
 
-            },
+
+    }},
+            
         
         None => rsx!{
             h1 { "Loading" }

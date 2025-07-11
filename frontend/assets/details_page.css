@@ -1,22 +1,31 @@
 #Title_div {
-    text-align: left;
-    background-color: rgb(30, 30, 30);
-    margin: 0px;
-    padding: 0px;
-    position: fixed;
+    background-color: rgb(40, 40, 40);
     color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 8px 10px;
     top: 0;
     left: 0;
-    width: 100%;
-    z-index: 1000;
-    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
 }
-
 #Detail_image {
-    height: 500px;
+    height: 450px;
     width: auto;
+    /*border-radius: 8px;*/
+    border: 2px solid rgb(56, 54, 54);
+    display: flex;
 }
 
 #Picture_div{
-    left: 0px;
+    background-color: rgb(40, 40, 40);
+}
+
+#format_div{
+    display: flex;
+}
+
+#Anime_div{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    
 }

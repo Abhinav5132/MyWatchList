@@ -1,26 +1,27 @@
 body {
-    background-color: rgb(18, 18, 18);
+    background-color: rgb(30, 30, 30);
     font-family: Arial, Helvetica, sans-serif;
     padding: 10px;
 }
 
 #top_div {
     text-align: center;
-    background-color: rgb(30, 30, 30);
+    background-color: rgb(40, 40, 40);
     border-radius: 20px;
     padding: 20px 20px;
-    box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
+    box-shadow: 0 4px 8px rgba(21, 18, 21, 0.5);
 }
 
 h1 {
     color: rgb(147, 78, 213);
-    padding: 10px 20px;
-    box-shadow: 0 4px 8px rgba(104, 26, 100, 0.5);
     display: inline-block;
-    margin: 20px;
-    background-color: rgb(40, 40, 40);
     border-radius: 10px;
     text-align: center;
+    text-shadow:
+        -2px -1px 0 black,
+         2px -1px 0 black,
+        -2px  1px 0 black,
+         2px  1px 0 black;
 }
 
 #Search_Bar {
@@ -37,6 +38,7 @@ h1 {
 }
 
 #Search_button {
+    margin: 2px;
     width: 8%;
     font-size: 1rem;
     border-radius: 10px;

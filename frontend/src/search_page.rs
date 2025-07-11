@@ -45,9 +45,6 @@ pub fn Searchpg() -> Element {
         });
         ()
     });
-// add reactive drop shadow that increases on hover
-// if user types somethins and then removes it the search results default to printing all the shows
-// change to check names and synonyms together and ignore if it already exists
     rsx! {
         document::Link{rel: "stylesheet", href: MAIN_CSS}
         div {
@@ -103,7 +100,8 @@ pub fn Searchpg() -> Element {
                     "{anime.title}"
                 } }
             }
-            div {  
+    }
+    div {  
             button {  
                 onclick: move |_| {
                     page.with_mut(|p| {
@@ -126,7 +124,6 @@ pub fn Searchpg() -> Element {
 
             }
         } 
-    }
     }
 }
 }

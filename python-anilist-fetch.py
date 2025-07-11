@@ -2,11 +2,78 @@ import requests
 import json
 import os
 import time
+import re
+from html import unescape
 
 JSONL_FILE = "anilist_data.jsonl"
 FINAL_JSON_FILE = "anilist_data.json"
 BATCH_SIZE = 50
-MAX_PAGES = 800  # or adjust as needed
+MAX_PAGES = 800  # Adjust as needed
+
+
+def clean_description(description):
+    if not description:
+        return ""
+    # Remove HTML tags
+    description = re.sub(r"<.*?>", "", description)
+    return unescape(description).strip()
+
+
+def build_trailer_url(trailer):
+    if trailer and trailer.get("site") and trailer.get("id"):
+        site = trailer["site"].lower()
+        trailer_id = trailer["id"]
+        if site == "youtube":
+            return f"https://www.youtube.com/watch?v={trailer_id}"
+        elif site == "dailymotion":
+            return f"https://www.dailymotion.com/video/{trailer_id}"
+    return None
+
+
+def simplify_entry(media):
+    return {
+        "id": media["id"],
+        "title": media["title"]["romaji"],
+        "description": clean_description(media.get("description")),
+        "format": media.get("format"),
+        "episodes": media.get("episodes"),
+        "status": media.get("status"),
+        "season": media.get("season"),
+        "seasonYear": media.get("seasonYear"),
+        "coverImage": media["coverImage"]["extraLarge"] if media.get("coverImage") else None,
+        "bannerImage": media.get("bannerImage"),
+        "duration": media.get("duration"),
+        "popularity": media.get("popularity"),
+        "averageScore": media.get("averageScore"),
+        "synonyms": media.get("synonyms", []),
+        "tags": [tag["name"] for tag in media.get("tags", [])],
+        "studios": [studio["name"] for studio in media["studios"]["nodes"]],
+        "relations": [
+            {
+                "title": rel["node"]["title"]["romaji"],
+                "type": rel["relationType"]
+            }
+            for rel in media.get("relations", {}).get("edges", [])
+        ],
+        "characters": [
+            {
+                "name": char["node"]["name"]["full"],
+                "role": char["role"],
+                "voiceActors": [va["name"]["full"] for va in char.get("voiceActors", [])]
+            }
+            for char in media.get("characters", {}).get("edges", [])
+        ],
+        "trailer": build_trailer_url(media.get("trailer")),
+        "recommendations": [
+            {
+                "title": rec["mediaRecommendation"]["title"]["romaji"],
+                "rating": rec["rating"]
+            }
+            for rec in media.get("recommendations", {}).get("nodes", [])
+            if rec.get("mediaRecommendation")
+        ]
+    }
+
 
 def fetch_page(page, per_page=BATCH_SIZE):
     query = '''
@@ -17,6 +84,7 @@ def fetch_page(page, per_page=BATCH_SIZE):
                 title {
                     romaji
                 }
+                description
                 format
                 episodes
                 status
@@ -25,6 +93,7 @@ def fetch_page(page, per_page=BATCH_SIZE):
                 coverImage {
                     extraLarge
                 }
+                bannerImage
                 duration
                 popularity
                 averageScore
@@ -38,10 +107,43 @@ def fetch_page(page, per_page=BATCH_SIZE):
                     }
                 }
                 relations {
-                    nodes {
-                        title {
-                            romaji
+                    edges {
+                        relationType
+                        node {
+                            title {
+                                romaji
+                            }
                         }
+                    }
+                }
+                characters(perPage: 10, sort: [ROLE, RELEVANCE]) {
+                    edges {
+                        role
+                        node {
+                            name {
+                                full
+                            }
+                        }
+                        voiceActors(language: JAPANESE) {
+                            name {
+                                full
+                            }
+                            language
+                        }
+                    }
+                }
+                trailer {
+                    site
+                    id
+                }
+                recommendations(perPage: 5, sort: [RATING_DESC]) {
+                    nodes {
+                        mediaRecommendation {
+                            title {
+                                romaji
+                            }
+                        }
+                        rating
                     }
                 }
             }
@@ -58,20 +160,24 @@ def fetch_page(page, per_page=BATCH_SIZE):
     response.raise_for_status()
     return response.json()["data"]["Page"]["media"]
 
+
 def write_jsonl(data, path):
     with open(path, "a", encoding="utf-8") as f:
         for item in data:
-            json.dump(item, f)
+            simplified = simplify_entry(item)
+            json.dump(simplified, f, ensure_ascii=False)
             f.write("\n")
+
 
 def convert_jsonl_to_json(jsonl_path, output_path):
     with open(jsonl_path, "r", encoding="utf-8") as f:
         items = [json.loads(line) for line in f if line.strip()]
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(items, f, indent=2)
+        json.dump(items, f, indent=2, ensure_ascii=False)
 
     os.remove(jsonl_path)
+
 
 def main():
     if os.path.exists(JSONL_FILE):
@@ -85,7 +191,7 @@ def main():
                 print("No more data.")
                 break
             write_jsonl(data, JSONL_FILE)
-            time.sleep(1.5)  # polite delay to avoid rate limits
+            time.sleep(2.5)  # polite delay
         except Exception as e:
             print(f"Error on page {page}: {e}")
             break
@@ -93,6 +199,7 @@ def main():
     print("Converting to JSON...")
     convert_jsonl_to_json(JSONL_FILE, FINAL_JSON_FILE)
     print(f"Done. Final data saved to {FINAL_JSON_FILE}")
+
 
 if __name__ == "__main__":
     main()
