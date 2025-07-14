@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS anime (
     banner_image TEXT,
     duration INT,
     popularity INT,
-    trailer_url TEXT,
-    score FLOAT
+    averageScore FLOAT,
+    trailer_url TEXT
 );
 
 Create Table If not Exists synonyms(
@@ -60,17 +60,9 @@ CREATE Table IF NOT EXISTS anime_studio(
 -- Characters
 CREATE TABLE IF NOT EXISTS characters (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    image_url TEXT
+    name TEXT NOT NULL
 );
 
--- Voice Actors
-CREATE TABLE IF NOT EXISTS voice_actor (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    language TEXT,
-    image_url TEXT
-);
 
 -- Anime ↔ Characters (role is like MAIN / SUPPORTING)
 CREATE TABLE IF NOT EXISTS anime_character (
@@ -82,22 +74,10 @@ CREATE TABLE IF NOT EXISTS anime_character (
     PRIMARY KEY (anime_id, character_id)
 );
 
--- Character ↔ Voice Actor in a specific anime
-CREATE TABLE IF NOT EXISTS character_voice_actor (
-    character_id INTEGER NOT NULL,
-    voice_actor_id INTEGER NOT NULL,
-    anime_id INTEGER NOT NULL,
-    FOREIGN KEY(character_id) REFERENCES characters(id),
-    FOREIGN KEY(voice_actor_id) REFERENCES voice_actor(id),
-    FOREIGN KEY(anime_id) REFERENCES anime(id),
-    PRIMARY KEY (character_id, voice_actor_id, anime_id)
-);
-
 -- Recommendations
 CREATE TABLE IF NOT EXISTS recommendations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     anime_id INTEGER NOT NULL,
     recommended_title TEXT NOT NULL,
-    rating INTEGER,
     FOREIGN KEY(anime_id) REFERENCES anime(id)
 );
