@@ -24,11 +24,11 @@ struct AnimeResult {
     title: String,
     picture: Option<String>,
 }
-// this struct does not related anime add later
 #[derive(Serialize, Default, Deserialize)]
 struct FullAnimeResult {
     title: String,
     format: String,
+    description: String,
     episodes: i32,
     status:String,
     anime_season: String,
@@ -36,6 +36,7 @@ struct FullAnimeResult {
     picture: String,
     duration: i32,
     score: f32,
+    trailer_url: String,
     studio: Option<Vec<String>>,
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,

@@ -1,0 +1,7 @@
+Backend:
+    -Banner images havent been added to the database for some reason. IDK if they will ever be used so low Priority fix.
+    -Also need to get the english title.
+
+Frontend:
+    -When you return back from details page to search page the css styling is fucked, prolly because its trying to use details_page.css for some odd reason
+    -figure out how to embed trailer links.

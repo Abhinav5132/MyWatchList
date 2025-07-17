@@ -8,13 +8,15 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
         Ok(row) => {
         let title = row.try_get("title").unwrap_or("Unknown").to_string();
         let format = row.try_get("format").unwrap_or("unknown".to_string());
+        let description = row.try_get("description").unwrap_or("unknown".to_string());
         let episodes = row.try_get("episodes").unwrap_or(0);
         let status = row.try_get("status").unwrap_or("Unknown".to_string());
         let anime_season = row.try_get("anime_season").unwrap_or("Unknown").to_string();
         let anime_year = row.try_get("anime_year").unwrap_or(0000);
         let picture:String = row.try_get("picture").unwrap_or_default();
         let duration = row.try_get("duration").unwrap_or(0);
-        let score = row.try_get("score").unwrap_or(0.0);
+        let score = row.try_get("averageScore").unwrap_or(0.0);
+        let trailer_url = row.try_get("trailer_url").unwrap_or("Unknown".to_string());
 
         //synonyms
         let mut r = sqlx::query("SELECT s.synonym FROM synonyms s WHERE s.anime_id = ?")
@@ -40,6 +42,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
         let anime_deatils = FullAnimeResult{
             title: title,
             format: format,
+            description: description,
             episodes: episodes,
             status:status,
             anime_season:anime_season,
@@ -50,6 +53,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
             studio: studios,
             synonyms: synonyms,
             tags: tags,
+            trailer_url: trailer_url
         };
         web::Json(anime_deatils)
         }

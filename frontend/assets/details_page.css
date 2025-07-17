@@ -1,31 +1,34 @@
 #Title_div {
     background-color: rgb(40, 40, 40);
-    color: white;
+    color: rgb(255, 255, 255);
     font-family: Arial, Helvetica, sans-serif;
     padding: 8px 10px;
-    top: 0;
-    left: 0;
+}
+#top_div {
     display: flex;
+    justify-content: left;
+    align-items: top;
+    background-color:rgb(30, 30, 30) ;
+    border: 2px solid rgb(56, 54, 54);
+    box-shadow: none;
+    border-radius: 0px;
+    margin-top: 6px;
 }
 #Detail_image {
     height: 450px;
     width: auto;
-    /*border-radius: 8px;*/
     border: 2px solid rgb(56, 54, 54);
-    display: flex;
-}
-
-#Picture_div{
     background-color: rgb(40, 40, 40);
 }
-
-#format_div{
-    display: flex;
+#Details_div{
+    margin-left: 6px;
+    flex: 1;
+    width: 100%;
 }
-
-#Anime_div{
+#format_details_div {
+    background-color: rgb(40, 40, 40);
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    
+    align-items: top;
+    gap: 20px;
+    color: white;
 }
