@@ -1,8 +1,11 @@
-
 use crate::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 const DETAILS_CSS: Asset = asset!("/assets/details_page.css");
+const HEART:Asset = asset!("/assets/heart.png");
+const TRAHSH:Asset = asset!("/assets/bin.png");
+const TICK:Asset = asset!("/assets/check-mark.png");
+const NOPFP:Asset = asset!("/assets/No_pfp.jpg");
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -49,6 +52,8 @@ pub fn Details(id: i32) -> Element {
             let hours = details.duration / 60;
             let minutes = details.duration % 60;
             let length = format!("{:02}:{:02}", hours, minutes);
+
+            let rating = details.score / 10.0;
             rsx!{
                 document::Link{rel: "stylesheet", href: DETAILS_CSS},
                 div{
@@ -76,24 +81,114 @@ pub fn Details(id: i32) -> Element {
 
                                 h4 {
                                     "Format: Movie"
-                                } 
+                                }
                                 h4 {
                                     "Duration: {length}"
                                 }
 
-                                h4 { 
+                                h4 {
                                     "Status: {details.status}"
+                                }
+
+                                h4 {
+                                    "Rating: {rating}"
                                 }
                             }
                             else {
-                                h4 { "Format: {details.format}" }
-                                h4 { "Episodes : {details.episodes}" }
                                 h4 { 
+                                    "Format: {details.format}" 
+                                }
+                                h4 { 
+                                    "Episodes : {details.episodes}" 
+                                }
+                                h4 {
                                     "Status: {details.status}"
+                                }
+                                h4 {
+                                    "Rating: {rating}"
                                 }
                             }
                         }
-                    }       
+                        div {
+                            id: "Description_div",
+                            p {
+                                "{details.description}"
+                            }
+                        }
+                    }
+                    div {
+                        id: "Friends_div",
+                        h3 { "Friends:" }
+                        div {  
+                            class: "Friend_card",
+                            img { 
+                                class: "PFP" ,
+                                src: NOPFP
+                            }
+                            img { 
+                                class: "Feeling_icon",
+                                src: HEART 
+                            }
+                            h5 { "Diddyago liked this" }
+                            
+                        }
+                        div {  
+                            class: "Friend_card",
+                            img { 
+                                class: "PFP" ,
+                                src: NOPFP
+                            }
+                            img { 
+                                class: "Feeling_icon",
+                                src: TRAHSH
+                            }
+                            h5 { "N hated this " }
+                            
+                        }
+                        div {  
+                            class: "Friend_card",
+                            img { 
+                                class: "PFP" ,
+                                src: NOPFP
+                            }
+                            img { 
+                                class: "Feeling_icon",
+                                src: TICK 
+                            }
+                            h5 { "Diddyago Watched this" }
+                            
+                        }
+                        div {  
+                            class: "Friend_card",
+                            img { 
+                                class: "PFP" ,
+                                src: NOPFP
+                            }
+                            img { 
+                                class: "Feeling_icon",
+                                src: HEART 
+                            }
+                            h5 { "Diddyago liked this" }
+                            
+                        }
+                        div {  
+                            class: "Friend_card",
+                            img { 
+                                class: "PFP" ,
+                                src: NOPFP
+                            }
+                            img { 
+                                class: "Feeling_icon",
+                                src: HEART 
+                            }
+                            h5 { "Diddyago liked this" }
+                            
+                        }
+                        button {
+                            id:"show_more_friends_button",
+                            "Show More" 
+                        }
+                    }
                 }
         button {
             onclick: move |_| {
