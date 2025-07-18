@@ -6,6 +6,7 @@ const HEART:Asset = asset!("/assets/heart.png");
 const TRAHSH:Asset = asset!("/assets/bin.png");
 const TICK:Asset = asset!("/assets/check-mark.png");
 const NOPFP:Asset = asset!("/assets/No_pfp.jpg");
+const ADD:Asset = asset!("/assets/plus.png");
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -72,6 +73,27 @@ pub fn Details(id: i32) -> Element {
                             src: "{ details.picture }",
                             alt: "picture"
                             }
+                        div {
+                            id: "Like_button_div",
+                            button { 
+                                id:"Recommend_button",
+                                img { 
+                                    class:"Feeling_icon",
+                                    src:HEART,
+                                }
+                                "Add to recommended"
+                            }
+                            button { 
+                                id:"Watch_list_button",
+                                img { 
+                                    class:"Feeling_icon",
+                                    id:"Add",
+                                    src:ADD
+                                }
+                                "Add to list"
+                                // make this a dropdown
+                            }
+                         }
                     }
                     div{
                         id:"Details_div",

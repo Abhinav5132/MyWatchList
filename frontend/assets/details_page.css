@@ -18,7 +18,7 @@
 }
 #Detail_image {
     height: 450px;
-    width: auto;
+    width: 320px;
     border: 2px solid rgb(56, 54, 54);
     background-color: rgb(40, 40, 40);
 }
@@ -109,4 +109,49 @@
 
 #show_more_friends_button:active{
     background-color: rgb(147, 78, 240);
+}
+
+#Like_button_div{
+    display: flex;
+    margin-top: 6px;
+    align-items: center;
+}
+
+#Recommend_button{
+    display: flex;
+    border-radius: 6px;
+    border: 2px solid rgb(30, 30, 30);
+    background-color: #8FD54E;
+    justify-content: center;
+    align-items: center;
+    font-weight: 900;
+    width: 200px;
+    height: 40px;
+    transition: background-color 0.10s;
+}
+#Recommend_button:hover{
+    box-shadow: 2px 2px 6px rgba(132, 213, 82, 0.233);
+    cursor: pointer;
+}
+#Recommend_button:active{
+    background-color: rgb(123, 226, 38);
+}
+#Watch_list_button{
+    display: flex;
+    background-color:#D5704E;
+    border-radius: 6px;
+    border: 2px solid rgb(30, 30, 30);
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    font-weight: 900;
+    margin-left: 4px;
+    transition: background-color 0.10s;
+}
+#Watch_list_button:hover{
+    box-shadow: 2px 2px 6px #d17e6236;
+    cursor: pointer;
+}
+#Watch_list_button:active{
+    background-color: rgb(185, 97, 68);
 }

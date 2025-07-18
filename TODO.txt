@@ -1,6 +1,8 @@
 Backend:
     -Banner images havent been added to the database for some reason. IDK if they will ever be used so low Priority fix.
     -Also need to get the english title.
+    -tags need to be replaced with generes
+    -
 Frontend:
     -When you return back from details page to search page the css styling is fucked, prolly because its trying to use details_page.css for some odd reason
     -figure out how to embed trailer links.
@@ -9,7 +11,10 @@ Frontend:
     -Friends is gonna have 5 items max and the rest needs to have its own Friends page
     -Clicking on a friend liking it should also take them to a different page with when they added ect and their other likes/watches
     -trash can image is not the right image
+    -plus icon needs to be replaced
 
 Final:
     -need to bundle gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-plugins-ugly for linux or equivalent for other systems
     
+Nice looking colours:
+#8FD54E
