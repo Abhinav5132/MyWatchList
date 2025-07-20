@@ -1,4 +1,5 @@
 use crate::*;
+use dioxus::logger::tracing::span::Record;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 const DETAILS_CSS: Asset = asset!("/assets/details_page.css");
@@ -24,6 +25,15 @@ struct FullAnimeResult {
     studio: Option<Vec<String>>,
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
+    recommendations: Vec<ReccomendResult>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+struct ReccomendResult{
+    id: i32,
+    title: String,
+    picture: String,
+    score: f32,
 }
 
 #[component]
@@ -135,6 +145,24 @@ pub fn Details(id: i32) -> Element {
                             id: "Description_div",
                             p {
                                 "{details.description}"
+                            }
+                        }
+
+                        div { 
+                            id: "Recommendations_div",
+                            for reccommend in details.recommendations.clone(){
+                                div { 
+                                    class: "Recommend_item_div",
+                                    img { 
+                                        id: "Reccomend_pic",
+                                        src:reccommend.picture
+                                    }
+                                    div { 
+                                        id: "Recc_title_div",
+                                        "{reccommend.title}",
+                                        "{reccommend.score / 10.0}"
+                                    }
+                                }
                             }
                         }
                     }

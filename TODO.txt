@@ -2,12 +2,12 @@ Backend:
     -Banner images havent been added to the database for some reason. IDK if they will ever be used so low Priority fix.
     -Also need to get the english title.
     -tags need to be replaced with generes
-    -
+    -fetch character portraits.
+    -recommendations are duplicted multiple times for some reason
+    -make it so the data get updated from anilist every week and build the database on the fly and swap to that instance and delete old, this requires a dual databse
 Frontend:
     -When you return back from details page to search page the css styling is fucked, prolly because its trying to use details_page.css for some odd reason
-    -figure out how to embed trailer links.
     -if name is too long do ... the causes the image cards to become too big in the search page 
-    -Description looks like shit
     -Friends is gonna have 5 items max and the rest needs to have its own Friends page
     -Clicking on a friend liking it should also take them to a different page with when they added ect and their other likes/watches
     -trash can image is not the right image

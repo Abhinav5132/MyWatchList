@@ -40,10 +40,16 @@ struct FullAnimeResult {
     studio: Option<Vec<String>>,
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
+    recommendations: Vec<ReccomendResult>
 }
 
-// backend is missing descriptions for anime
-//also fetch english names for search as some just dont exist under syninyms eg Shigatsu wa Kimi no Uso
+#[derive(Serialize, Default, Deserialize)]
+struct ReccomendResult{
+    id: i32,
+    title: String,
+    picture: String,
+    score: f32,
+}
 
 fn main() {
     dotenvy::dotenv().ok();

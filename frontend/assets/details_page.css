@@ -155,3 +155,20 @@
 #Watch_list_button:active{
     background-color: rgb(185, 97, 68);
 }
+
+#Recommendations_div {
+    background-color: rgb(40, 40, 40);
+    display: flex;
+    align-items: flex-start;
+    padding-left: 12px;
+    padding-right: 12px;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+#Reccomend_pic{
+    width: 120px;
+    height: auto;
+    border: 2px solid rgb(30, 30, 30);
+    
+}
