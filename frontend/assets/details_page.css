@@ -155,20 +155,33 @@
 #Watch_list_button:active{
     background-color: rgb(185, 97, 68);
 }
-
-#Recommendations_div {
-    background-color: rgb(40, 40, 40);
+#other_anime_div{
     display: flex;
+    flex-direction: row;
     align-items: flex-start;
-    padding-left: 12px;
-    padding-right: 12px;
+    justify-content: center;
+
+}
+#Recommendations_div, #Related_div {
+    flex: 1;
+    background-color: rgb(40, 40, 40);
+    padding: 12px;
     border-radius: 6px;
-    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 12px; 
 }
 
-#Reccomend_pic{
-    width: 120px;
+#Reccomend_pic, #related_pic{
+    width: 140px;
     height: auto;
     border: 2px solid rgb(30, 30, 30);
     
+}
+
+#Recc_title_div{
+    width: 140px;
+    white-space: normal;
+    word-wrap: break-word; 
+    overflow: hidden;
 }

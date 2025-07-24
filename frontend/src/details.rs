@@ -1,5 +1,4 @@
 use crate::*;
-use dioxus::logger::tracing::span::Record;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 const DETAILS_CSS: Asset = asset!("/assets/details_page.css");
@@ -26,6 +25,7 @@ struct FullAnimeResult {
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     recommendations: Vec<ReccomendResult>,
+    related_anime: Vec<RelatedAnime>
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -34,6 +34,13 @@ struct ReccomendResult{
     title: String,
     picture: String,
     score: f32,
+}
+#[derive(Serialize, Default, Deserialize, Clone, Debug, PartialEq)]
+struct RelatedAnime{
+    id: i32,
+    title: String,
+    picture: String,
+    RelationType: String
 }
 
 #[component]
@@ -147,20 +154,40 @@ pub fn Details(id: i32) -> Element {
                                 "{details.description}"
                             }
                         }
-
-                        div { 
-                            id: "Recommendations_div",
-                            for reccommend in details.recommendations.clone(){
-                                div { 
-                                    class: "Recommend_item_div",
-                                    img { 
-                                        id: "Reccomend_pic",
-                                        src:reccommend.picture
-                                    }
+                        div{
+                            id:"other_anime_div",
+                            div { 
+                                id: "Recommendations_div",
+                                for reccommend in details.recommendations.clone(){
                                     div { 
-                                        id: "Recc_title_div",
-                                        "{reccommend.title}",
-                                        "{reccommend.score / 10.0}"
+                                        class: "Recommend_item_div",
+                                        img { 
+                                            id: "Reccomend_pic",
+                                            src:reccommend.picture
+                                        }
+                                        div { 
+                                            id: "Recc_title_div",
+                                            "{reccommend.title}",
+                                            "{reccommend.score / 10.0}"
+                                        }
+                                    }
+                                }
+                            }
+
+                            div {  
+                                id:"Related_div",
+                                for related in details.related_anime.clone(){
+                                    div {  
+                                        class:"Related_item_div",
+                                        img{
+                                            id: "related_pic",
+                                            src: related.picture
+                                        }
+                                        div {
+                                            id:"rel_title_div",
+                                            "{related.title}",
+                                            "{related.RelationType}"
+                                        }
                                     }
                                 }
                             }

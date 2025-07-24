@@ -40,7 +40,8 @@ struct FullAnimeResult {
     studio: Option<Vec<String>>,
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
-    recommendations: Vec<ReccomendResult>
+    recommendations: Vec<ReccomendResult>,
+    related_anime: Vec<RelatedAnime>
 }
 
 #[derive(Serialize, Default, Deserialize)]
@@ -49,6 +50,15 @@ struct ReccomendResult{
     title: String,
     picture: String,
     score: f32,
+}
+
+
+#[derive(Serialize, Default, Deserialize)]
+struct RelatedAnime{
+    id: i32,
+    title: String,
+    picture: String,
+    RelationType: String
 }
 
 fn main() {

@@ -4,6 +4,7 @@ Backend:
     -tags need to be replaced with generes
     -fetch character portraits.
     -recommendations are duplicted multiple times for some reason
+    -when i get related also get pictures for them
     -make it so the data get updated from anilist every week and build the database on the fly and swap to that instance and delete old, this requires a dual databse
 Frontend:
     -When you return back from details page to search page the css styling is fucked, prolly because its trying to use details_page.css for some odd reason

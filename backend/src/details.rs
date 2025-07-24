@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, vec};
 
 pub use crate::*;
 
@@ -41,6 +41,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
         ").bind(&id).fetch_all(db.as_ref()).await.unwrap_or_default();
         let tags = r.into_iter().filter_map(|t| t.try_get("tag").ok()).collect();
 
+        // recommended titls
         r = sqlx::query("SELECT recommended_title FROM recommendations WHERE anime_id = ?")
         .bind(&id).fetch_all(db.as_ref()).await.unwrap_or_default();
         
@@ -61,6 +62,28 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
             } 
         }
 
+        // related_anime 
+        r = sqlx::query("SELECT related_name, relation_type FROM related_anime WHERE anime_id = ?")
+        .bind(&id).fetch_all(db.as_ref()).await.unwrap_or_default();
+        
+        let mut related_anime:Vec<RelatedAnime> = vec![];
+
+        for row in r {
+            if let (Ok(rel_title), Ok(rel_type)) =(
+                row.try_get("related_name"), row.try_get("relation_type")
+            ){
+                if let Ok(rel_url) = sqlx::query("SELECT id, picture FROM anime WHERE title = ?")
+                .bind(&rel_title).fetch_one(db.as_ref()).await{
+                    let rel_result = RelatedAnime{
+                        title: rel_title,
+                        picture: rel_url.try_get("picture").unwrap_or("Unknown".to_string()),
+                        RelationType: rel_type,
+                        id: rel_url.try_get("id").unwrap_or(-1)
+                    };
+                    related_anime.push(rel_result);
+                }
+        };
+    }
 
         let anime_deatils = FullAnimeResult{
             title: title,
@@ -77,7 +100,8 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
             synonyms: synonyms,
             tags: tags,
             trailer_url: trailer_url,
-            recommendations: reccommend_result
+            recommendations: reccommend_result,
+            related_anime: related_anime
         };
         web::Json(anime_deatils)
         }
