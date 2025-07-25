@@ -33,7 +33,7 @@ pub fn Searchpg() -> Element {
             }
             let client = Client::new();
             if let Ok(res) = client
-                .get(format!("http://localhost:3000/search?query={}&page={}", query, page))
+                .get(format!("https://localhost:3000/search?query={}&page={}", query, page))
                 .send()
                 .await
             {

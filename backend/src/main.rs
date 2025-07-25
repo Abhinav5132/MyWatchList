@@ -1,5 +1,6 @@
 use actix_cors::Cors;
-use actix_web::{App, HttpServer, Responder, get, web};
+use actix_web::{get, App, HttpRequest, HttpServer, Responder, web};
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
 
@@ -12,6 +13,9 @@ use details::get_details;
 
 pub mod search;
 use search::main_search;
+
+pub mod authenticate;
+pub mod login;
 
 #[derive(Deserialize)]
 struct SearchQuery {
@@ -72,12 +76,14 @@ fn main() {
 
 #[actix_web::main]
 async fn setup_backend() -> std::io::Result<()> {
+
+    //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
         .filename("anime.db")
         .create_if_missing(true);
 
     let connection = sqlite::SqlitePool::connect_with(opt).await.unwrap();
-    let schema = std::fs::read_to_string("anime.sql").unwrap();
+    let schema = std::fs::read_to_string("anime.sql").unwrap_or_default();
     connection.execute(&*schema).await.unwrap();
     
     let _ = sqlx::query("PRAGMA journal_mode = WAL;")
@@ -94,6 +100,11 @@ async fn setup_backend() -> std::io::Result<()> {
             Err(e) => eprintln!("Failed to initialize database: {}", e),
         };
     }
+    
+    //https server initializations
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    builder.set_private_key_file("keys/key.pem", SslFiletype::PEM).unwrap();
+    builder.set_certificate_chain_file("keys/cert.pem").unwrap();
 
     HttpServer::new(move || {
         App::new()
@@ -101,8 +112,7 @@ async fn setup_backend() -> std::io::Result<()> {
             .app_data(web::Data::new(connection.clone()))
             .service(main_search)
             .service(get_details)
-    })
-    .bind(("127.0.0.1", 3000))?
+    }).bind_openssl("127.0.0.1:3000", builder)?
     .run()
     .await
 }

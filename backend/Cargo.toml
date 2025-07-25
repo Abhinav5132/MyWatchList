@@ -4,12 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-actix-web = "4.11.0"
+actix-web = { version = "4.11.0", features = ["openssl"] }
 sqlx = {version = "0.8.6", features = ["runtime-tokio-rustls", "sqlite", "macros", "sqlx-sqlite"] }
 tokio = {version = "1.45.1", features = ["full"]}
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.140"
 actix-cors = "0.7.1"
 reqwest = { version = "0.12.20", features = ["json"] }
-anyhow = "1.0.98"
 dotenvy = "0.15.7"
+argon2 = { version = "0.5.3", features = ["std"] }
+rand_core = "0.6.4"
+password-hash = "0.5.0"
+openssl = "0.10.73"
+

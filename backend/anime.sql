@@ -81,3 +81,20 @@ CREATE TABLE IF NOT EXISTS recommendations (
     recommended_title TEXT NOT NULL,
     FOREIGN KEY(anime_id) REFERENCES anime(id)
 );
+
+Create TABLE IF NOT EXISTS user (
+    id AUTO_INCREMENT NOT NULL,
+    user_name TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    user_password TEXT NOT NULL,
+    user_pfp TEXT NOT NULL
+);
+
+Create Table IF NOT Exists watch_list(
+    watch_list_name TEXT NOT NULL,
+    anime_id INT NOT NULL,
+    user_id INT NOT NULL,
+    PRIMARY KEY (user_id, anime_id),
+    Foreign Key (user_id) REFERENCES user(id),
+    Foreign Key (anime_id) REFERENCES anime(id)
+);

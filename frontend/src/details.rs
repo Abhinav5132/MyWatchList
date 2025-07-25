@@ -52,7 +52,7 @@ pub fn Details(id: i32) -> Element {
         spawn(async move {
             let client = Client::new();
             if let Ok(res) = client
-                .get(format!("http://localhost:3000/details?query={}", id))
+                .get(format!("https://localhost:3000/details?query={}", id))
                 .send()
                 .await
             {
