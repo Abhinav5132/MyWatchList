@@ -31,7 +31,7 @@ pub fn Searchpg() -> Element {
                 results.set(vec![]);
                 return;
             }
-            let client = Client::new();
+            let client = Client::builder().danger_accept_invalid_certs(true).build().unwrap();
             if let Ok(res) = client
                 .get(format!("https://localhost:3000/search?query={}&page={}", query, page))
                 .send()

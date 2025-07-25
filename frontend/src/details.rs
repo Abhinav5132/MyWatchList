@@ -50,7 +50,7 @@ pub fn Details(id: i32) -> Element {
     use_effect(move || {
         let mut details = anime_details.clone();
         spawn(async move {
-            let client = Client::new();
+            let client = Client::builder().danger_accept_invalid_certs(true).build().unwrap();
             if let Ok(res) = client
                 .get(format!("https://localhost:3000/details?query={}", id))
                 .send()
