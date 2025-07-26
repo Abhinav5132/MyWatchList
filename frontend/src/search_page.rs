@@ -3,7 +3,7 @@ use dioxus_router::prelude::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-const MAIN_CSS: Asset = asset!("/stylesheets/search_page.css");
+
 const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
 const PREV: Asset = asset!("/assets/prev-page.png");
 const NEXT: Asset = asset!("/assets/next-page.png");
@@ -46,7 +46,7 @@ pub fn Searchpg() -> Element {
         ()
     });
     rsx! {
-        document::Link{rel: "stylesheet", href: MAIN_CSS}
+        
         div {
             id:"top_div",
             h1 { "My Watch List" }

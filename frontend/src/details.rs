@@ -1,7 +1,7 @@
 use crate::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-const DETAILS_CSS: Asset = asset!("/stylesheets/details_page.css");
+
 const HEART:Asset = asset!("/assets/heart.png");
 const TRAHSH:Asset = asset!("/assets/bin.png");
 const TICK:Asset = asset!("/assets/check-mark.png");
@@ -73,7 +73,7 @@ pub fn Details(id: i32) -> Element {
 
             let rating = details.score / 10.0;
             rsx!{
-                document::Link{rel: "stylesheet", href: DETAILS_CSS},
+                
                 div{
                     id:"Title_div",
                 h3 { id: "Title",
