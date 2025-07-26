@@ -3,7 +3,7 @@ use dioxus_router::prelude::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-const MAIN_CSS: Asset = asset!("/assets/search_page.css");
+const MAIN_CSS: Asset = asset!("/stylesheets/search_page.css");
 const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
 const PREV: Asset = asset!("/assets/prev-page.png");
 const NEXT: Asset = asset!("/assets/next-page.png");

@@ -1,7 +1,7 @@
 use crate::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-const DETAILS_CSS: Asset = asset!("/assets/details_page.css");
+const DETAILS_CSS: Asset = asset!("/stylesheets/details_page.css");
 const HEART:Asset = asset!("/assets/heart.png");
 const TRAHSH:Asset = asset!("/assets/bin.png");
 const TICK:Asset = asset!("/assets/check-mark.png");

@@ -14,8 +14,9 @@ Frontend:
     -trash can image is not the right image
     -plus icon needs to be replaced
 
-Final:
-    -need to bundle gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-plugins-ugly for linux or equivalent for other systems
+prod:
+    -https certificate
+    -
     
 Nice looking colours:
 #8FD54E
