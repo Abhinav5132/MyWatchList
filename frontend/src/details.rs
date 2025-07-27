@@ -2,12 +2,6 @@ use crate::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-const HEART:Asset = asset!("/assets/heart.png");
-const TRAHSH:Asset = asset!("/assets/bin.png");
-const TICK:Asset = asset!("/assets/check-mark.png");
-const NOPFP:Asset = asset!("/assets/No_pfp.jpg");
-const ADD:Asset = asset!("/assets/plus.png");
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
     title: String,

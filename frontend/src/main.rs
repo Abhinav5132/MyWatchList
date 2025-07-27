@@ -4,11 +4,24 @@ use crate::router::routes;
 mod search_page;
 mod details;
 mod router;
-mod login_page;
+mod login_popup;
 mod sign_up_page;
+
 const LOGIN_CSS:Asset = asset!("/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/stylesheets/details_page.css");
 const SEARCH_CSS: Asset = asset!("/stylesheets/search_page.css");
+
+pub const HEART:Asset = asset!("/assets/heart.png");
+pub const TRAHSH:Asset = asset!("/assets/bin.png");
+pub const TICK:Asset = asset!("/assets/check-mark.png");
+pub const NOPFP:Asset = asset!("/assets/No_pfp.jpg");
+pub const ADD:Asset = asset!("/assets/plus.png");
+pub const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
+pub const PREV: Asset = asset!("/assets/prev-page.png");
+pub const NEXT: Asset = asset!("/assets/next-page.png");
+pub const MENU: Asset = asset!("/assets/menu.png");
+pub const PLAYLIST: Asset = asset!("/assets/playlist.png");
+pub const FRIENDS: Asset = asset!("/assets/friends.png");
 
 pub fn main() {
     dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
