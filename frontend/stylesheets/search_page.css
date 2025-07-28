@@ -4,7 +4,7 @@ body{
 }
 
 #body_search {
-    padding: 60px;
+    padding: 80px;
 }
 
 #header_div_search{
@@ -14,7 +14,7 @@ body{
     top: 0px;
     left: 0px;
     right: 0px;
-    height:60px;
+    height:80px;
     border-bottom-left-radius:6px; 
     border-bottom-right-radius:6px;
     display: flex;
@@ -23,6 +23,7 @@ body{
 }
 
 #header_div_left_search{
+    width: 75%;
     display: flex;
     align-items: center;
     justify-content: left;
@@ -50,7 +51,28 @@ body{
     padding-left: 15px;
     padding-right: 15px;
 }
+#Search_Bar_search{
+    width:400px;
+    height: 30px;
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    background-image: url('../assets/search-icon.png');
+    background-position: 10px 10px; 
+    background-repeat: no-repeat;
+    margin-right: 16px;
+    cursor: pointer;
+    transition: padding 0.10s, box-shadow 0.10s;
+}
 
+#Search_Bar_search:hover{
+    padding: 6px;
+    box-shadow: 6px 6px 6px rgb(32, 32, 32);
+}
+
+#Search_bar_search:active{
+
+}
 /*This is unchanged from before*/
 #h1_search {
     color: rgb(147, 78, 213);
@@ -62,6 +84,12 @@ body{
          2px -1px 0 black,
         -2px  1px 0 black,
          2px  1px 0 black;
+    transition: padding 0.10s;
+}
+
+#h1_search:hover{
+    padding-left: 6px;
+    padding-right: 6px; 
 }
 #Result_list_search {
     background-color: rgb(35, 35, 35);

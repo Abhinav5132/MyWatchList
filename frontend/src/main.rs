@@ -16,7 +16,6 @@ pub const TRAHSH:Asset = asset!("/assets/bin.png");
 pub const TICK:Asset = asset!("/assets/check-mark.png");
 pub const NOPFP:Asset = asset!("/assets/No_pfp.jpg");
 pub const ADD:Asset = asset!("/assets/plus.png");
-pub const SEARCH_ICON: Asset = asset!("/assets/search-icon.png");
 pub const PREV: Asset = asset!("/assets/prev-page.png");
 pub const NEXT: Asset = asset!("/assets/next-page.png");
 pub const MENU: Asset = asset!("/assets/menu.png");
