@@ -1,11 +1,7 @@
 Backend:
-    -Also need to get the english title.
-    -tags need to be replaced with generes
-    -fetch character portraits.
-    -recommendations are duplicted multiple times for some reason
-    -make it so the data get updated from anilist every week and build the database on the fly and swap to that instance and delete old, this requires a dual databse
-    -new and trending
-    -banner images
+    -voice actors need to be incorporated
+    -change it to large pictures 
+    -add tag percentages
 Frontend:
     -kinda fixed the css problem but i need to make sure every id and class name are distinct
     -if name is too long do ... the causes the image cards to become too big in the search page 
@@ -15,7 +11,7 @@ Frontend:
     -plus icon needs to be replaced.
     -rename details page css names.
     -add a showing results for on search page.
-    -fix the load_times for images somehow.
+    -fix the load_times for images somehow // need to switch to serving smaller images 
     -fix pfp.
 prod:
     -https certificate

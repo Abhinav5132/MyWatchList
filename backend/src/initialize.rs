@@ -5,30 +5,34 @@ use sqlx::Sqlite;
 use serde::{Deserialize, Serialize};
 use sqlx::Pool;
 
-
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AnimeEntry {
     id: u64,
-    title: String,
+    titleEnglish: Option<String>,
+    titleRomaji: String,
     description: Option<String>,
     format: Option<String>,
     episodes: Option<u32>,
     status: Option<String>,
+    startDate: Option<String>,
+    endDate: Option<String>,
     season: Option<String>,
     seasonYear: Option<u32>,
+    thumbnailImage: Option<String>,
     coverImage: Option<String>,
     duration: Option<u32>,  // in minutes
     popularity: Option<u64>,
     averageScore: Option<u32>,
     synonyms: Vec<String>,
     tags: Vec<String>,
+    genres: Vec<String>,
     studios: Vec<String>,
     relations: Vec<RelatedAnime>,
     trailer: Option<String>,
     characters: Vec<Characters>,
     recommendations: Vec<Recommendation>,
-    banner_image: Option<String>,
+    bannerImage: Option<String>,
+    nextAiringEpisode: Option<NextAiringEpisode>
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -39,13 +43,14 @@ pub struct Relations {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RelatedAnime {
     title: String,
-    r#type: String,
+    r#type: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)] 
 pub struct Characters{
-    name: String,
-    role: String
+    name: Option<String>,
+    role: Option<String>,
+    image: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -53,6 +58,11 @@ pub struct Recommendation{
     title: String
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct  NextAiringEpisode{
+    episode: Option<i32>,
+    airingAt: Option<i64>,
+}
 pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn std::error::Error>> {
     println!("INITIALIZING");
     // opeing file for database json
@@ -68,39 +78,52 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
     let mut character_cache: HashMap<String, i64> = HashMap::new();
 
     for anime in parsed_json.iter() {
-
-    let title = &anime.title;
-    let description = anime.description.as_deref().unwrap_or("");
+    let title_romanji = &anime.titleRomaji;
+    let title_english = anime.titleEnglish.as_deref()
+        .filter(|title| !title.is_empty())
+        .unwrap_or(&anime.titleRomaji);
+    let description = anime.description.as_deref().unwrap_or("I dont know man, google it.");
     let format = anime.format.as_deref().unwrap_or("Unknown");
     let episodes = anime.episodes.unwrap_or(0);
     let status = anime.status.as_deref().unwrap_or("Unknown");
     let anime_season = anime.season.as_deref().unwrap_or("Unknown");
     let anime_year = anime.seasonYear.unwrap_or(0);
+    let start_date = anime.startDate.as_deref().unwrap_or("Unknown");
+    let end_date = anime.endDate.as_deref().unwrap_or("Unknown");
     let duration = anime.duration.unwrap_or(0); 
     let score = anime.averageScore.unwrap_or(0);
     let popularity = anime.popularity.unwrap_or(0) as i64;
+    let thumbnail = anime.thumbnailImage.as_deref().unwrap_or("none");
     let picture = anime.coverImage.as_deref().unwrap_or("none");
     let trailerUrl = anime.trailer.as_deref().unwrap_or("none");
-    let banner_image = anime.banner_image.as_deref().unwrap_or("none");
-    println!("{title}");
+    let banner_image = anime.bannerImage.as_deref().unwrap_or("none");
+    let next_episode = anime.nextAiringEpisode.as_ref().and_then(|ep| ep.episode).unwrap_or(-1);
+    let next_episode_date = anime.nextAiringEpisode.as_ref().and_then(|time| time.airingAt).unwrap_or(-1);
     let anime_id = sqlx::query(
         "INSERT INTO anime
-        (title, description, format, episodes, status, anime_season, anime_year, picture, duration, averageScore, popularity, banner_image, trailer_url) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        (title_english, title_romanji, description, format, episodes, status, start_date, end_date, anime_season, 
+        anime_year, thumbnail, picture, duration, averageScore, popularity, banner_image, trailer_url, next_episode, next_episode_airing_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
-    .bind(title)
+    .bind(title_english)
+    .bind(title_romanji)
     .bind(description)
     .bind(format)
     .bind(episodes)
     .bind(status)
+    .bind(start_date)
+    .bind(end_date)
     .bind(anime_season)
     .bind(anime_year)
+    .bind(thumbnail)
     .bind(picture)
     .bind(duration)
     .bind(score)
     .bind(popularity)
     .bind(banner_image)
     .bind(trailerUrl)
+    .bind(next_episode)
+    .bind(next_episode_date)
     .execute(&mut *tx).await?
     .last_insert_rowid();
 
@@ -140,8 +163,8 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
     for related_anime in &anime.relations {
     sqlx::query("INSERT INTO related_anime(anime_id, related_name, relation_type) VALUES (?, ?, ?)")
         .bind(anime_id)
-        .bind(related_anime.title.clone())
-        .bind(related_anime.r#type.clone())
+        .bind(&related_anime.title)
+        .bind(&related_anime.r#type.as_deref().unwrap_or(""))
         .execute(&mut *tx)
         .await?;
     }
@@ -171,8 +194,9 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
 
     // inserting characters 
     for character in &anime.characters{
-        let char_name = &character.name;
+        let char_name = character.name.as_deref().unwrap_or("");
         let role = &character.role;
+        let img = character.image.as_deref().unwrap_or("none");
         let character_id = if let Some(id) = character_cache.get(char_name) {
                 *id
             } else {
@@ -184,7 +208,7 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
                     .bind(char_name)
                     .fetch_one(&mut *tx)
                     .await?;
-                character_cache.insert(char_name.clone(), id);
+                character_cache.insert(char_name.to_string().clone(), id);
                 id
             };
 
@@ -197,10 +221,11 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
         .await?;
 
         if exists.is_none() {
-            sqlx::query("INSERT INTO anime_character(anime_id, character_id, role) VALUES (?,?,?)")
+            sqlx::query("INSERT INTO anime_character(anime_id, character_id, role, image) VALUES (?,?,?,?)")
                 .bind(anime_id)
                 .bind(character_id)
                 .bind(role)
+                .bind(img)
                 .execute(&mut *tx)
                 .await?;
         }

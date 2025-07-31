@@ -14,6 +14,8 @@ use details::get_details;
 pub mod search;
 use search::main_search;
 
+use crate::search::trending_search;
+
 pub mod authenticate;
 pub mod login;
 
@@ -30,7 +32,7 @@ struct AnimeResult {
 }
 #[derive(Serialize, Default, Deserialize)]
 struct FullAnimeResult {
-    title: String,
+    title_romanji: String,
     format: String,
     description: String,
     episodes: i32,
@@ -76,7 +78,8 @@ fn main() {
 
 #[actix_web::main]
 async fn setup_backend() -> std::io::Result<()> {
-
+    let timestamp = chrono::Utc::now().timestamp();
+    println!("{timestamp}");
     //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
         .filename("anime.db")
@@ -112,6 +115,7 @@ async fn setup_backend() -> std::io::Result<()> {
             .app_data(web::Data::new(connection.clone()))
             .service(main_search)
             .service(get_details)
+            .service(trending_search)
     }).bind_openssl("127.0.0.1:3000", builder)?
     .run()
     .await

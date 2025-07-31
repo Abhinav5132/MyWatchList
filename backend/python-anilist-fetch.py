@@ -30,23 +30,39 @@ def build_trailer_url(trailer):
     return None
 
 
+def format_date(date_dict):
+    if not date_dict:
+        return None
+    year = date_dict.get("year")
+    month = date_dict.get("month")
+    day = date_dict.get("day")
+    if year and month and day:
+        return f"{year:04d}-{month:02d}-{day:02d}"
+    return None
+
+
 def simplify_entry(media):
     return {
         "id": media["id"],
-        "title": media["title"]["romaji"],
+        "titleRomaji": media["title"]["romaji"],
+        "titleEnglish": media["title"]["english"],
         "description": clean_description(media.get("description")),
         "format": media.get("format"),
         "episodes": media.get("episodes"),
         "status": media.get("status"),
         "season": media.get("season"),
         "seasonYear": media.get("seasonYear"),
+        "startDate": format_date(media.get("startDate")),
+        "endDate": format_date(media.get("endDate")),
+        "thumbnailImage": media["coverImage"]["medium"] if media.get("coverImage") else None,
         "coverImage": media["coverImage"]["extraLarge"] if media.get("coverImage") else None,
         "bannerImage": media.get("bannerImage"),
-        "duration": media.get("duration"),
+        "duration": media.get("duration"), 
         "popularity": media.get("popularity"),
         "averageScore": media.get("averageScore"),
         "synonyms": media.get("synonyms", []),
         "tags": [tag["name"] for tag in media.get("tags", [])],
+        "genres": media.get("genres", []),
         "studios": [studio["name"] for studio in media["studios"]["nodes"]],
         "relations": [
             {
@@ -59,6 +75,7 @@ def simplify_entry(media):
             {
                 "name": char["node"]["name"]["full"],
                 "role": char["role"],
+                "image": char["node"].get("image", {}).get("medium"),
                 "voiceActors": [va["name"]["full"] for va in char.get("voiceActors", [])]
             }
             for char in media.get("characters", {}).get("edges", [])
@@ -71,7 +88,13 @@ def simplify_entry(media):
             }
             for rec in media.get("recommendations", {}).get("nodes", [])
             if rec.get("mediaRecommendation")
-        ]
+        ],
+
+        "nextAiringEpisode": (
+            media["airingSchedule"]["nodes"][0]
+            if media.get("airingSchedule") and media["airingSchedule"].get("nodes")
+            else None
+            ),
     }
 
 
@@ -83,6 +106,7 @@ def fetch_page(page, per_page=BATCH_SIZE):
                 id
                 title {
                     romaji
+                    english
                 }
                 description
                 format
@@ -90,14 +114,26 @@ def fetch_page(page, per_page=BATCH_SIZE):
                 status
                 season
                 seasonYear
+                startDate {
+                    year
+                    month
+                    day
+                }
+                endDate {
+                    year
+                    month
+                    day
+                }
                 coverImage {
                     extraLarge
+                    medium
                 }
                 bannerImage
                 duration
                 popularity
                 averageScore
                 synonyms
+                genres
                 tags {
                     name
                 }
@@ -123,6 +159,14 @@ def fetch_page(page, per_page=BATCH_SIZE):
                             name {
                                 full
                             }
+                            image {
+                                medium
+                            }
+                        }
+                        voiceActors {
+                            name {
+                                full
+                            }
                         }
                     }
                 }
@@ -130,7 +174,7 @@ def fetch_page(page, per_page=BATCH_SIZE):
                     site
                     id
                 }
-                recommendations(perPage: 5, sort: [RATING_DESC]) {
+                recommendations(perPage: 10, sort: [RATING_DESC]) {
                     nodes {
                         mediaRecommendation {
                             title {
@@ -138,6 +182,13 @@ def fetch_page(page, per_page=BATCH_SIZE):
                             }
                         }
                         rating
+                    }
+                }
+
+                airingSchedule(notYetAired: true, perPage: 1) {
+                    nodes {
+                        episode
+                        airingAt
                     }
                 }
             }
@@ -185,7 +236,7 @@ def main():
                 print("No more data.")
                 break
             write_jsonl(data, JSONL_FILE)
-            time.sleep(2.5)  # polite delay
+            time.sleep(2)  # polite delay
         except Exception as e:
             print(f"Error on page {page}: {e}")
             break

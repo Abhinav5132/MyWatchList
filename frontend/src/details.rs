@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
-    title: String,
+    title_romanji: String,
     format: String,
     description: String,
     episodes: i32,
@@ -71,7 +71,7 @@ pub fn Details(id: i32) -> Element {
                 div{
                     id:"Title_div",
                 h3 { id: "Title",
-                    "{ details.title }" },
+                    "{ details.title_romanji }" },
                 }
 
                 div{

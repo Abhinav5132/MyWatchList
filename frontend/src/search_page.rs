@@ -1,5 +1,6 @@
+use std::thread;
+
 use crate::*;
-use dioxus::prelude::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -10,26 +11,106 @@ struct Anime {
     picture: Option<String>,
 }
 
+#[derive(Serialize,Deserialize, Clone)]
+struct ScrollingResults{
+    id: i32,
+    title_english: String,
+    title_romanji: String,
+    banner_image: String,
+    averageScore: u32,
+    description: String,
+    start_date: String,
+    duration: u32,
+    format: String
+}
+
+
+#[derive(Serialize,Deserialize,Clone)]
+struct TrendingResults{
+    id: i32,
+    title_english: String,
+    title_romanji: String,
+    thumbnail: String,
+    averageScore: u32
+}
+
+#[derive(Serialize,Deserialize,Clone)]
+struct TrendingResponse {
+    new_popular: Vec<TrendingResults>,
+    most_popular: Vec<TrendingResults>,
+    scroll_popular: Vec<ScrollingResults>,
+}
+
+#[component]
+pub fn trending_component() -> Element{
+    let mut trending_results:Signal<Option<TrendingResponse>> = use_signal(|| None);
+    let navigator = use_navigator();
+    use_effect(move || {
+        let mut trending_result = trending_results.clone();
+        let client = use_context::<Client>();
+        
+        spawn(async move {
+            if let Ok(res) = client.get(
+                format!("https://localhost:3000/trending")
+            ).send().await {
+                if let Ok(names) = res.json::<TrendingResponse>().await{
+                    trending_results.set(Some(names));
+                }
+            }
+        });
+        }
+    );
+    rsx!(
+         div { 
+                id:"Scrolling_suggestion_search",
+            if let Some(trending) = trending_results.read().as_ref(){
+                for new_trending in trending.scroll_popular.clone().into_iter() {
+                    
+                    img {
+                        src:format!("{}", new_trending.banner_image),
+                        onclick: move |_| {
+                            let navigator = navigator.clone();
+                            navigator.push(crate::router::routes::Details { id: new_trending.id });
+                        },
+                        div { 
+                            id:"Scrolling_description_search",
+                            "{new_trending.id}"
+                        }
+                    }
+
+                }
+            }
+        } 
+    )
+}
+
 #[component]
 pub fn Searchpg() -> Element {
     let mut search_input = use_signal(|| "".to_string());
     let mut submitted_title = use_signal(|| String::new());
     let navigator = use_navigator();
-    let mut search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
+    let client = Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .expect("Failed to build client");
+            provide_context(client);
+    let search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
     let mut page: Signal<i32> = use_signal(|| 1);
+   
+
     use_effect(move || {
         let query = search_input.read().clone();
         let page = page.read().clone();
         let mut results = search_results.clone();
+        let client = use_context::<Client>();
+        
         spawn(async move {
             if query.is_empty() {
                 results.set(vec![]);
                 return;
             }
-            let client = Client::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .unwrap();
+            thread::sleep(std::time::Duration::from_millis(300));
+
             if let Ok(res) = client
                 .get(format!(
                     "https://localhost:3000/search?query={}&page={}",
@@ -38,6 +119,7 @@ pub fn Searchpg() -> Element {
                 .send()
                 .await
             {
+                
                 if let Ok(names) = res.json::<Vec<Anime>>().await {
                     results.set(names);
                 }
@@ -45,6 +127,8 @@ pub fn Searchpg() -> Element {
         });
         ()
     });
+
+    
     rsx! {
             /*
             div {
@@ -162,6 +246,17 @@ pub fn Searchpg() -> Element {
                         }
                     }
                 }
+            }
+
+            if search_results.read().is_empty(){
+                div { 
+                    class:"new_and_popular_div_search",
+
+                }
+            }
+
+            if search_results.read().is_empty(){
+                trending_component {}
             }
 
             if !search_results.read().is_empty() {

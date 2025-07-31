@@ -8,7 +8,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
     match sqlx::query("SELECT * FROM anime WHERE id = ?
     ").bind(&id).fetch_one(db.as_ref()).await {
         Ok(row) => {
-        let title = row.try_get("title").unwrap_or("Unknown").to_string();
+        let title = row.try_get("title_romanji").unwrap_or("Unknown").to_string();
         let format = row.try_get("format").unwrap_or("unknown".to_string());
         let description = row.try_get("description").unwrap_or("unknown".to_string());
         let episodes = row.try_get("episodes").unwrap_or(0);
@@ -86,7 +86,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
     }
 
         let anime_deatils = FullAnimeResult{
-            title: title,
+            title_romanji: title,
             format: format,
             description: description,
             episodes: episodes,

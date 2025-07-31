@@ -1,19 +1,25 @@
 
 CREATE TABLE IF NOT EXISTS anime (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
+    title_english TEXT,
+    title_romanji TEXT NOT NULL,
     description TEXT,
     format TEXT,
     episodes INT,
     status TEXT,
+    start_date TEXT,
+    end_date TEXT,
     anime_season TEXT,
     anime_year INT,
+    thumbnail TEXT,
     picture TEXT,
     banner_image TEXT,
     duration INT,
     popularity INT,
     averageScore FLOAT,
-    trailer_url TEXT
+    trailer_url TEXT,
+    next_episode TEXT,
+    next_episode_airing_at TEXT
 );
 
 Create Table If not Exists synonyms(
@@ -44,6 +50,17 @@ Create Table If Not EXISTS anime_tags(
     Foreign Key (tag_id) REFERENCES tags(id)
 );
 
+CREATE Table IF NOT EXISTS genres (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    genre Text
+);
+
+Create Table If Not EXISTS anime_genre(
+    anime_id INTEGER NOT NULL,
+    genre_id INTEGER NOT NULL,
+    Foreign Key (anime_id) REFERENCES anime(id),
+    Foreign Key (genre_id) REFERENCES genre(id)
+);
 Create Table IF NOT EXISTS studios(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE
@@ -60,7 +77,7 @@ CREATE Table IF NOT EXISTS anime_studio(
 -- Characters
 CREATE TABLE IF NOT EXISTS characters (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL  
 );
 
 
@@ -69,6 +86,7 @@ CREATE TABLE IF NOT EXISTS anime_character (
     anime_id INTEGER NOT NULL,
     character_id INTEGER NOT NULL,
     role TEXT,
+    image TEXT,
     FOREIGN KEY(anime_id) REFERENCES anime(id),
     FOREIGN KEY(character_id) REFERENCES characters(id),
     PRIMARY KEY (anime_id, character_id)
@@ -79,6 +97,7 @@ CREATE TABLE IF NOT EXISTS recommendations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     anime_id INTEGER NOT NULL,
     recommended_title TEXT NOT NULL,
+    rating INT,
     FOREIGN KEY(anime_id) REFERENCES anime(id)
 );
 

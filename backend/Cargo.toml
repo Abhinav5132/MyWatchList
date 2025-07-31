@@ -16,4 +16,5 @@ argon2 = { version = "0.5.3", features = ["std"] }
 rand_core = "0.6.4"
 password-hash = "0.5.0"
 openssl = "0.10.73"
+chrono = "0.4.41"
 
