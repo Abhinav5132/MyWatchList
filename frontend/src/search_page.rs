@@ -265,7 +265,7 @@ pub fn Searchpg() -> Element {
                         class: "modal_container_search",
                         onclick: move |e| e.stop_propagation(),
                         Login { 
-                            on_close: move || show_login.set(fasle)
+                            on_close: move || show_login.set(false)
                         }
 
                     }

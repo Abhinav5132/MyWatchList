@@ -1,7 +1,7 @@
 use dioxus::{prelude::*};
 
 #[component]
-pub fn Login()-> Element{
+pub fn Login(on_close: EventHandler<()>)-> Element{
     let mut username_email = use_signal(|| "".to_string());
     let mut password = use_signal(|| "".to_string());
     let navigator = use_navigator();
@@ -45,8 +45,8 @@ pub fn Login()-> Element{
                 button {  
                     id: "submit_button",
                     r#type:"button",
-                    onclick: move |_|{
-                        println!("Button clicked")   
+                    onclick: move |_| {
+                        on_close.call(()); // make sure this only gets called if login is actually succesfull
                     },
                     "Submit"
                 }
