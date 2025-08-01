@@ -3,8 +3,12 @@ use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, Pa
 use rand_core::{OsRng};
 
 use crate::*;
-use crate::login::Claims;
 
+#[derive(Serialize, Deserialize)]
+pub struct Claims{
+    pub sub: i64,
+    pub exp: usize
+}
 
 pub fn pwd_to_hash(pwd: &str)-> Result<String, argon2::password_hash::Error>{
     
@@ -23,7 +27,7 @@ pub fn verify_pwd(entered_pwd: &str, hash: &str) -> Result<bool, argon2::passwor
 
 }
 
-pub async fn generate_token(user_id: i32) ->Result<String, jsonwebtoken::errors::Error>{
+pub async fn generate_token(user_id: i64) ->Result<String, jsonwebtoken::errors::Error>{
     let expiery = (chrono::Utc::now() + chrono::Duration::days(30)).timestamp() as usize;
     let claims = Claims{
         sub: user_id,

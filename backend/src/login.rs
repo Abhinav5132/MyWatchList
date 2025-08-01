@@ -8,16 +8,6 @@ pub struct LoginStruct {
     password: String
 }
 
-#[derive(Serialize)]
-pub struct LoginResult{
-    token: String,
-}
-#[derive(Serialize, Deserialize)]
-pub struct Claims{
-    pub sub: i32,
-    pub exp: usize
-}
-
 #[post("/login")]
 pub async fn login(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginStruct>)-> HttpResponse{
     let username:&String = &credentials.username;
@@ -48,8 +38,8 @@ pub async fn login(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginStru
                     };
 
                     let query = sqlx::query("
-                    INSERT INTO user(user_token) VALUES (?)
-                    ").bind(&token).execute(db.as_ref()).await;
+                    UPDATE user SET user_token = ? WHERE id = ?;
+                    ").bind(&token).bind(user_id).execute(db.as_ref()).await;
 
                     match query {
                         Ok(_)=>{

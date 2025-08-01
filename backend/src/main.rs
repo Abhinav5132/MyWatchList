@@ -20,6 +20,7 @@ pub mod authenticate;
 use crate::authenticate::*;
 
 pub mod login;
+pub mod sign_up;
 
 #[derive(Deserialize)]
 struct SearchQuery {
