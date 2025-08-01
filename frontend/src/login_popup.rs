@@ -1,4 +1,4 @@
-use dioxus::{ html::img::{alt, src}, prelude::*};
+use dioxus::{prelude::*};
 
 #[component]
 pub fn Login()-> Element{

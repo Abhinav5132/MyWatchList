@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{get, App, HttpRequest, HttpServer, Responder, web};
+use actix_web::{get, post, App, HttpServer, Responder, web};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
@@ -17,6 +17,8 @@ use search::main_search;
 use crate::search::trending_search;
 
 pub mod authenticate;
+use crate::authenticate::*;
+
 pub mod login;
 
 #[derive(Deserialize)]
@@ -119,6 +121,21 @@ async fn setup_backend() -> std::io::Result<()> {
     }).bind_openssl("127.0.0.1:3000", builder)?
     .run()
     .await
+    /* 
+    use for production
+    HttpServer::new(move || {
+        App::new()
+            .wrap(Cors::default())
+            .allowed_methods(vec!["GET", "POST"])
+            .allowed_headers(vec![header::AUTHORIZATION])
+            .expose_headers(vec![header::AUTHORIZATION])
+            .app_data(web::Data::new(connection.clone()))
+            .service(main_search)
+            .service(get_details)
+            .service(trending_search)
+    }).bind_openssl("127.0.0.1:3000", builder)?
+    .run()
+    .await*/
 }
 
 

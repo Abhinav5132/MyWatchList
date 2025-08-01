@@ -3,6 +3,7 @@ use std::thread;
 use crate::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use login_popup::Login;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct Anime {
@@ -62,21 +63,26 @@ pub fn trending_component() -> Element{
     );
     rsx!(
          div { 
-                id:"Scrolling_suggestion_search",
+            id:"Scrolling_suggestion_search",
             if let Some(trending) = trending_results.read().as_ref(){
                 for new_trending in trending.scroll_popular.clone().into_iter() {
-                    
-                    img {
-                        src:format!("{}", new_trending.banner_image),
+                    div {
+                        class:"scroll_item_wrapper",
                         onclick: move |_| {
                             let navigator = navigator.clone();
-                            navigator.push(crate::router::routes::Details { id: new_trending.id });
+                            navigator.push(crate::router::routes::Details { id: new_trending.id }); },
+
+                        img {
+                            class: "Scrollable_images_search",
+                            src:format!("{}", new_trending.banner_image),
+                            alt: "Trending anime"
                         },
                         div { 
                             id:"Scrolling_description_search",
                             "{new_trending.id}"
                         }
-                    }
+                      
+                    } 
 
                 }
             }
@@ -86,6 +92,7 @@ pub fn trending_component() -> Element{
 
 #[component]
 pub fn Searchpg() -> Element {
+    let mut show_login = use_signal(|| false);
     let mut search_input = use_signal(|| "".to_string());
     let mut submitted_title = use_signal(|| String::new());
     let navigator = use_navigator();
@@ -237,15 +244,32 @@ pub fn Searchpg() -> Element {
                     button {
                         class:"Icon_button_search",
                         id:"Account_button_search",
+                        onclick: move |_| {
+                            show_login.set(true);
+                        },
                         img {
                             class:"Feeling_icon",
                             src:"{NOPFP}",
-                            onclick: move |_| {
-                            //does nothing for now redirect later
-                            },
+                            
                         }
+                        
                     }
                 }
+            }
+
+            if *show_login.read(){
+                div { 
+                    class:"modal_overlay_search",
+                    onclick: move |_| show_login.set(false),
+                    div { 
+                        class: "modal_container_search",
+                        onclick: move |e| e.stop_propagation(),
+                        Login { 
+                            on_close: move || show_login.set(fasle)
+                        }
+
+                    }
+                 }
             }
 
             if search_results.read().is_empty(){

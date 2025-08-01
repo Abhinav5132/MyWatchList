@@ -22,6 +22,10 @@ pub const MENU: Asset = asset!("/assets/menu.png");
 pub const PLAYLIST: Asset = asset!("/assets/playlist.png");
 pub const FRIENDS: Asset = asset!("/assets/friends.png");
 
+//add the token here as a GlobalSignal 
+//when the token expires se this to null and ask the user to relogin
+
+
 pub fn main() {
     dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
     .with_window(

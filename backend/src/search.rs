@@ -151,7 +151,7 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
         AND averageScore != 0 AND averageScore != -1
         AND banner_image != 'none'
         AND (format = 'TV' OR format = 'MOVIE')
-        ORDER BY popularity DESC, averageScore DESC LIMIT 20 OFFSET 5;"
+        ORDER BY popularity DESC, averageScore DESC LIMIT 20 OFFSET 8;"
     ).fetch_all(db.as_ref()).await {
         Ok(rows)=>{
                 new_popular = rows.into_iter().map(|row| TrendingResults{
