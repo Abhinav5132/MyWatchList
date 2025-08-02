@@ -1,10 +1,21 @@
 use dioxus::{prelude::*};
+use reqwest::Client;
+use serde::Serialize;
 
+use crate::TOKEN;
+
+#[derive(Serialize)]
+pub struct LoginStruct {
+    username: String,
+    password: String
+}
 #[component]
 pub fn Login(on_close: EventHandler<()>)-> Element{
     let mut username_email = use_signal(|| "".to_string());
     let mut password = use_signal(|| "".to_string());
     let navigator = use_navigator();
+
+    
     rsx!(
         div{ 
             id: "Main_div",
@@ -20,6 +31,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     id:"Login_email",
                     r#type: "text",
                     oninput: move |event| {
+                        event.prevent_default();
                         username_email.set(event.value());
                     },
                     onkeydown: move |event| async move{ 
@@ -33,6 +45,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     id:"Login_password",
                     r#type: "password",
                     oninput: move |event| {
+                        event.prevent_default();
                         password.set(event.value());
                     },
                     onkeydown: move |event| async move {
@@ -46,7 +59,27 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     id: "submit_button",
                     r#type:"button",
                     onclick: move |_| {
-                        on_close.call(()); // make sure this only gets called if login is actually succesfull
+                         // make sure this only gets called if login is actually succesfull
+                         use_effect(move || {
+                            let client = use_context::<Client>();
+                            spawn(async move{
+                                // add actuall username and password checks
+                                if let Ok(res) = client.post("/login").json(&LoginStruct{
+                                    username: username_email.read().to_string(),
+                                    password: password.read().to_string()
+                                }).send().await{
+                                    if let Some(auth_header) = res.headers().get("Authorization") {
+                                        if let Ok(token_str) = auth_header.to_str(){
+                                            let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
+                                            *TOKEN.write() = token.to_string(); // sets the token as a global signal that can be access anywhere 
+                                            print!("{token}");
+                                            on_close.call(());
+                                        }
+                                    }
+                                }
+                            });
+                            ()
+                        });
                     },
                     "Submit"
                 }
