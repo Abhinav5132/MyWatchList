@@ -11,8 +11,8 @@ pub struct SignUpStruct{
     user_email: String,
 
 }
-
-pub async fn sign_up(db: web::Data<Pool<Sqlite>>, credentials: web::Json<SignUpStruct>) -> HttpResponse{
+#[post("/Signup")]
+pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<SignUpStruct>) -> HttpResponse{
     let entered_pwd  = &credentials.user_password;
     let hashed_pwd = match pwd_to_hash(entered_pwd){
         Ok(pwd)=> pwd,

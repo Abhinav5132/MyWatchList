@@ -9,7 +9,7 @@ pub struct LoginStruct {
 }
 
 #[post("/login")]
-pub async fn login(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginStruct>)-> HttpResponse{
+pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginStruct>)-> HttpResponse{
     let username:&String = &credentials.username;
     let password = &credentials.password;
 

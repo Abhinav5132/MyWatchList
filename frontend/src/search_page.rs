@@ -95,6 +95,7 @@ pub fn Searchpg() -> Element {
     let mut show_login = use_signal(|| false);
     let mut search_input = use_signal(|| "".to_string());
     let mut submitted_title = use_signal(|| String::new());
+    let mut fade_direction = use_signal(|| "fade-in");
     let navigator = use_navigator();
     let client = Client::builder()
                 .danger_accept_invalid_certs(true)
@@ -103,7 +104,7 @@ pub fn Searchpg() -> Element {
             provide_context(client);
     let search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
     let mut page: Signal<i32> = use_signal(|| 1);
-   
+   fade_direction.set("fade-in");
 
     use_effect(move || {
         let query = search_input.read().clone();
@@ -259,23 +260,22 @@ pub fn Searchpg() -> Element {
 
             if *show_login.read(){
                 div { 
-                    class:"modal_overlay_search",
-                    onclick: move |_| show_login.set(false),
+                    class:"modal_overlay_search {fade_direction}",
+                    onclick: move |_| {
+                        fade_direction.set("fade-out");
+                        show_login.set(false)
+                    },
                     div { 
                         class: "modal_container_search",
                         onclick: move |e| e.stop_propagation(),
                         Login { 
-                            on_close: move || show_login.set(false)
+                            on_close: move || {
+                                fade_direction.set("fade-out");
+                                show_login.set(false)
+                            }
                         }
 
                     }
-                 }
-            }
-
-            if search_results.read().is_empty(){
-                div { 
-                    class:"new_and_popular_div_search",
-
                 }
             }
 

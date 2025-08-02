@@ -14,13 +14,16 @@ use details::get_details;
 pub mod search;
 use search::main_search;
 
+pub mod login;
+use login::login_fn;
+
+pub mod sign_up;
+use sign_up::sign_up_fn;
+
 use crate::search::trending_search;
 
 pub mod authenticate;
 use crate::authenticate::*;
-
-pub mod login;
-pub mod sign_up;
 
 #[derive(Deserialize)]
 struct SearchQuery {
@@ -119,6 +122,8 @@ async fn setup_backend() -> std::io::Result<()> {
             .service(main_search)
             .service(get_details)
             .service(trending_search)
+            .service(login_fn)
+            .service(sign_up_fn)
     }).bind_openssl("127.0.0.1:3000", builder)?
     .run()
     .await
