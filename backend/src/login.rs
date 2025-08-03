@@ -12,7 +12,8 @@ pub struct LoginStruct {
 pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginStruct>)-> HttpResponse{
     let username:&String = &credentials.username;
     let password = &credentials.password;
-
+    dbg!(&username);
+    dbg!(&password);
     let row =sqlx::query("SELECT user_password, id FROM user WHERE user_name = ?").bind(username).fetch_one(db.as_ref()).await; 
 
     match row {
@@ -21,9 +22,11 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
             let hash_pwd:String = match row_exist.try_get("user_password"){
                 Ok(pwd) => pwd ,
                 Err(_)=>{
+                    dbg!("Internal error missing password hash");
                     return HttpResponse::InternalServerError().json(json!({
                         "status": "Internal error missing password hash"
                     }));
+                    
                 }
             };
             
@@ -32,9 +35,11 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
                     let user_id = row_exist.try_get("id").unwrap_or(-1);
                     let token = match generate_token(user_id).await{
                         Ok(tok)=> tok,
-                        Err(_)=> return HttpResponse::InternalServerError().json(serde_json::json!({
+                        Err(_)=> {
+                            dbg!("Unable to login");
+                            return HttpResponse::InternalServerError().json(serde_json::json!({
                                 "Status": "Unable to login"
-                                }))
+                                }))}
                     };
 
                     let query = sqlx::query("
@@ -43,6 +48,7 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
 
                     match query {
                         Ok(_)=>{
+                            dbg!("Login successful");
                             HttpResponse::Ok() // this needs to also set the token in the database 
                             .insert_header(("Authorization", format!("Bearer {token}")))
                             .json(json!({
@@ -51,6 +57,7 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
                         }
 
                         Err(_)=>{
+                            dbg!("Unable to login");
                             return HttpResponse::InternalServerError().json(serde_json::json!({
                                 "Status": "Unable to login"
                                 }))
@@ -62,6 +69,7 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
 
                 Err(_)=>{
                     //else no token and password is wrong
+                    dbg!("incorrect password");
                     return HttpResponse::Unauthorized().json(serde_json::json!({
                         "Status": "Incorrect password",
                     }));
@@ -72,6 +80,7 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
 
         Err(sqlx::Error::RowNotFound) =>{
             // return no token, return status message that username is invalid
+            dbg!("Invalid username");
             return HttpResponse::NotFound().json(serde_json::json!({
                         "Status": "Invalid username",
                     }));
@@ -79,6 +88,7 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
 
         Err(_) => {
             // return unable to login due to an internal error
+            dbg!("Internal server error");
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "Status": "Unable to login"
             }));

@@ -102,12 +102,12 @@ CREATE TABLE IF NOT EXISTS recommendations (
 );
 
 Create TABLE IF NOT EXISTS user (
-    id AUTO_INCREMENT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_name TEXT NOT NULL UNIQUE,
     user_email TEXT NOT NULL UNIQUE,
     user_password TEXT NOT NULL,
     user_token TEXT,
-    user_pfp TEXT NOT NULL
+    user_pfp TEXT -- should be not null in production
 );
 
 Create Table IF NOT Exists watch_list(

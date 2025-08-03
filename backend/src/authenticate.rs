@@ -1,3 +1,5 @@
+use std::path::{self, Path};
+
 use jsonwebtoken::{encode, EncodingKey, Header};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use rand_core::{OsRng};
@@ -33,8 +35,10 @@ pub async fn generate_token(user_id: i64) ->Result<String, jsonwebtoken::errors:
         sub: user_id,
         exp: expiery
     };
-    let secret = std::env::var("JWT_KEY").expect("Secret key must be set");
+    dotenvy::dotenv().ok();
 
+    let secret = std::env::var("JWT_KEY").expect("Secret key must be set");
+    dbg!(&secret);
     encode(
         &Header::default(),
         &claims,

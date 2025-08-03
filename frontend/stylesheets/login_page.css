@@ -17,7 +17,7 @@
     border-radius: 12px;
 }
 
-#Login_class{
+.Login_class{
     font-family: Arial, Helvetica, sans-serif;
     display: flex;
     flex-direction: column;
@@ -26,7 +26,7 @@
     gap: 6px;
 }
 
-#Login_email, #Login_password{
+#Login_email, #Login_password, #Login_username{
     width:240px;
     padding: 12px 20px;
 }

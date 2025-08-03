@@ -46,9 +46,10 @@ struct TrendingResponse {
 pub fn trending_component() -> Element{
     let mut trending_results:Signal<Option<TrendingResponse>> = use_signal(|| None);
     let navigator = use_navigator();
+    let client = use_context::<Client>();
     use_effect(move || {
         let mut trending_result = trending_results.clone();
-        let client = use_context::<Client>();
+        let mut client = client.clone();
         
         spawn(async move {
             if let Ok(res) = client.get(
@@ -104,14 +105,13 @@ pub fn Searchpg() -> Element {
             provide_context(client);
     let search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
     let mut page: Signal<i32> = use_signal(|| 1);
-   fade_direction.set("fade-in");
+    let client = use_context::<Client>();
 
     use_effect(move || {
         let query = search_input.read().clone();
         let page = page.read().clone();
         let mut results = search_results.clone();
-        let client = use_context::<Client>();
-        
+        let mut client = client.clone();
         spawn(async move {
             if query.is_empty() {
                 results.set(vec![]);
@@ -246,6 +246,7 @@ pub fn Searchpg() -> Element {
                         class:"Icon_button_search",
                         id:"Account_button_search",
                         onclick: move |_| {
+                            fade_direction.set("fade-in");
                             show_login.set(true);
                         },
                         img {

@@ -5,7 +5,6 @@ mod search_page;
 mod details;
 mod router;
 mod login_popup;
-mod sign_up_page;
 
 const LOGIN_CSS:Asset = asset!("/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/stylesheets/details_page.css");
@@ -24,6 +23,7 @@ pub const FRIENDS: Asset = asset!("/assets/friends.png");
 
 //add the token here as a GlobalSignal 
 //when the token expires se this to null and ask the user to relogin
+//make sure this token persists over app closures cuz if it dosent this token will have to be stored as a cookie ect somewhere
 static TOKEN: GlobalSignal<String> = Signal::global(|| "".to_string());
 
 pub fn main() {
