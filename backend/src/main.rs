@@ -26,7 +26,6 @@ pub use crate::authenticate::*;
 
 pub mod add_to_list;
 
-pub mod fetch_list;
 
 #[derive(Deserialize)]
 struct SearchQuery {
