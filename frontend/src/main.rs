@@ -1,5 +1,4 @@
 use dioxus::{desktop::{Config, WindowBuilder}, html::img::{alt, src}, prelude::*};
-use serde_json::json;
 use crate::router::routes;
 mod search_page;
 mod details;

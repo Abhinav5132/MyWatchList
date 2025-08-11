@@ -20,3 +20,5 @@ prod:
     
 Nice looking colours:
 #8FD54E
+
+-- typing is very blocky for  some reason plx fix 

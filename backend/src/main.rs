@@ -4,26 +4,29 @@ use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
 
-
 pub mod initialize;
-use initialize::initialize_database;
+pub use initialize::initialize_database;
 
 pub mod details;
-use details::get_details;
+pub use details::get_details;
 
 pub mod search;
-use search::main_search;
+pub use search::main_search;
 
 pub mod login;
-use login::login_fn;
+pub use login::login_fn;
 
 pub mod sign_up;
-use sign_up::sign_up_fn;
+pub use sign_up::sign_up_fn;
 
-use crate::search::trending_search;
+pub use search::trending_search;
 
 pub mod authenticate;
-use crate::authenticate::*;
+pub use crate::authenticate::*;
+
+pub mod add_to_list;
+
+pub mod fetch_list;
 
 #[derive(Deserialize)]
 struct SearchQuery {

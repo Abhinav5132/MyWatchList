@@ -117,7 +117,7 @@ pub fn Searchpg() -> Element {
                 results.set(vec![]);
                 return;
             }
-            thread::sleep(std::time::Duration::from_millis(300));
+            thread::sleep(std::time::Duration::from_millis(100));
 
             if let Ok(res) = client
                 .get(format!(
@@ -138,41 +138,6 @@ pub fn Searchpg() -> Element {
 
     
     rsx! {
-            /*
-            div {
-                id:"top_div_search",
-                h1 {
-                    id: "h1_search",
-                    "My Watch List"
-                }
-                div {
-                    id:"input_div_search",
-                    input {
-                        id: "Search_Bar_search",
-                        type: "text",
-                        value: "{search_input}",
-                        oninput: move |event| {
-                            search_input.set(event.value());
-                        },
-                        onkeydown: move |event| {
-                            if event.code().to_string() == "ENTER".to_string() {
-                                submitted_title.set(search_input.read().clone()); }
-                        }
-                    }
-                    button {
-                        id: "Search_button_search",
-                        onclick: move |_| {
-                            submitted_title.set(search_input.read().clone()) // for now this button does jack shit
-                            ;
-                        },
-                        img {
-                            id: "Search_Icon_search",
-                            src: "{SEARCH_ICON}",
-                            alt: "search",
-                        }
-                    }
-                }
-            }*/
             body {
                 id:"body_search",
             div {

@@ -73,3 +73,4 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     }
 
 }
+

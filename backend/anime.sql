@@ -110,11 +110,21 @@ Create TABLE IF NOT EXISTS user (
     user_pfp TEXT -- should be not null in production
 );
 
-Create Table IF NOT Exists watch_list(
-    watch_list_name TEXT NOT NULL,
-    anime_id INT NOT NULL,
-    user_id INT NOT NULL,
-    PRIMARY KEY (user_id, anime_id),
-    Foreign Key (user_id) REFERENCES user(id),
-    Foreign Key (anime_id) REFERENCES anime(id)
+Create Table IF NOT EXISTS watch_list(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    user_id INTEGER NOT NUll,
+    privacy_type TEXT NOT Null,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    UNIQUE(user_id, name) -- no duplicate list names per user
+    -- maybe add a picture to these lists aswell when i implement longblob
+);
+
+Create Table IF NOT EXISTS watch_list_anime(
+    watch_list_id INTEGER NOT NULL,
+    anime_id INTEGER NOT NULL,
+    --position INTEGER,
+    PRIMARY KEY(watch_list_id, anime_id),
+    FOREIGN KEY (watch_list_id) REFERENCES watch_list(id) ON DELETE CASCADE,
+    FOREIGN KEY (anime_id) REFERENCES anime(id)
 );
