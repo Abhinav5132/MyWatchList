@@ -1,8 +1,9 @@
 use actix_web::HttpResponse;
 
+use crate::add_to_list::create_list;
 pub use crate::*;
-use authenticate::pwd_to_hash;
-use serde_json::json;
+pub use authenticate::pwd_to_hash;
+pub use serde_json::json;
 //implement profile pic later
 #[derive(Deserialize)]
 pub struct SignUpStruct{
@@ -52,7 +53,35 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
 
     let query = sqlx::query("
         UPDATE user SET user_token = ? WHERE id = ?;
-        ").bind(&token).bind(user_id).execute(db.as_ref()).await;
+        ").bind(&token).bind(&user_id).execute(db.as_ref()).await;
+
+
+    // adding the basic lists to the user after account creation
+    match create_list(db.as_ref(), &"Watch List".to_string(), &user_id, &"Private".to_string()).await{
+        Ok(_)=>(),
+        Err(e)=>{
+            dbg!(e);
+            //actual error handeling here later
+        }
+    }
+
+
+    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &"Public".to_string()).await{
+        Ok(_)=>(),
+        Err(e)=>{
+            dbg!(e);
+            //actual error handeling here later
+        }
+    }
+
+
+    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &"Private".to_string()).await{
+        Ok(_)=>(),
+        Err(e)=>{
+            dbg!(e);
+            //actual error handeling here later
+        }
+    }
 
     match query {
         Ok(_)=>{

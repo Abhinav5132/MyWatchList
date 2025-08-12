@@ -31,7 +31,7 @@ struct AllAnimeSimple{
 
 #[derive(Deserialize)]
 struct FetchLists{
-    user_id: i32 
+    user_id: i64 
 }
 
 #[derive(Deserialize)]
@@ -39,9 +39,9 @@ struct FetchAnimes{
     watch_list_id: i32,
 }
 #[derive(Deserialize)]
-struct AddListToUser{
+pub struct AddListToUser{
 
-    user_id: i32,
+    user_id: i64,
     name: String,
     privacy_type: String,
 }
@@ -88,11 +88,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
 
 #[post("/add-list-to-user")]
 pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>)-> HttpResponse{
-    match sqlx::query("INSERT INTO watch_list(name, user_id, privacy_type) VALUES (?,?,?);")
-    .bind(&to_add.name)
-    .bind(&to_add.user_id)
-    .bind(&to_add.privacy_type)
-    .execute(db.as_ref()).await {
+    match create_list(&db, &to_add.name, &to_add.user_id, &to_add.privacy_type).await {
         Ok(_) => {
             HttpResponse::Ok().into()
         }
@@ -101,6 +97,16 @@ pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
             HttpResponse::InternalServerError().into()
         }
     }
+}
+
+pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy_type: &String)->Result<(), sqlx::Error>{
+    sqlx::query("INSERT INTO watch_list(name, user_id, privacy_type) VALUES (?,?,?);")
+    .bind(name)
+    .bind(user_id)
+    .bind(privacy_type)
+    .execute(db).await?;
+
+    Ok(())
 }
 
 
@@ -213,6 +219,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
 
                 animes.push(AnimeResult { id: id, title: title, picture: Some(picture) });
 
+                return HttpResponse::Ok().json(json!(AllAnimeSimple{ anime: animes }))
             }
         }
         Err(e)=>{
