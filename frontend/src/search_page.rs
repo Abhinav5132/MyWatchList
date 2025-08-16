@@ -7,14 +7,14 @@ use login_popup::Login;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct Anime {
-    id: i32,
+    id: i64,
     title: String,
     picture: Option<String>,
 }
 
 #[derive(Serialize,Deserialize, Clone)]
 struct ScrollingResults{
-    id: i32,
+    id: i64,
     title_english: String,
     title_romanji: String,
     banner_image: String,

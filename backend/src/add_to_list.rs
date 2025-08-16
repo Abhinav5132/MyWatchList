@@ -10,8 +10,9 @@ use crate::*;
 
 #[derive(Deserialize)]
 struct AddToList{
-    anime_id: i32, 
-    list_id: i32,
+    anime_id: i64, 
+    list_name: String,
+    user_id: i64
 }
 
 #[derive(Serialize)]
@@ -47,19 +48,25 @@ pub struct AddListToUser{
 }
 
 #[post("/add-anime-to-list")]
-pub async fn add_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->HttpResponse{
-    let anime_id = to_add.anime_id;
-    let list_id = to_add.list_id;
-
-    match sqlx::query("INSERT INTO watch_list_anime(watch_list_id, anime_id) VALUES (?,?);")
-    .bind(list_id)
+pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->HttpResponse{
+    let anime_id = &to_add.anime_id;
+    let list_name = &to_add.list_name;
+    let user_id = &to_add.user_id;
+    dbg!(&anime_id);
+    dbg!(&list_name);
+    dbg!(&user_id);
+    match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id) VALUES (?,?,?);")
+    .bind(list_name)
     .bind(anime_id)
+    .bind(user_id)
     .execute(db.as_ref()).await {
         Ok(_) => {
+            dbg!("Excecuted properly");
             HttpResponse::Ok().into()
         }
 
-        Err(_) => {
+        Err(e) => {
+            dbg!(e);
             HttpResponse::InternalServerError().into()
         }
     }
@@ -67,20 +74,23 @@ pub async fn add_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->
 
 #[post("/remove-form-list")]
 pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->HttpResponse{
-    let anime_id = to_add.anime_id;
-    let list_id = to_add.list_id;
-
+    let anime_id = &to_add.anime_id;
+    let list_name = &to_add.list_name;
+    let user_id = &to_add.user_id;
     match sqlx::query("
     DELETE FROM watch_list_anime 
-    WHERE anime_id = ? AND watch_list_id = ?;")
+    WHERE anime_id = ? AND watch_name = ? AND user_id = ?;")
     .bind(anime_id)
-    .bind(list_id)
+    .bind(list_name)
+    .bind(user_id)
     .execute(db.as_ref()).await {
         Ok(_) => {
+            dbg!("Excecuted properly");
             HttpResponse::Ok().into()
         }
 
-        Err(_) => {
+        Err(e) => {
+            dbg!(e);
             HttpResponse::InternalServerError().into()
         }
     }

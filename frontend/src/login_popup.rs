@@ -4,7 +4,7 @@ use dioxus::{prelude::*};
 use reqwest::Client;
 use serde::Serialize;
 
-use crate::TOKEN;
+use crate::{get_userid_from_jwt, TOKEN};
 
 #[derive(Serialize)]
 pub struct LoginStruct {
@@ -19,14 +19,13 @@ pub struct SignUpStruct{
     user_email: String,
 
 }
-
+// everything here needs to be changed from user_id to user_token 
 #[component]
 pub fn Login(on_close: EventHandler<()>)-> Element{
     let mut username = use_signal(|| "".to_string());
     let mut password = use_signal(|| "".to_string());
     let mut password_again = use_signal(|| "".to_string());
     let mut email = use_signal(|| "".to_string());
-    let navigator = use_navigator();
     let mut trying_to_sign_up = use_signal(|| false);
     
     rsx!(
@@ -134,6 +133,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                             if let Ok(token_str) = auth_header.to_str(){
                                                 let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
                                                 *TOKEN.write() = token.to_string(); // sets the token as a global signal that can be access anywhere 
+                                                get_userid_from_jwt(); // gets the user id and stores in the global signal
                                                 print!("{token}");
                                                 on_close.call(());
                                             }
@@ -158,6 +158,8 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                         if let Some(auth_header) = res.headers().get("Authorization"){
                                             if let Ok(toker_str) = auth_header.to_str(){
                                                 let token = toker_str.strip_prefix("Bearer ").unwrap_or(toker_str);
+                                                *TOKEN.write() = token.to_string();
+                                                get_userid_from_jwt();
                                                 on_close.call(());
                                                 print!("{token}");
                                             }

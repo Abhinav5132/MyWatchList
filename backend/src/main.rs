@@ -25,7 +25,7 @@ pub mod authenticate;
 pub use crate::authenticate::*;
 
 pub mod add_to_list;
-
+pub use crate::add_to_list::add_anime_to_list;
 
 #[derive(Deserialize)]
 struct SearchQuery {
@@ -126,6 +126,7 @@ async fn setup_backend() -> std::io::Result<()> {
             .service(trending_search)
             .service(login_fn)
             .service(sign_up_fn)
+            .service(add_anime_to_list)
     }).bind_openssl("127.0.0.1:3000", builder)?
     .run()
     .await

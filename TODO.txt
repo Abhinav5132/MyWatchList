@@ -3,6 +3,9 @@ Backend:
     -change it to large pictures 
     -add tag percentages
     -id might not be safe enough look at using username for hashing
+    - right now the user can only have one session because when a user logs in again the current token is replaced. and if it replaced their other session gets terminated.
+    so use the date to check if the previous token is valid and if it is create a new entry with the token. Also maybe we can use the ip address where the request is coming from 
+    to issue new tokens if the user is on a different device or even their platform.
 Frontend:
     -kinda fixed the css problem but i need to make sure every id and class name are distinct
     -if name is too long do ... the causes the image cards to become too big in the search page 

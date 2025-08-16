@@ -1,6 +1,8 @@
-use crate::*;
+use crate::{popup_add_anime::{popup_add_anime, PopupAddAnime}, *};
+use dioxus::html::div;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -37,14 +39,28 @@ struct RelatedAnime{
     RelationType: String
 }
 
+#[derive(Serialize)]
+struct AddToList{
+    anime_id: i64, 
+    list_name: String,
+    user_id: i64
+}
+
+
 #[component]
-pub fn Details(id: i32) -> Element {
+pub fn Details(id: i64) -> Element {
+    let mut show_popup: Signal<bool> = use_signal(|| false);
+    let mut pop_error: Signal<bool> = use_signal(|| false);
     let mut anime_details: Signal<Option<FullAnimeResult>> = use_signal(|| None);
+    
     let navigator = use_navigator();
     use_effect(move || {
         let mut details = anime_details.clone();
         spawn(async move {
-            let client = Client::builder().danger_accept_invalid_certs(true).build().unwrap();
+            let client =  Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .expect("Failed to build client");
             if let Ok(res) = client
                 .get(format!("https://localhost:3000/details?query={}", id))
                 .send()
@@ -73,7 +89,7 @@ pub fn Details(id: i32) -> Element {
                 h3 { id: "Title",
                     "{ details.title_romanji }" },
                 }
-
+                
                 div{
                     id: "top_div",
 
@@ -84,15 +100,59 @@ pub fn Details(id: i32) -> Element {
                             src: "{ details.picture }",
                             alt: "picture"
                             }
+                        
+                            if *show_popup.read(){
+                                PopupAddAnime { 
+                                    is_error: *pop_error.read(),
+                                    anime_name: &details.title_romanji,
+                                    list_name:"Recommended",
+                                    on_close: move  || {
+                                        show_popup.set(false);
+                                    }
+                                }
+                            }
                         div {
                             id: "Like_button_div",
                             button { 
                                 id:"Recommend_button",
+                                onclick: move |_| {
+                                
+                                    use_effect(move || {
+                                        spawn(async move {
+                                            let client = Client::builder()
+                                                .danger_accept_invalid_certs(true)
+                                                .build()
+                                                .expect("Failed to build client");
+                                            let userid = USERID.read();
+                                            dbg!(&userid);
+                                            if let Ok(resp ) = client.post("https://localhost:3000/add-anime-to-list")
+                                            .json(&AddToList{
+                                                anime_id: id.clone(),
+                                                user_id: *userid,
+                                                list_name: "Recommended".to_string(),
+                                            }).send().await{
+                                                
+                                                let status = resp.status();
+                                                if status.is_server_error(){
+                                                    pop_error.set(true);
+                                                    show_popup.set(true);
+
+                                                }
+                                                else{
+                                                    pop_error.set(false);
+                                                    show_popup.set(true); 
+                                                }
+        
+                                            };
+                                        });
+                                    });
+
+                                },
                                 img { 
                                     class:"Feeling_icon",
                                     src:HEART,
                                 }
-                                "Add to recommended"
+                                "Recommend"
                             }
                             button { 
                                 id:"Watch_list_button",

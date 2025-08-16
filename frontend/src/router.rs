@@ -10,5 +10,5 @@ pub enum routes {
     Searchpg {},
 
     #[route("/details/:id")]
-    Details { id: i32 },
+    Details { id: i64 },
 }

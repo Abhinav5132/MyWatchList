@@ -38,7 +38,7 @@ pub async fn generate_token(user_id: i64) ->Result<String, jsonwebtoken::errors:
     dotenvy::dotenv().ok();
 
     let secret = std::env::var("JWT_KEY").expect("Secret key must be set");
-    dbg!(&secret);
+    
     encode(
         &Header::default(),
         &claims,

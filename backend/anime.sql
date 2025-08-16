@@ -118,14 +118,13 @@ Create Table IF NOT EXISTS watch_list(
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
     UNIQUE(user_id, name) -- no duplicate list names per user
     -- maybe add a picture to these lists aswell when i implement longblob
-    -- first three should not be able to be deleted 
 );
 
-Create Table IF NOT EXISTS watch_list_anime(
-    watch_list_id INTEGER NOT NULL,
+CREATE TABLE IF NOT EXISTS watch_list_anime (
+    user_id INTEGER NOT NULL,
+    watch_name TEXT NOT NULL,
     anime_id INTEGER NOT NULL,
-    --position INTEGER,
-    PRIMARY KEY(watch_list_id, anime_id),
-    FOREIGN KEY (watch_list_id) REFERENCES watch_list(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, watch_name, anime_id),
+    FOREIGN KEY (user_id, watch_name) REFERENCES watch_list(user_id, name) ON DELETE CASCADE,
     FOREIGN KEY (anime_id) REFERENCES anime(id)
 );
