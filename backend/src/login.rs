@@ -1,6 +1,6 @@
 pub use crate::*;
 use serde_json::json;
-use actix_web::HttpResponse;
+use actix_web::{cookie::{time::Duration, Cookie}, HttpResponse};
 
 #[derive(Deserialize)]
 pub struct LoginStruct {
@@ -49,9 +49,9 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
                     match query {
                         Ok(_)=>{
                             dbg!("Login successful");
-                            HttpResponse::Ok() // this needs to also set the token in the database 
+                            HttpResponse::Ok()
                             .insert_header(("Authorization", format!("Bearer {token}")))
-                            .json(json!({
+                             .json(json!({
                                 "Status": "Login successful"
                             }))
                         }

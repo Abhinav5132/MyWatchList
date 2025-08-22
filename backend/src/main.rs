@@ -22,6 +22,7 @@ pub use sign_up::sign_up_fn;
 pub use search::trending_search;
 
 pub mod authenticate;
+use crate::add_to_list::check_if_an_anime_in_list;
 pub use crate::authenticate::*;
 
 pub mod add_to_list;
@@ -127,6 +128,7 @@ async fn setup_backend() -> std::io::Result<()> {
             .service(login_fn)
             .service(sign_up_fn)
             .service(add_anime_to_list)
+            .service(check_if_an_anime_in_list)
     }).bind_openssl("127.0.0.1:3000", builder)?
     .run()
     .await

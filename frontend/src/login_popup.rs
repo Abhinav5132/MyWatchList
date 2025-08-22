@@ -1,10 +1,10 @@
-use std::ops::Not;
+use std::{fs, ops::Not};
 
 use dioxus::{prelude::*};
 use reqwest::Client;
 use serde::Serialize;
 
-use crate::{get_userid_from_jwt, TOKEN};
+use crate::{get_userid_from_jwt, storage_file, TOKEN};
 
 #[derive(Serialize)]
 pub struct LoginStruct {
@@ -134,6 +134,16 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                                 let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
                                                 *TOKEN.write() = token.to_string(); // sets the token as a global signal that can be access anywhere 
                                                 get_userid_from_jwt(); // gets the user id and stores in the global signal
+                                                let path = storage_file();
+                                                match fs::write(path, serde_json::to_string(&token.to_string()).unwrap_or("".to_string())){
+                                                    Ok(a)=> {
+                                                        a
+                                                    }
+                                                    Err(e)=>{
+                                                        dbg!("Failed to write token to the disk");
+                                                        dbg!(e);
+                                                    }
+                                                }
                                                 print!("{token}");
                                                 on_close.call(());
                                             }
@@ -160,6 +170,16 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                                 let token = toker_str.strip_prefix("Bearer ").unwrap_or(toker_str);
                                                 *TOKEN.write() = token.to_string();
                                                 get_userid_from_jwt();
+                                                let path = storage_file();
+                                                match fs::write(path, serde_json::to_string(&token.to_string()).unwrap_or("".to_string())){
+                                                    Ok(a)=> {
+                                                        a
+                                                    }
+                                                    Err(e)=>{
+                                                        dbg!("Failed to write token to the disk");
+                                                        dbg!(e);
+                                                    }
+                                                }
                                                 on_close.call(());
                                                 print!("{token}");
                                             }

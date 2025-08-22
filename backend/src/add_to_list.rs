@@ -9,7 +9,7 @@ use crate::*;
 // best of all time ranking list is always 3
 
 #[derive(Deserialize)]
-struct AddToList{
+pub struct AddToList{
     anime_id: i64, 
     list_name: String,
     user_id: i64
@@ -39,6 +39,7 @@ struct FetchLists{
 struct FetchAnimes{
     watch_list_id: i32,
 }
+
 #[derive(Deserialize)]
 pub struct AddListToUser{
 
@@ -47,29 +48,46 @@ pub struct AddListToUser{
     privacy_type: String,
 }
 
+#[derive(Serialize)]
+pub struct ExistsInList{
+    exists: bool
+}
+
 #[post("/add-anime-to-list")]
 pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->HttpResponse{
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;
     let user_id = &to_add.user_id;
-    dbg!(&anime_id);
-    dbg!(&list_name);
-    dbg!(&user_id);
-    match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id) VALUES (?,?,?);")
+
+    let count:i64 = sqlx::query_scalar(
+        "SELECT COUNT(1) FROM watch_anime_list WHERE watch_name = ? AND anime_id = ? AND user_id = ?"
+    )
     .bind(list_name)
-    .bind(anime_id)
-    .bind(user_id)
-    .execute(db.as_ref()).await {
+    .bind(anime_id).bind(user_id)
+    .fetch_one(db.as_ref())
+    .await.unwrap_or(0);//add actual error handeling here;
+    
+    if count < 1 {
+        match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id) VALUES (?,?,?);")
+        .bind(list_name)
+        .bind(anime_id)
+        .bind(user_id)
+        .execute(db.as_ref()).await {
         Ok(_) => {
             dbg!("Excecuted properly");
             HttpResponse::Ok().into()
-        }
+            }
 
         Err(e) => {
             dbg!(e);
             HttpResponse::InternalServerError().into()
+            }
         }
+    } else {
+        HttpResponse::Conflict().body("Anime is already in list")
     }
+    
+    
 }
 
 #[post("/remove-form-list")]
@@ -239,4 +257,29 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
     }
 
     HttpResponse::Ok().into()
+}
+
+#[get("check_if_already_in_list")]
+pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddToList>)->HttpResponse {
+    let anime_id = &to_add.anime_id;
+    let list_name = &to_add.list_name;
+    let user_id = &to_add.user_id;
+
+    let count:i64 = sqlx::query_scalar(
+        "SELECT COUNT(1) FROM watch_anime_list WHERE watch_name = ? AND anime_id = ? AND user_id = ?"
+    )
+    .bind(list_name)
+    .bind(anime_id).bind(user_id)
+    .fetch_one(db.as_ref())
+    .await.unwrap_or(0);// change this unwarap to actual error handelling
+
+    if count < 1{
+        HttpResponse::Ok().json(ExistsInList{
+            exists: false
+        })
+    } else {
+        HttpResponse::Ok().json(ExistsInList{
+            exists: true
+        })
+    }
 }

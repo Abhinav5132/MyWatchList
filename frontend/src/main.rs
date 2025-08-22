@@ -4,6 +4,7 @@ use dioxus::{desktop::{Config, WindowBuilder}, html::img::{alt, src}, prelude::*
 use base64::{Engine as _, alphabet, engine::{self, general_purpose}};
 use serde::*;
 use serde_json::Value;
+use std::{fs, path::PathBuf};
 use crate::router::routes;
 mod search_page;
 mod details;
@@ -27,6 +28,15 @@ pub const PLAYLIST: Asset = asset!("/assets/playlist.png");
 pub const FRIENDS: Asset = asset!("/assets/friends.png");
 
 
+fn storage_file() -> PathBuf {
+    let mut path = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
+    path.push("MyWatchList");
+    fs::create_dir_all(&path).unwrap();
+    path.push("auth.json");
+    path
+}
+
+
 #[derive(Serialize, Deserialize)]
 pub struct Claims{
     pub sub: i64,
@@ -40,13 +50,13 @@ static TOKEN: GlobalSignal<String> = Signal::global(|| "".to_string());
 static USERID: GlobalSignal<i64> = Signal::global(|| -1);
 
 pub fn main() {
-    // find a way to store the token somewhere that isnt a globalsignal
     dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
     .with_window(
         WindowBuilder::new().with_maximized(true)
         .with_title("MyWatchList")
         )
     ).launch(App);
+    get_toke_from_file();
     get_userid_from_jwt();
 }
 
@@ -56,6 +66,15 @@ fn App() -> Element{
         document::Link{rel: "stylesheet", href: LOGIN_CSS}
         document::Link{rel: "stylesheet", href: DETAILS_CSS}
         Router::<routes> {} 
+    }
+}
+
+pub fn get_toke_from_file(){
+    let path = storage_file();
+     if let Ok(data) = fs::read_to_string(path){
+        if data != "".to_string(){
+            *TOKEN.write() = data;
+        }
     }
 }
 
