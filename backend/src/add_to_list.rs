@@ -58,16 +58,28 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;
     let user_id = &to_add.user_id;
-
-    let count:i64 = sqlx::query_scalar(
-        "SELECT COUNT(1) FROM watch_anime_list WHERE watch_name = ? AND anime_id = ? AND user_id = ?"
+    //dbg!(&anime_id);
+    //dbg!(&list_name);
+   //dbg!(&user_id);
+    let count:i64 = match sqlx::query_scalar(
+        "SELECT COUNT(1) FROM watch_list_anime WHERE watch_name = ? AND anime_id = ? AND user_id = ?"
     )
     .bind(list_name)
     .bind(anime_id).bind(user_id)
     .fetch_one(db.as_ref())
-    .await.unwrap_or(0);//add actual error handeling here;
-    
-    if count < 1 {
+    .await {
+        Ok(c) => c,
+        
+        Err(e) => {
+            dbg!(e);
+            return HttpResponse::InternalServerError().into();
+        }
+
+    };
+
+
+    //dbg!(&count);
+    if count == 0 {
         match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id) VALUES (?,?,?);")
         .bind(list_name)
         .bind(anime_id)
@@ -259,7 +271,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
     HttpResponse::Ok().into()
 }
 
-#[get("check_if_already_in_list")]
+#[get("/check_if_already_in_list")]
 pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddToList>)->HttpResponse {
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;

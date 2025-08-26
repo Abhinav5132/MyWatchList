@@ -1,7 +1,7 @@
 
 
-use dioxus::{desktop::{Config, WindowBuilder}, html::img::{alt, src}, prelude::*};
-use base64::{Engine as _, alphabet, engine::{self, general_purpose}};
+use dioxus::{desktop::{Config, WindowBuilder}, prelude::*};
+use base64::{Engine as _, engine::{ general_purpose}};
 use serde::*;
 use serde_json::Value;
 use std::{fs, path::PathBuf};
@@ -49,18 +49,20 @@ pub struct Claims{
 static TOKEN: GlobalSignal<String> = Signal::global(|| "".to_string());
 static USERID: GlobalSignal<i64> = Signal::global(|| -1);
 
-pub fn main() {
-    dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
-    .with_window(
-        WindowBuilder::new().with_maximized(true)
-        .with_title("MyWatchList")
-        )
-    ).launch(App);
-    get_toke_from_file();
-    get_userid_from_jwt();
-}
+#[component]
+pub fn App() -> Element{
 
-fn App() -> Element{
+    let initial_token = fs::read_to_string(storage_file()).unwrap_or_else(|_| "".to_string());
+    let initial_token_signal = use_signal(|| initial_token);
+
+    use_effect(move || {
+        let token_val = initial_token_signal.read().clone();
+        if !token_val.is_empty() {
+            *TOKEN.write() = token_val;
+            get_userid_from_jwt();
+            dbg!(*USERID.read());
+        }
+    });
     rsx! { 
         document::Link{rel: "stylesheet", href: SEARCH_CSS}
         document::Link{rel: "stylesheet", href: LOGIN_CSS}
@@ -69,14 +71,18 @@ fn App() -> Element{
     }
 }
 
-pub fn get_toke_from_file(){
-    let path = storage_file();
-     if let Ok(data) = fs::read_to_string(path){
-        if data != "".to_string(){
-            *TOKEN.write() = data;
-        }
-    }
+
+pub fn main() {
+
+    dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
+    .with_window(
+        WindowBuilder::new().with_maximized(true)
+        .with_title("MyWatchList")
+        )
+    ).launch(App);
+   
 }
+
 
 pub fn get_userid_from_jwt() {
     let token = TOKEN.read().clone();
@@ -85,15 +91,17 @@ pub fn get_userid_from_jwt() {
         let base64_part = match token.split(".").nth(1) {
             Some(part)=> part,
             None => {
-                dbg!("Failed to find the b64 part")
+                dbg!("Failed to find the b64 part");
+                return;
             }
         };
 
         let bytes = general_purpose::URL_SAFE_NO_PAD.decode(base64_part).expect("Failed to decode base64");
         let join_str = match str::from_utf8(&bytes){
             Ok(id)=>id,
-            Err(e)=>{
-                dbg!("Failed to decode userid ")
+            Err(_e)=>{
+                dbg!("Failed to decode userid ");
+                return;
             }
         };
 

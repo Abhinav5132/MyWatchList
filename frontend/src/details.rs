@@ -46,12 +46,71 @@ struct AddToList{
     user_id: i64
 }
 
+#[derive(Deserialize,Serialize)]
+pub struct ExistsInList{
+    exists: bool
+}
+
+pub async fn check_if_in_list(id: i64, list_name: String)->bool{
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("Failed to build client");
+    if let Ok(resp) = client.get("/check_if_already_in_list").json(&AddToList{
+                anime_id: id.clone(),
+                list_name: list_name,
+                user_id: *USERID.read()
+            }).send().await{
+               if let Ok(count) = resp.json::<ExistsInList>().await{
+                    if count.exists {
+                        true
+                    }else {
+                        false
+                    }
+               }else {
+                   false
+               }
+    }else {
+        false
+    }
+}
+
+pub async fn add_anime_to_list(id: i64, list_name: String)-> bool{
+    if !check_if_in_list(id.clone(), list_name.clone()).await {
+        let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .expect("Failed to build client");
+        let userid = *USERID.read();
+        if let Ok(resp ) = client.post("https://localhost:3000/add-anime-to-list")
+            .json(&AddToList{
+                anime_id: id,
+                user_id: userid,
+                list_name: list_name,
+            }).send().await{
+                let status = resp.status();
+                    if status.is_server_error(){
+                        true
+                    }
+                    else{
+                        false
+                    }
+
+        }else {
+            true
+        }
+    }else {
+        true // if its not in the list we return true even though nothing has been added into the list as the entry already exists this option should ideally never be reached
+    }
+}
+
 
 #[component]
 pub fn Details(id: i64) -> Element {
     let mut show_popup: Signal<bool> = use_signal(|| false);
     let mut pop_error: Signal<bool> = use_signal(|| false);
-    let mut anime_details: Signal<Option<FullAnimeResult>> = use_signal(|| None);
+    let anime_details: Signal<Option<FullAnimeResult>> = use_signal(|| None);
+
     
     let navigator = use_navigator();
     use_effect(move || {
@@ -62,7 +121,7 @@ pub fn Details(id: i64) -> Element {
                 .build()
                 .expect("Failed to build client");
             if let Ok(res) = client
-                .get(format!("https://localhost:3000/details?query={}", id))
+                .get(format!("https://localhost:3000/details?query={}", id.clone()))
                 .send()
                 .await
             {
@@ -70,6 +129,7 @@ pub fn Details(id: i64) -> Element {
                     details.set(Some(detail));
                 }
             }
+
         });
         ()
     });
@@ -119,30 +179,15 @@ pub fn Details(id: i64) -> Element {
                                 
                                     use_effect(move || {
                                         spawn(async move {
-                                            let client = Client::builder()
-                                                .danger_accept_invalid_certs(true)
-                                                .build()
-                                                .expect("Failed to build client");
-                                            let userid = USERID.read();
-                                            dbg!(&userid);
-                                            if let Ok(resp ) = client.post("https://localhost:3000/add-anime-to-list")
-                                            .json(&AddToList{
-                                                anime_id: id.clone(),
-                                                user_id: *userid,
-                                                list_name: "Recommended".to_string(),
-                                            }).send().await{
-                                                
-                                                let status = resp.status();
-                                                if status.is_server_error(){
-                                                    pop_error.set(true);
-                                                    show_popup.set(true);
-
-                                                }
-                                                else{
+                                            {
+                                                let status = add_anime_to_list(id.clone(), "Recommended".to_string()).await;
+                                                if status{
                                                     pop_error.set(false);
-                                                    show_popup.set(true); 
                                                 }
-        
+                                                else {
+                                                    pop_error.set(true);
+                                                }
+                                                show_popup.set(true);
                                             };
                                         });
                                     });

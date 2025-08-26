@@ -17,6 +17,7 @@ Frontend:
     -add a showing results for on search page.
     -fix the load_times for images somehow // need to switch to serving smaller images 
     -fix pfp.
+    -if already loged_in and then login again the userid dosent refresh unless u close the app.
 prod:
     -https certificate
     -

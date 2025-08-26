@@ -118,43 +118,42 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     r#type:"button",
                     onclick: move |_| {
                         if !*trying_to_sign_up.read(){
-                            use_effect(move || {
-                                let client = Client::builder()
-                                .danger_accept_invalid_certs(true)
-                                .build()
-                                .expect("Failed to build client");
-                                spawn(async move{
-                                    // add actuall username and password checks
-                                    if let Ok(res) = client.post("https://localhost:3000/login").json(&LoginStruct{
-                                        username: username.read().to_string(),
-                                        password: password.read().to_string()
-                                    }).send().await{
-                                        if let Some(auth_header) = res.headers().get("Authorization") {
-                                            if let Ok(token_str) = auth_header.to_str(){
-                                                let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
-                                                *TOKEN.write() = token.to_string(); // sets the token as a global signal that can be access anywhere 
-                                                get_userid_from_jwt(); // gets the user id and stores in the global signal
-                                                let path = storage_file();
-                                                match fs::write(path, serde_json::to_string(&token.to_string()).unwrap_or("".to_string())){
-                                                    Ok(a)=> {
-                                                        a
-                                                    }
-                                                    Err(e)=>{
-                                                        dbg!("Failed to write token to the disk");
-                                                        dbg!(e);
-                                                    }
+                            let client = Client::builder()
+                            .danger_accept_invalid_certs(true)
+                            .build()
+                            .expect("Failed to build client");
+                            spawn(async move{
+                                // add actuall username and password checks
+                                if let Ok(res) = client.post("https://localhost:3000/login").json(&LoginStruct{
+                                    username: username.read().to_string(),
+                                    password: password.read().to_string()
+                                }).send().await{
+                                    if let Some(auth_header) = res.headers().get("Authorization") {
+                                        if let Ok(token_str) = auth_header.to_str(){
+                                            let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
+                                            *TOKEN.write() = token.to_string(); // sets the token as a global signal that can be access anywhere 
+                                            get_userid_from_jwt(); // gets the user id and stores in the global signal
+                                            let path = storage_file();
+                                            match fs::write(path, &token.to_string()){
+                                                Ok(a)=> {
+                                                    print!("Successfullt wrote the token to");
+                                                    a
+                                                    
                                                 }
-                                                print!("{token}");
-                                                on_close.call(());
+                                                Err(e)=>{
+                                                    dbg!("Failed to write token to the disk");
+                                                    dbg!(e);
+                                                }
                                             }
+                                            print!("{token}");
+                                            on_close.call(());
                                         }
                                     }
-                                });
-                                ()
+                                }
                             });
                         }
                         if *trying_to_sign_up.read(){
-                            use_effect(move ||{
+                            
                                 let client = Client::builder()
                                 .danger_accept_invalid_certs(true)
                                 .build()
@@ -171,7 +170,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                                 *TOKEN.write() = token.to_string();
                                                 get_userid_from_jwt();
                                                 let path = storage_file();
-                                                match fs::write(path, serde_json::to_string(&token.to_string()).unwrap_or("".to_string())){
+                                                match fs::write(path, &token.to_string()){
                                                     Ok(a)=> {
                                                         a
                                                     }
@@ -186,8 +185,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                         }
                                     }
                                 });
-                                ()
-                            });
+                            
                         }
                     },
                     "Submit"
