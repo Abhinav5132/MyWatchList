@@ -18,6 +18,8 @@ Frontend:
     -fix the load_times for images somehow // need to switch to serving smaller images 
     -fix pfp.
     -if already loged_in and then login again the userid dosent refresh unless u close the app.
+    -recommend button is only reactive if hovering over the image
+    -popup only occurs when u click the image not the text
 prod:
     -https certificate
     -

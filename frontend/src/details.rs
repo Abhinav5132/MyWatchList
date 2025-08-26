@@ -162,12 +162,15 @@ pub fn Details(id: i64) -> Element {
                             }
                         
                             if *show_popup.read(){
-                                PopupAddAnime { 
-                                    is_error: *pop_error.read(),
-                                    anime_name: &details.title_romanji,
-                                    list_name:"Recommended",
-                                    on_close: move  || {
-                                        show_popup.set(false);
+                                div { 
+                                    id: "popup_anime_overlay", 
+                                    PopupAddAnime { 
+                                        is_error: *pop_error.read(),
+                                        anime_name: &details.title_romanji,
+                                        list_name:"Recommended",
+                                        on_close: move  || {
+                                            show_popup.set(false);
+                                        }
                                     }
                                 }
                             }
