@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 use login_popup::Login;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-struct Anime {
-    id: i64,
-    title: String,
-    picture: Option<String>,
+pub struct Anime {
+    pub id: i64,
+    pub title: String,
+    pub picture: Option<String>,
 }
 
 #[derive(Serialize,Deserialize, Clone)]
@@ -167,14 +167,17 @@ pub fn Searchpg() -> Element {
                     button {
                         class:"Icon_button_search",
                         id:"Platlist_button_search",
+                        onclick: move |_| {
+                                let navigator = navigator.clone();
+                                navigator.push(crate::router::routes::ListPgFn { list_name: "Recommended".to_string(), user_id: *USERID.read() });
+                            //should technically redirect to the page with a list of all playlists 
+                            },
                         img {
                             class: "Feeling_icon",
                             src: "{PLAYLIST}",
                             alt:"Playlists",
-                            onclick: move |_| {
-                            //does nothing for now redirect later
-                            },
                        }
+                       
                     }
 
                     button {

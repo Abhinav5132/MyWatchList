@@ -1,5 +1,6 @@
-use actix_web::{web::{BufMut, Data, Json}, HttpResponse};
+use actix_web::{web::{BufMut, Data, Json, Query}, HttpResponse, HttpRequest};
 use serde_json::json;
+use sqlx::sqlite::SqliteRow;
 
 use crate::*;
 
@@ -18,7 +19,7 @@ pub struct AddToList{
 #[derive(Serialize)]
 struct AList{
     name: String,
-    id: i32
+    id: i64
 }
 
 #[derive(Serialize)]
@@ -37,7 +38,9 @@ struct FetchLists{
 
 #[derive(Deserialize)]
 struct FetchAnimes{
-    watch_list_id: i32,
+    watch_list_name: String,
+    user_id: i64,
+    page_no: i64,
 }
 
 #[derive(Deserialize)]
@@ -167,56 +170,92 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
 }
 
 #[get("/fetch-all-lists")]
-pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>) -> HttpResponse {
-    let lists = sqlx::query("SELECT id, name FROM watch_list WHERE user_id = ?")
-    .bind(&user.user_id)
-    .fetch_all(db.as_ref()).await;
-    let mut all_list:Vec<AList> = vec![];
-    match lists {
-        Ok(row) =>{
-            for list in row{
-                let id:i32 = match list.try_get("id") {
-                    Ok(id)=>id,
-                    Err(e)=>{
-                        dbg!(e);
-                        return HttpResponse::InternalServerError().into();
-                    }
-                };
-
-                let name:String = match list.try_get("name") {
-                    Ok(name) => name,
-                    Err(e) => {
-                        dbg!(e);
-                        return HttpResponse::InternalServerError().into();
-                    }
-                };
-
-                let alist = AList{
-                    id: id,
-                    name: name,
-                };
-
-                all_list.push(alist);
-
-            }
+pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req: HttpRequest) -> HttpResponse {
+    let auth_header = match req.headers().get("Authorization") {
+        Some(a) => {
+            a.to_str().unwrap_or("")
         }
-        Err(_)=>{
-            return HttpResponse::InternalServerError().into();
+        None =>{
+            return HttpResponse::Unauthorized().into();
         }
     };
 
-    HttpResponse::Ok().json(json!(AllListSimple{
-        list: all_list
-    }))
+    if verify_token(auth_header).await {
+        let mut lists:Vec<SqliteRow> = vec![];
+        if get_userid_from_jwt(auth_header).await != user.user_id{
+            lists = match sqlx::query("Select name, id, privacy_type FROM watch_list WHERE user_id = ? AND privacy_type = ?;")
+            .bind(&user.user_id).bind("Public").fetch_all(db.as_ref()).await{
+                Ok(row) =>{
+                    row
+                },
+                Err(e)=>{
+                    dbg!(e);
+                    return HttpResponse::InternalServerError().into();
+                }
+
+            };
+        }else{
+            lists = match sqlx::query("Select name, id, privacy_type FROM watch_list WHERE user_id = ?;")
+            .bind(&user.user_id).fetch_all(db.as_ref()).await{
+                Ok(row) =>{
+                    row
+                },
+                Err(e)=>{
+                    dbg!(e);
+                    return HttpResponse::InternalServerError().into();
+                }
+
+            };
+        }
+
+        let mut all_list: AllListSimple = AllListSimple{list: vec![]};
+        for r in lists{
+            let name:String =match r.try_get("name") {
+                Ok(n) => n,
+                Err(e) => {
+                    dbg!(e);
+                    continue}
+            }; 
+            let id:i64 = match r.try_get("id") {
+                Ok(i) => i,
+                Err(e)=>
+                {
+                    dbg!(e);
+                    continue;
+                }
+            };
+
+            let alist = AList{
+                name: name,
+                id: id
+            };
+            all_list.list.push(alist);
+        }
+        
+        HttpResponse::Ok().json(json!(all_list))
+    } else {
+        HttpResponse::Unauthorized().into()
+    }
+
 } 
 
+
+// used to display all anime in a list_page
+//maybe change this to include description
 #[get("/get-animes-from-list")]
 pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<FetchAnimes>) -> HttpResponse {
+    let per_page = 10;
+    let offset = (watchlist.page_no - 1) * per_page;
     let animes = sqlx::query("
     SELECT anime_id
     FROM watch_list_anime
-    WHERE watch_list_id = ?;
-    ").bind(watchlist.watch_list_id).fetch_all(db.as_ref()).await;
+    WHERE watch_name = ? and user_id = ?
+    LIMIT ? OFFSET ?;
+    ").bind(&watchlist.watch_list_name)
+    .bind(&watchlist.user_id)
+    .bind(per_page)
+    .bind(offset)
+    .fetch_all(db.as_ref()).await;
 
     match animes {
         Ok(row)=>{
@@ -232,12 +271,12 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
             let mut animes:Vec<AnimeResult> = vec![];
             for id  in anime_ids{
                 let anime_details = match sqlx::query(
-                    "SELECT title_romanji, thumbnail FROM anime WHERE anime_id = ?"
+                    "SELECT title_romanji, picture FROM anime WHERE id = ?"
                 ).bind(&id).fetch_one(db.as_ref()).await{
                     Ok(id)=>id,
                     Err(e)=>{
                         dbg!(e);
-                        return HttpResponse::InternalServerError().into();
+                        return HttpResponse::InternalServerError().into(); //TODO later change this to only fail for the next one and send the errror upstream for handeling 
                     }
                 };
 
@@ -249,7 +288,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
                     }
                 }; 
 
-                let picture:String = match anime_details.try_get("thumbnail") {
+                let picture:String = match anime_details.try_get("picture") {
                     Ok(picture)=>picture,
                     Err(e)=>{
                         dbg!(e);
@@ -259,16 +298,16 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
 
                 animes.push(AnimeResult { id: id, title: title, picture: Some(picture) });
 
-                return HttpResponse::Ok().json(json!(AllAnimeSimple{ anime: animes }))
+                
             }
+           return HttpResponse::Ok().json(json!(AllAnimeSimple{ anime: animes })) 
         }
         Err(e)=>{
             dbg!(e);
             return HttpResponse::InternalServerError().into();
         }
     }
-
-    HttpResponse::Ok().into()
+    
 }
 
 #[get("/check_if_already_in_list")]

@@ -20,6 +20,8 @@ Frontend:
     -if already loged_in and then login again the userid dosent refresh unless u close the app.
     -recommend button is only reactive if hovering over the image
     -popup only occurs when u click the image not the text
+    -falsely shows unable to add even when it succesflly added 
+    -add authentication to all requests 
 prod:
     -https certificate
     -
