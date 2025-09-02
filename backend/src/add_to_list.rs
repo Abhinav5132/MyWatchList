@@ -33,7 +33,8 @@ struct AllAnimeSimple{
 
 #[derive(Deserialize)]
 struct FetchLists{
-    user_id: i64 
+    user_id: i64, 
+    page_no: i32
 }
 
 #[derive(Deserialize)]
@@ -168,9 +169,11 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
         }
     }
 }
-
+// this also needs to incorporate pages 
 #[get("/fetch-all-lists")]
 pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req: HttpRequest) -> HttpResponse {
+    let per_page = 10;
+    let offset = (user.page_no - 1) * per_page;
     let auth_header = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")
@@ -183,8 +186,16 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
     if verify_token(auth_header).await {
         let mut lists:Vec<SqliteRow> = vec![];
         if get_userid_from_jwt(auth_header).await != user.user_id{
-            lists = match sqlx::query("Select name, id, privacy_type FROM watch_list WHERE user_id = ? AND privacy_type = ?;")
-            .bind(&user.user_id).bind("Public").fetch_all(db.as_ref()).await{
+            lists = match sqlx::query("
+            Select name, id, privacy_type 
+            FROM watch_list 
+            WHERE user_id = ? AND privacy_type = ? 
+            LIMIT ? OFFSET ?;")
+            .bind(&user.user_id)
+            .bind("Public")
+            .bind(per_page)
+            .bind(offset)
+            .fetch_all(db.as_ref()).await{
                 Ok(row) =>{
                     row
                 },
@@ -195,8 +206,14 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
 
             };
         }else{
-            lists = match sqlx::query("Select name, id, privacy_type FROM watch_list WHERE user_id = ?;")
-            .bind(&user.user_id).fetch_all(db.as_ref()).await{
+            lists = match sqlx::query("Select name, id, privacy_type 
+            FROM watch_list 
+            WHERE user_id = ?
+            LIMIT ? OFFSET ?;")
+            .bind(&user.user_id)
+            .bind(per_page)
+            .bind(offset)
+            .fetch_all(db.as_ref()).await{
                 Ok(row) =>{
                     row
                 },

@@ -47,12 +47,16 @@ pub async fn generate_token(user_id: i64) ->Result<String, jsonwebtoken::errors:
 }
 
 pub async fn get_userid_from_jwt(token: &str) -> i64 {
+    let token = match token.strip_prefix("Bearer ") {
+        Some(t) => t,
+        None => return -1, 
+    };
     dotenvy::dotenv().ok();
     let secret = std::env::var("JWT_KEY").expect("Secret key must be set");
     let validation = Validation::default();
     match decode::<Claims>(
         &token,
-        &DecodingKey::from_secret(secret.as_ref()),
+        &DecodingKey::from_secret(secret.as_bytes()),
         &validation
     ){
         Ok(c)=> {
@@ -65,24 +69,26 @@ pub async fn get_userid_from_jwt(token: &str) -> i64 {
     }
 }
 
-pub async fn verify_token(mut token: &str) -> bool {
-    token = token.strip_prefix("Bearer ").unwrap();
-    if !token.starts_with("Bearer "){
-        return false;
-    }
-    
+pub async fn verify_token(token: &str) -> bool {
+     
+    let token = match token.strip_prefix("Bearer ") {
+        Some(t) => t,
+        None => return false, 
+    };
+    dbg!(token);
     dotenvy::dotenv().ok();
     let secret = std::env::var("JWT_KEY").expect("Secret key must be set");
     let validation = Validation::default();
     match decode::<Claims>(
         &token,
-        &DecodingKey::from_secret(secret.as_ref()),
+        &DecodingKey::from_secret(secret.as_bytes()),
         &validation
     ){
         Ok(c)=> {
             let current = chrono::Utc::now().timestamp() as usize;
             let expiry = c.claims.exp;
             if expiry < current {
+                dbg!("token expired");
                 return false;
             } else{
                 return true;
@@ -90,6 +96,7 @@ pub async fn verify_token(mut token: &str) -> bool {
         }
         Err(e) =>{
             dbg!(e);
+            dbg!("Error decoding the key");
             return false;
         }
     }

@@ -169,7 +169,7 @@ pub fn Searchpg() -> Element {
                         id:"Platlist_button_search",
                         onclick: move |_| {
                                 let navigator = navigator.clone();
-                                navigator.push(crate::router::routes::ListPgFn { list_name: "Recommended".to_string(), user_id: *USERID.read() });
+                                navigator.push(crate::router::routes::ListsPgFn { user_id: *USERID.read() });
                             //should technically redirect to the page with a list of all playlists 
                             },
                         img {
