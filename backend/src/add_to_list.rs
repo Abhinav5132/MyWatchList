@@ -13,7 +13,8 @@ use crate::*;
 pub struct AddToList{
     anime_id: i64, 
     list_name: String,
-    user_id: i64
+    user_id: i64,
+    rank: Option<i64>
 }
 
 #[derive(Serialize)]
@@ -50,6 +51,7 @@ pub struct AddListToUser{
     user_id: i64,
     name: String,
     privacy_type: String,
+    is_ranked: i32
 }
 
 #[derive(Serialize)]
@@ -57,11 +59,53 @@ pub struct ExistsInList{
     exists: bool
 }
 
+#[derive(Deserialize)]
+pub struct IfRanked{
+    list_name: String,
+    user_id: i64,
+}
+
+
+#[derive(Serialize)]
+pub struct IsRanked{
+    is_ranked: i32,
+}
+
+#[get("/get-if-ranked")]
+pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>) -> HttpResponse {
+    let mut is_ranked = 0;
+    match sqlx::query("SELECT is_ranked FROM watch_list WHERE name = ? and user_id = ?;" )
+        .bind(&details.list_name)
+        .bind(details.user_id)
+        .fetch_one(db.as_ref()).await
+        {
+            Ok(cou) => {
+                let count = cou.try_get("is_ranked").unwrap_or(0); // for now assuming not ranking cuz it should technicall never reach this as is_ranked cannot be null
+                is_ranked = count;
+                
+                    HttpResponse::Ok().json(IsRanked{
+                        is_ranked: is_ranked,
+                    }).into()
+                }
+
+            Err(e) => {
+                dbg!(e); // add actiall error handeling here
+                return HttpResponse::InternalServerError().into();
+            }
+            
+        }
+
+}
+
 #[post("/add-anime-to-list")]
 pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->HttpResponse{
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;
     let user_id = &to_add.user_id;
+    let rank = match to_add.rank {
+        Some(rank) => rank,
+        None => -1
+    };
     //dbg!(&anime_id);
     //dbg!(&list_name);
    //dbg!(&user_id);
@@ -84,10 +128,11 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
 
     //dbg!(&count);
     if count == 0 {
-        match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id) VALUES (?,?,?);")
+        match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id, rank) VALUES (?,?,?,?);")
         .bind(list_name)
         .bind(anime_id)
         .bind(user_id)
+        .bind(rank)
         .execute(db.as_ref()).await {
         Ok(_) => {
             dbg!("Excecuted properly");
@@ -132,7 +177,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
 
 #[post("/add-list-to-user")]
 pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>)-> HttpResponse{
-    match create_list(&db, &to_add.name, &to_add.user_id, &to_add.privacy_type).await {
+    match create_list(&db, &to_add.name, &to_add.user_id, &to_add.privacy_type, to_add.is_ranked).await {
         Ok(_) => {
             HttpResponse::Ok().into()
         }
@@ -143,11 +188,12 @@ pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
     }
 }
 
-pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy_type: &String)->Result<(), sqlx::Error>{
-    sqlx::query("INSERT INTO watch_list(name, user_id, privacy_type) VALUES (?,?,?);")
+pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy_type: &String, is_ranked: i32)->Result<(), sqlx::Error>{
+    sqlx::query("INSERT INTO watch_list(name, user_id, privacy_type, is_ranked) VALUES (?,?,?,?);")
     .bind(name)
     .bind(user_id)
     .bind(privacy_type)
+    .bind(is_ranked)
     .execute(db).await?;
 
     Ok(())

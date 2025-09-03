@@ -57,7 +57,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
 
 
     // adding the basic lists to the user after account creation
-    match create_list(db.as_ref(), &"Watch List".to_string(), &user_id, &"Private".to_string()).await{
+    match create_list(db.as_ref(), &"Watch List".to_string(), &user_id, &"Private".to_string(), 0).await{
         Ok(_)=>(),
         Err(e)=>{
             dbg!(e);
@@ -66,7 +66,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     }
 
 
-    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &"Public".to_string()).await{
+    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &"Public".to_string(), 1).await{
         Ok(_)=>(),
         Err(e)=>{
             dbg!(e);
@@ -75,7 +75,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     }
 
 
-    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &"Private".to_string()).await{
+    match create_list(db.as_ref(), &"Private_list".to_string(), &user_id, &"Private".to_string(), 1).await{ // only for debugging remove later
         Ok(_)=>(),
         Err(e)=>{
             dbg!(e);

@@ -1,8 +1,9 @@
+use std::error;
+
 use crate::{popup_add_anime::{popup_add_anime, PopupAddAnime}, *};
-use dioxus::html::div;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Error};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -43,12 +44,25 @@ struct RelatedAnime{
 struct AddToList{
     anime_id: i64, 
     list_name: String,
-    user_id: i64
+    user_id: i64,
+    rank: Option<i32>
 }
 
 #[derive(Deserialize,Serialize)]
 pub struct ExistsInList{
     exists: bool
+}
+
+#[derive(Serialize)]
+pub struct IfRanked{
+    list_name: String,
+    user_id: i64,
+}
+
+
+#[derive(Deserialize)]
+pub struct IsRanked{
+    is_ranked: i32,
 }
 
 pub async fn check_if_in_list(id: i64, list_name: String)->bool{
@@ -59,7 +73,8 @@ pub async fn check_if_in_list(id: i64, list_name: String)->bool{
     if let Ok(resp) = client.get("/check_if_already_in_list").json(&AddToList{
                 anime_id: id.clone(),
                 list_name: list_name,
-                user_id: *USERID.read()
+                user_id: *USERID.read(),
+                rank: None
             }).send().await{
                if let Ok(count) = resp.json::<ExistsInList>().await{
                     if count.exists {
@@ -75,7 +90,33 @@ pub async fn check_if_in_list(id: i64, list_name: String)->bool{
     }
 }
 
-pub async fn add_anime_to_list(id: i64, list_name: String)-> bool{
+pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> bool {
+    let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .expect("Failed to build client");
+
+    if let Ok(resp) = client.get("https://localhost:3000/get-if-ranked").json(&IfRanked{
+        list_name: list_name,
+        user_id: user_id,
+    }).send().await{
+        if let Ok(is_ranked) = resp.json::<IsRanked>().await{
+            if is_ranked.is_ranked == 1{
+               true 
+            }
+            else{
+                false
+            }
+
+        }else {
+            false // for now till i figure out how result types work
+        }
+    } else {
+        false // again for now 
+    }
+}
+
+pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>)-> bool{
     if !check_if_in_list(id.clone(), list_name.clone()).await {
         let client = Client::builder()
             .danger_accept_invalid_certs(true)
@@ -87,6 +128,7 @@ pub async fn add_anime_to_list(id: i64, list_name: String)-> bool{
                 anime_id: id,
                 user_id: userid,
                 list_name: list_name,
+                rank: rank
             }).send().await{
                 let status = resp.status();
                     if status.is_server_error(){
@@ -183,7 +225,15 @@ pub fn Details(id: i64) -> Element {
                                     use_effect(move || {
                                         spawn(async move {
                                             {
-                                                let status = add_anime_to_list(id.clone(), "Recommended".to_string()).await;
+                                                let is_ranked = check_if_list_is_ranked("Recommended".to_string(), id.clone()).await;
+                                                let mut rank:Option<i32> = None;
+                                                if is_ranked {
+                                                    
+                                                }
+                                                else {
+                                                    rank = None
+                                                }
+                                                let status = add_anime_to_list(id.clone(), "Recommended".to_string(), rank).await;
                                                 if status{
                                                     pop_error.set(false);
                                                 }
