@@ -1,9 +1,8 @@
 use std::error;
 
-use crate::{popup_add_anime::{popup_add_anime, PopupAddAnime}, *};
+use crate::{popup_add_anime::{popup_add_anime, PopupAddAnime, PopupError}, *};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Error};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -63,6 +62,7 @@ pub struct IfRanked{
 #[derive(Deserialize)]
 pub struct IsRanked{
     is_ranked: i32,
+    last_rank: i32
 }
 
 pub async fn check_if_in_list(id: i64, list_name: String)->bool{
@@ -90,7 +90,7 @@ pub async fn check_if_in_list(id: i64, list_name: String)->bool{
     }
 }
 
-pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> bool {
+pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> IsRanked {
     let client = Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
@@ -101,18 +101,19 @@ pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> bool {
         user_id: user_id,
     }).send().await{
         if let Ok(is_ranked) = resp.json::<IsRanked>().await{
-            if is_ranked.is_ranked == 1{
-               true 
-            }
-            else{
-                false
-            }
+            is_ranked
 
         }else {
-            false // for now till i figure out how result types work
+            IsRanked{
+                is_ranked:-1,
+                last_rank:1
+            } // for now till i figure out how result types work
         }
     } else {
-        false // again for now 
+        IsRanked{
+                is_ranked:-1,
+                last_rank:1
+            } // again for now 
     }
 }
 
@@ -132,17 +133,17 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>)-> 
             }).send().await{
                 let status = resp.status();
                     if status.is_server_error(){
-                        true
+                        false
                     }
                     else{
-                        false
+                        true
                     }
 
         }else {
-            true
+           false
         }
     }else {
-        true // if its not in the list we return true even though nothing has been added into the list as the entry already exists this option should ideally never be reached
+        true // anime already in list so nothing needs to be changed(later change so if already in the list the user cannot send that request)
     }
 }
 
@@ -152,8 +153,8 @@ pub fn Details(id: i64) -> Element {
     let mut show_popup: Signal<bool> = use_signal(|| false);
     let mut pop_error: Signal<bool> = use_signal(|| false);
     let anime_details: Signal<Option<FullAnimeResult>> = use_signal(|| None);
-
-    
+    let mut is_ranked = use_signal(|| false);
+    let mut last_rank = use_signal(|| 0);
     let navigator = use_navigator();
     use_effect(move || {
         let mut details = anime_details.clone();
@@ -207,42 +208,66 @@ pub fn Details(id: i64) -> Element {
                                 div { 
                                     id: "popup_anime_overlay", 
                                     PopupAddAnime { 
-                                        is_error: *pop_error.read(),
                                         anime_name: &details.title_romanji,
                                         list_name:"Recommended",
+                                        last_rank: *last_rank.read(),
+                                        is_rank: *is_ranked.read(),
                                         on_close: move  || {
                                             show_popup.set(false);
+                                        },
+                                        on_submit: move |rank:i32| {
+                                            spawn({async move {
+                                                let status = add_anime_to_list(id.clone(), "Recommended".to_string(), Some(rank)).await;
+                                                pop_error.set(!status);
+                                            }
+                                        });
+                                            
                                         }
                                     }
                                 }
                             }
+
+                            if *pop_error.read(){
+                                div { 
+                                    id: "popup_error",
+                                    PopupError { 
+                                        anime_name: &details.title_romanji,
+                                        list_name:"Recommended",
+                                        on_close: move || {
+                                            pop_error.set(false);
+                                        }
+                                     }
+                                 }
+                            }
+
+
                         div {
                             id: "Like_button_div",
                             button { 
                                 id:"Recommend_button",
                                 onclick: move |_| {
                                 
-                                    use_effect(move || {
-                                        spawn(async move {
-                                            {
-                                                let is_ranked = check_if_list_is_ranked("Recommended".to_string(), id.clone()).await;
-                                                let mut rank:Option<i32> = None;
-                                                if is_ranked {
-                                                    
-                                                }
-                                                else {
-                                                    rank = None
-                                                }
-                                                let status = add_anime_to_list(id.clone(), "Recommended".to_string(), rank).await;
-                                                if status{
-                                                    pop_error.set(false);
-                                                }
-                                                else {
-                                                    pop_error.set(true);
-                                                }
-                                                show_popup.set(true);
-                                            };
-                                        });
+                                    
+                                    spawn(async move {
+                                        
+                                        let rank_status = check_if_list_is_ranked("Recommended".to_string(), *USERID.read()).await;
+                                        if rank_status.is_ranked == 0 {
+                                            // not ranked 
+                                            is_ranked.set(false);
+                                            last_rank.set(0); // this should be null 
+                                            show_popup.set(true); 
+                                        }
+                                        else if rank_status.is_ranked == 1 {
+                                            is_ranked.set(true);
+                                            last_rank.set(rank_status.last_rank);
+                                            show_popup.set(true);
+
+                                            
+                                        }
+                                        else{
+                                            // this is an error change things here.
+                                        }
+                                            
                                     });
 
                                 },
@@ -419,6 +444,7 @@ pub fn Details(id: i64) -> Element {
                         }
                     }
                 }
+
         button {
             onclick: move |_| {
                 navigator.push(crate::router::routes::Searchpg {  });

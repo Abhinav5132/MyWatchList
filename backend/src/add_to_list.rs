@@ -69,11 +69,30 @@ pub struct IfRanked{
 #[derive(Serialize)]
 pub struct IsRanked{
     is_ranked: i32,
+    last_rank: i32
+}
+
+pub async fn re_order_list(db: Data<Pool<Sqlite>>, rank: i64, list_name: String, user_id:i64) -> Result<(), ()> {
+    let result = sqlx::query("
+    UPDATE watch_list_anime 
+    SET rank = rank + 1
+    WHERE user_id = ? AND
+    watch_name = ? AND
+    rank >= ?;
+    ").bind(user_id).bind(list_name).bind(rank).execute(db.as_ref()).await;
+
+    match result {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            dbg!(e);
+            Err(())
+        }
+    }
+
 }
 
 #[get("/get-if-ranked")]
 pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>) -> HttpResponse {
-    let mut is_ranked = 0;
     match sqlx::query("SELECT is_ranked FROM watch_list WHERE name = ? and user_id = ?;" )
         .bind(&details.list_name)
         .bind(details.user_id)
@@ -81,11 +100,27 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>) -> H
         {
             Ok(cou) => {
                 let count = cou.try_get("is_ranked").unwrap_or(0); // for now assuming not ranking cuz it should technicall never reach this as is_ranked cannot be null
-                is_ranked = count;
-                
-                    HttpResponse::Ok().json(IsRanked{
-                        is_ranked: is_ranked,
-                    }).into()
+
+                    match sqlx::query("SELECT rank FROM watch_list_anime 
+                                    WHERE user_id = ? AND watch_name = ? 
+                                    ORDER BY rank DESC 
+                                    LIMIT 1;")
+                                    .bind(details.user_id).bind(details.list_name.clone())
+                                    .fetch_one(db.as_ref()).await{
+                        Ok(rank) => {
+                            let last_rank = rank.try_get("rank").unwrap_or(1);
+                            HttpResponse::Ok().json(IsRanked{
+                            is_ranked: count,
+                            last_rank: last_rank
+                            }).into()
+                        }
+
+                        Err(r)=> {
+                            dbg!(r);
+                            return HttpResponse::InternalServerError().into();
+                        }
+                    }
+                    
                 }
 
             Err(e) => {
@@ -94,10 +129,9 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>) -> H
             }
             
         }
-
 }
 
-#[post("/add-anime-to-list")]
+#[post("/add-anime-to-list")] // must verify the users identity before it adds 
 pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>) ->HttpResponse{
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;
@@ -106,9 +140,9 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
         Some(rank) => rank,
         None => -1
     };
-    //dbg!(&anime_id);
-    //dbg!(&list_name);
-   //dbg!(&user_id);
+    dbg!(&anime_id);
+    dbg!(&list_name);
+    dbg!(&user_id);
     let count:i64 = match sqlx::query_scalar(
         "SELECT COUNT(1) FROM watch_list_anime WHERE watch_name = ? AND anime_id = ? AND user_id = ?"
     )
@@ -125,30 +159,34 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
 
     };
 
+    let reorder_result =re_order_list(db.clone(), to_add.rank.unwrap_or(1), to_add.list_name.clone(), to_add.user_id).await;
+    if let Ok(result ) = reorder_result{
+            //dbg!(&count);
+        if count == 0 {
+            match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id, rank) VALUES (?,?,?,?);")
+            .bind(list_name)
+            .bind(anime_id)
+            .bind(user_id)
+            .bind(rank)
+            .execute(db.as_ref()).await {
+            Ok(_) => {
+                dbg!("Excecuted properly");
+                HttpResponse::Ok().into()
+                }
 
-    //dbg!(&count);
-    if count == 0 {
-        match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id, rank) VALUES (?,?,?,?);")
-        .bind(list_name)
-        .bind(anime_id)
-        .bind(user_id)
-        .bind(rank)
-        .execute(db.as_ref()).await {
-        Ok(_) => {
-            dbg!("Excecuted properly");
-            HttpResponse::Ok().into()
+            Err(e) => {
+                dbg!(e);
+                HttpResponse::InternalServerError().into()
+                }
             }
-
-        Err(e) => {
-            dbg!(e);
-            HttpResponse::InternalServerError().into()
-            }
+        } else {
+            dbg!("Anime is alreadt in the list");
+            HttpResponse::Conflict().body("Anime is already in list")
         }
-    } else {
-        HttpResponse::Conflict().body("Anime is already in list")
+    }else {
+        dbg!("result is false from reorder list");
+        HttpResponse::InternalServerError().into()
     }
-    
-    
 }
 
 #[post("/remove-form-list")]
