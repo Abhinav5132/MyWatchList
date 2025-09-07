@@ -35,7 +35,8 @@ struct AllAnimeSimple{
 #[derive(Deserialize)]
 struct FetchLists{
     user_id: i64, 
-    page_no: i32
+    page_no: i32,
+    per_page: i32
 }
 
 #[derive(Deserialize)]
@@ -100,14 +101,15 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>) -> H
         {
             Ok(cou) => {
                 let count = cou.try_get("is_ranked").unwrap_or(0); // for now assuming not ranking cuz it should technicall never reach this as is_ranked cannot be null
-
-                    match sqlx::query("SELECT rank FROM watch_list_anime 
+                    // fails if new list make it somehow return 1 if none 
+                    if count == 1 {
+                        match sqlx::query("SELECT rank FROM watch_list_anime 
                                     WHERE user_id = ? AND watch_name = ? 
                                     ORDER BY rank DESC 
                                     LIMIT 1;")
                                     .bind(details.user_id).bind(details.list_name.clone())
-                                    .fetch_one(db.as_ref()).await{
-                        Ok(rank) => {
+                                    .fetch_optional(db.as_ref()).await{
+                        Ok(Some(rank)) => {
                             let last_rank = rank.try_get("rank").unwrap_or(1);
                             HttpResponse::Ok().json(IsRanked{
                             is_ranked: count,
@@ -115,10 +117,23 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>) -> H
                             }).into()
                         }
 
+                        Ok(None) => {
+                            HttpResponse::Ok().json(IsRanked {
+                                is_ranked: count,
+                                last_rank: 0
+                            })
+                        }
+
                         Err(r)=> {
                             dbg!(r);
                             return HttpResponse::InternalServerError().into();
                         }
+                    }
+                    }else {
+                        HttpResponse::Ok().json(IsRanked{
+                            is_ranked:count,
+                            last_rank: 0
+                        })
                     }
                     
                 }
@@ -253,10 +268,10 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
         }
     }
 }
-// this also needs to incorporate pages 
+
 #[get("/fetch-all-lists")]
 pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req: HttpRequest) -> HttpResponse {
-    let per_page = 10;
+    let per_page = user.per_page;
     let offset = (user.page_no - 1) * per_page;
     let auth_header = match req.headers().get("Authorization") {
         Some(a) => {

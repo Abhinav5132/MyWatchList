@@ -20,8 +20,7 @@ Frontend:
     -fix the load_times for images somehow // need to switch to serving smaller images 
     -fix pfp.
     -recommend button is only reactive if hovering over the image
-    -popup only occurs when u click the image not the text
-    -falsely shows unable to add even when it succesflly added 
+    -popup only occurs when u click the image not the text 
     -add authentication to all requests 
 prod:
     -https certificate
@@ -31,3 +30,4 @@ Nice looking colours:
 #8FD54E
 
 -- typing is very blocky for  some reason plx fix 
+-- not to self: Signal sitrings dont need to be dereferenced

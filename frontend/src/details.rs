@@ -1,8 +1,12 @@
-use std::error;
 
-use crate::{popup_add_anime::{popup_add_anime, PopupAddAnime, PopupError}, *};
+
+pub use crate::*;
+use crate::{
+    lists_page::{AllListSimple, FetchLists}, popup_add_anime::{PopupAddAnime, PopupError}, *
+};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+pub use tracing;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -21,132 +25,180 @@ struct FullAnimeResult {
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     recommendations: Vec<ReccomendResult>,
-    related_anime: Vec<RelatedAnime>
+    related_anime: Vec<RelatedAnime>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-struct ReccomendResult{
+struct ReccomendResult {
     id: i32,
     title: String,
     picture: String,
     score: f32,
 }
 #[derive(Serialize, Default, Deserialize, Clone, Debug, PartialEq)]
-struct RelatedAnime{
+struct RelatedAnime {
     id: i32,
     title: String,
     picture: String,
-    RelationType: String
+    RelationType: String,
 }
 
 #[derive(Serialize)]
-struct AddToList{
-    anime_id: i64, 
+struct AddToList {
+    anime_id: i64,
     list_name: String,
     user_id: i64,
-    rank: Option<i32>
+    rank: Option<i32>,
 }
 
-#[derive(Deserialize,Serialize)]
-pub struct ExistsInList{
-    exists: bool
+#[derive(Deserialize, Serialize)]
+pub struct ExistsInList {
+    exists: bool,
 }
 
 #[derive(Serialize)]
-pub struct IfRanked{
+pub struct IfRanked {
     list_name: String,
     user_id: i64,
 }
-
 
 #[derive(Deserialize)]
-pub struct IsRanked{
+pub struct IsRanked {
     is_ranked: i32,
-    last_rank: i32
+    last_rank: i32,
 }
 
-pub async fn check_if_in_list(id: i64, list_name: String)->bool{
+pub async fn check_if_in_list(id: i64, list_name: String) -> bool {
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
         .expect("Failed to build client");
-    if let Ok(resp) = client.get("/check_if_already_in_list").json(&AddToList{
-                anime_id: id.clone(),
-                list_name: list_name,
-                user_id: *USERID.read(),
-                rank: None
-            }).send().await{
-               if let Ok(count) = resp.json::<ExistsInList>().await{
-                    if count.exists {
-                        true
-                    }else {
-                        false
-                    }
-               }else {
-                   false
-               }
-    }else {
+    if let Ok(resp) = client
+        .get("/check_if_already_in_list")
+        .json(&AddToList {
+            anime_id: id.clone(),
+            list_name: list_name,
+            user_id: *USERID.read(),
+            rank: None,
+        })
+        .send()
+        .await
+    {
+        if let Ok(count) = resp.json::<ExistsInList>().await {
+            if count.exists {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
         false
     }
 }
 
 pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> IsRanked {
     let client = Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .expect("Failed to build client");
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("Failed to build client");
 
-    if let Ok(resp) = client.get("https://localhost:3000/get-if-ranked").json(&IfRanked{
-        list_name: list_name,
-        user_id: user_id,
-    }).send().await{
-        if let Ok(is_ranked) = resp.json::<IsRanked>().await{
+    if let Ok(resp) = client
+        .get("https://localhost:3000/get-if-ranked")
+        .json(&IfRanked {
+            list_name: list_name,
+            user_id: user_id,
+        })
+        .send()
+        .await
+    {
+        if let Ok(is_ranked) = resp.json::<IsRanked>().await {
             is_ranked
-
-        }else {
-            IsRanked{
-                is_ranked:-1,
-                last_rank:1
+        } else {
+            IsRanked {
+                is_ranked: -1,
+                last_rank: 1,
             } // for now till i figure out how result types work
         }
     } else {
-        IsRanked{
-                is_ranked:-1,
-                last_rank:1
-            } // again for now 
+        IsRanked {
+            is_ranked: -1,
+            last_rank: 1,
+        } // again for now
     }
 }
 
-pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>)-> bool{
+pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>) -> bool {
     if !check_if_in_list(id.clone(), list_name.clone()).await {
         let client = Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
             .expect("Failed to build client");
         let userid = *USERID.read();
-        if let Ok(resp ) = client.post("https://localhost:3000/add-anime-to-list")
-            .json(&AddToList{
+        if let Ok(resp) = client
+            .post("https://localhost:3000/add-anime-to-list")
+            .json(&AddToList {
                 anime_id: id,
                 user_id: userid,
                 list_name: list_name,
-                rank: rank
-            }).send().await{
-                let status = resp.status();
-                    if status.is_server_error(){
-                        false
-                    }
-                    else{
-                        true
-                    }
-
-        }else {
-           false
+                rank: rank,
+            })
+            .send()
+            .await
+        {
+            let status = resp.status();
+            if status.is_server_error() {
+                false
+            } else {
+                true
+            }
+        } else {
+            false
         }
-    }else {
+    } else {
         true // anime already in list so nothing needs to be changed(later change so if already in the list the user cannot send that request)
     }
 }
 
+pub async fn get_all_lists() -> Option<AllListSimple> {
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("Failed to build client.");
+
+    if let Ok(res) = client
+        .get("https://localhost:3000/fetch-all-lists")
+        .bearer_auth(TOKEN.read())
+        .json(&FetchLists {
+            user_id: *USERID.read(),
+            page_no: 1,
+            per_page: 5,
+        })
+        .send()
+        .await
+    {
+        let alllist = res.json::<AllListSimple>().await;
+        match alllist {
+            Ok(mut lists) => {
+               lists.list = lists
+                .list
+                .into_iter()
+                .filter(|l| l.name != "Recommended" && l.name != "Watch_List")
+                .collect();
+
+                Some(lists)
+            },
+            Err(e) => {
+                dbg!(e);
+                None
+            }
+        }
+    } else {
+        dbg!("didnt gget a response from backend");
+        None
+    }
+}
 
 #[component]
 pub fn Details(id: i64) -> Element {
@@ -155,16 +207,22 @@ pub fn Details(id: i64) -> Element {
     let anime_details: Signal<Option<FullAnimeResult>> = use_signal(|| None);
     let mut is_ranked = use_signal(|| false);
     let mut last_rank = use_signal(|| 0);
+    let mut list_name = use_signal(|| "".to_string());
+    let mut all_lists: Signal<Option<AllListSimple>> = use_signal(|| None);
+    let mut show_list = use_signal(|| false);
     let navigator = use_navigator();
     use_effect(move || {
         let mut details = anime_details.clone();
         spawn(async move {
-            let client =  Client::builder()
+            let client = Client::builder()
                 .danger_accept_invalid_certs(true)
                 .build()
                 .expect("Failed to build client");
             if let Ok(res) = client
-                .get(format!("https://localhost:3000/details?query={}", id.clone()))
+                .get(format!(
+                    "https://localhost:3000/details?query={}",
+                    id.clone()
+                ))
                 .send()
                 .await
             {
@@ -172,7 +230,8 @@ pub fn Details(id: i64) -> Element {
                     details.set(Some(detail));
                 }
             }
-
+            let option_lists = get_all_lists().await;
+            all_lists.set(option_lists);
         });
         ()
     });
@@ -186,13 +245,13 @@ pub fn Details(id: i64) -> Element {
 
             let rating = details.score / 10.0;
             rsx!{
-                
+
                 div{
                     id:"Title_div",
                 h3 { id: "Title",
                     "{ details.title_romanji }" },
                 }
-                
+
                 div{
                     id: "top_div",
 
@@ -203,36 +262,36 @@ pub fn Details(id: i64) -> Element {
                             src: "{ details.picture }",
                             alt: "picture"
                             }
-                        
+
                             if *show_popup.read(){
-                                div { 
-                                    id: "popup_anime_overlay", 
-                                    PopupAddAnime { 
+                                div {
+                                    id: "popup_anime_overlay",
+                                    PopupAddAnime {
                                         anime_name: &details.title_romanji,
-                                        list_name:"Recommended",
-                                        last_rank: *last_rank.read(),
+                                        list_name:list_name.read(), // change to a signal
+                                        last_rank:*last_rank.read(),
                                         is_rank: *is_ranked.read(),
                                         on_close: move  || {
                                             show_popup.set(false);
                                         },
                                         on_submit: move |rank:i32| {
                                             spawn({async move {
-                                                let status = add_anime_to_list(id.clone(), "Recommended".to_string(), Some(rank)).await;
+                                                let status = add_anime_to_list(id.clone(), list_name.read().clone(), Some(rank)).await;
                                                 pop_error.set(!status);
                                             }
                                         });
-                                            
+
                                         }
                                     }
                                 }
                             }
 
                             if *pop_error.read(){
-                                div { 
+                                div {
                                     id: "popup_error",
-                                    PopupError { 
+                                    PopupError {
                                         anime_name: &details.title_romanji,
-                                        list_name:"Recommended",
+                                        list_name:list_name.read(), // change to a signal
                                         on_close: move || {
                                             pop_error.set(false);
                                         }
@@ -243,51 +302,104 @@ pub fn Details(id: i64) -> Element {
 
                         div {
                             id: "Like_button_div",
-                            button { 
+                            button {
                                 id:"Recommend_button",
                                 onclick: move |_| {
-                                
-                                    
+                                    list_name.set("Recommended".to_string());
+
                                     spawn(async move {
-                                        
+
                                         let rank_status = check_if_list_is_ranked("Recommended".to_string(), *USERID.read()).await;
                                         if rank_status.is_ranked == 0 {
-                                            // not ranked 
+                                            // not ranked
                                             is_ranked.set(false);
-                                            last_rank.set(0); // this should be null 
-                                            show_popup.set(true); 
+                                            last_rank.set(0); // this should be null
+                                            show_popup.set(true);
                                         }
                                         else if rank_status.is_ranked == 1 {
                                             is_ranked.set(true);
                                             last_rank.set(rank_status.last_rank);
                                             show_popup.set(true);
 
-                                            
+
                                         }
                                         else{
                                             // this is an error change things here.
                                         }
-                                            
+
                                     });
 
                                 },
-                                img { 
+                                img {
                                     class:"Feeling_icon",
                                     src:HEART,
                                 }
                                 "Recommend"
                             }
-                            button { 
+                            button {
                                 id:"Watch_list_button",
-                                img { 
+                                img {
                                     class:"Feeling_icon",
                                     id:"Add",
                                     src:ADD
                                 }
                                 "Add to list"
-                                // make this a dropdown
+                                }
+
+                            div {
+                                id:"split_list_button",
+                                button {
+                                        id:"Multiple_list_button",
+                                        onclick: move |_| {
+                                            let current  = *show_list.read();
+                                            show_list.set(!current);
+                                        },
+                                        img {
+                                            class:"Feeling_icon",
+                                            id:"Add",
+                                            src:ADD
+                                        }
+                                    }
+                                    if *show_list.read() {
+                                    div {
+                                    id:"dropdown_of_lists",
+                                    if let Some(all_list) = all_lists.read().as_ref(){
+                                        
+                                        for alist in all_list.list.clone() { // on)ly prints out watch_list for some reaon
+
+                                            div {
+                                                class: "a_list_div",
+                                                onclick: move |_| {
+                                                    let current_list_name = alist.name.clone();
+                                                    list_name.set(alist.name.clone());
+                                                    spawn(async move {
+                                                        dbg!("this code ran");
+                                                        let is_rank = check_if_list_is_ranked(current_list_name, *USERID.read()).await;
+                                                        if is_rank.is_ranked == 0{
+                                                            is_ranked.set(false);
+                                                            last_rank.set(0);
+                                                            show_popup.set(true);
+                                                        }
+                                                        else if is_rank.is_ranked == 1 {
+                                                            is_ranked.set(false);
+                                                            last_rank.set(is_rank.last_rank);
+                                                            show_popup.set(true);
+                                                        } else {
+                                                            dbg!("Unexpected is_ranked value: {}", is_rank.is_ranked);
+                                                        }
+                                                    });
+                                                },
+                                                p { { alist.name.clone()} }
+                                            }
+                                        }
+                                    }
+
+                                }
+                                }
+                                }
+
+
                             }
-                         }
                     }
                     div{
                         id:"Details_div",
@@ -311,11 +423,11 @@ pub fn Details(id: i64) -> Element {
                                 }
                             }
                             else {
-                                h4 { 
-                                    "Format: {details.format}" 
+                                h4 {
+                                    "Format: {details.format}"
                                 }
-                                h4 { 
-                                    "Episodes : {details.episodes}" 
+                                h4 {
+                                    "Episodes : {details.episodes}"
                                 }
                                 h4 {
                                     "Status: {details.status}"
@@ -333,16 +445,16 @@ pub fn Details(id: i64) -> Element {
                         }
                         div{
                             id:"other_anime_div",
-                            div { 
+                            div {
                                 id: "Recommendations_div",
                                 for reccommend in details.recommendations.clone(){
-                                    div { 
+                                    div {
                                         class: "Recommend_item_div",
-                                        img { 
+                                        img {
                                             id: "Reccomend_pic",
                                             src:reccommend.picture
                                         }
-                                        div { 
+                                        div {
                                             id: "Recc_title_div",
                                             "{reccommend.title}",
                                             "{reccommend.score / 10.0}"
@@ -351,10 +463,10 @@ pub fn Details(id: i64) -> Element {
                                 }
                             }
 
-                            div {  
+                            div {
                                 id:"Related_div",
                                 for related in details.related_anime.clone(){
-                                    div {  
+                                    div {
                                         class:"Related_item_div",
                                         img{
                                             id: "related_pic",
@@ -373,74 +485,74 @@ pub fn Details(id: i64) -> Element {
                     div {
                         id: "Friends_div",
                         h3 { "Friends:" }
-                        div {  
+                        div {
                             class: "Friend_card",
-                            img { 
+                            img {
                                 class: "PFP" ,
                                 src: NOPFP
                             }
-                            img { 
+                            img {
                                 class: "Feeling_icon",
-                                src: HEART 
+                                src: HEART
                             }
                             h5 { "Diddyago liked this" }
-                            
+
                         }
-                        div {  
+                        div {
                             class: "Friend_card",
-                            img { 
+                            img {
                                 class: "PFP" ,
                                 src: NOPFP
                             }
-                            img { 
+                            img {
                                 class: "Feeling_icon",
                                 src: TRAHSH
                             }
                             h5 { "N hated this " }
-                            
+
                         }
-                        div {  
+                        div {
                             class: "Friend_card",
-                            img { 
+                            img {
                                 class: "PFP" ,
                                 src: NOPFP
                             }
-                            img { 
+                            img {
                                 class: "Feeling_icon",
-                                src: TICK 
+                                src: TICK
                             }
                             h5 { "Diddyago Watched this" }
-                            
+
                         }
-                        div {  
+                        div {
                             class: "Friend_card",
-                            img { 
+                            img {
                                 class: "PFP" ,
                                 src: NOPFP
                             }
-                            img { 
+                            img {
                                 class: "Feeling_icon",
-                                src: HEART 
+                                src: HEART
                             }
                             h5 { "Diddyago liked this" }
-                            
+
                         }
-                        div {  
+                        div {
                             class: "Friend_card",
-                            img { 
+                            img {
                                 class: "PFP" ,
                                 src: NOPFP
                             }
-                            img { 
+                            img {
                                 class: "Feeling_icon",
-                                src: HEART 
+                                src: HEART
                             }
                             h5 { "Diddyago liked this" }
-                            
+
                         }
                         button {
                             id:"show_more_friends_button",
-                            "Show More" 
+                            "Show More"
                         }
                     }
                 }

@@ -3,19 +3,20 @@ use reqwest::Client;
 pub use crate::*;
 
 #[derive(Serialize)]
-struct FetchLists{
-    user_id: i64,
-    page_no: i32
+pub struct FetchLists{
+    pub user_id: i64,
+    pub page_no: i32,
+    pub per_page: i32
 }
-#[derive(Deserialize, Clone)]
-struct AList{
-    name: String,
-    id: i64
+#[derive(Deserialize, Clone, Debug)]
+pub struct AList{
+    pub name: String,
+    pub id: i64
 }
 
-#[derive(Deserialize)]
-struct AllListSimple{
-    list: Vec<AList>
+#[derive(Deserialize, Clone)]
+pub struct AllListSimple{
+    pub list: Vec<AList>
 }
 
 // TODO add actual error checking here, if user id is -1 unauthorized
@@ -39,7 +40,8 @@ pub fn ListsPgFn(user_id: i64) -> Element{
         .json(
             &FetchLists{
                 user_id: user_id,
-                page_no: *page.read()
+                page_no: *page.read(),
+                per_page: 10 // change this value later
             }
         )
         .send()

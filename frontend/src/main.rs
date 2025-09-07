@@ -11,8 +11,8 @@ mod details;
 mod router;
 mod login_popup;
 mod popup_add_anime;
-mod list_page;
-mod lists_page;
+pub mod list_page;
+pub mod lists_page;
 
 const LOGIN_CSS:Asset = asset!("/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/stylesheets/details_page.css");

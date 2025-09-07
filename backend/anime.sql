@@ -128,6 +128,6 @@ CREATE TABLE IF NOT EXISTS watch_list_anime (
     rank INTEGER, -- add date added to allow sorting through date
     PRIMARY KEY (user_id, watch_name, anime_id),
     FOREIGN KEY (user_id, watch_name) REFERENCES watch_list(user_id, name) ON DELETE CASCADE,
-    FOREIGN KEY (anime_id) REFERENCES anime(id)
+    FOREIGN KEY (anime_id) REFERENCES anime(id),
     UNIQUE(user_id, watch_name, rank)
 );
