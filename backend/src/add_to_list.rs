@@ -1,6 +1,7 @@
 use std::{fs, io::Cursor};
 
 use actix_web::{web::{BufMut, Data, Json, Query}, HttpResponse, HttpRequest};
+use base64::{engine::general_purpose, Engine};
 use reqwest::{Client, ClientBuilder};
 use serde_json::json;
 use sqlx::sqlite::SqliteRow;
@@ -12,7 +13,7 @@ use crate::*;
 // watch list is always 1
 // recommend is always 2
 // best of all time ranking list is always 3
-
+//IMAGE FORMAT MUST ALWAYS BE A PNG FOR LATER WHEN I IMPLEMENT USER ADDED IMAGES 
 #[derive(Deserialize)]
 pub struct AddToList{
     anime_id: i64, 
@@ -25,7 +26,7 @@ pub struct AddToList{
 struct AList{
     name: String,
     id: i64,
-    image: Vec<u8>
+    image: String
 }
 
 #[derive(Serialize)]
@@ -550,10 +551,13 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
                 }
             };
 
+            let base64_img = general_purpose::STANDARD.encode(&image);
+            let data_url = format!("data:image/png;base64,{}", base64_img);
+
             let alist = AList{
                 name: name,
                 id: id,
-                image: image
+                image: data_url
             };
             all_list.list.push(alist);
         }

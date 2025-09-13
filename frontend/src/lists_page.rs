@@ -1,4 +1,7 @@
 
+use std::io::Cursor;
+
+use image::ImageReader;
 use reqwest::Client;
 pub use crate::*;
 
@@ -12,7 +15,7 @@ pub struct FetchLists{
 pub struct AList{
     pub name: String,
     pub id: i64,
-    pub picture: Vec<u8>,
+    pub image: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -48,17 +51,17 @@ pub fn ListsPgFn(user_id: i64) -> Element{
         .send()
         .await
         {
-           let lists = match res.json::<AllListSimple>().await{
-            Ok(list) => list,
-            Err(e) => {
-                dbg!(e);
-                AllListSimple{
-                    list: vec![]
+            let lists = match res.json::<AllListSimple>().await{
+                Ok(list) => list,
+                Err(e) => {
+                    dbg!(e);
+                    AllListSimple{
+                        list: vec![]
+                    }
                 }
-            }
-           };
+            };
+           all_list.set(lists);
 
-           all_list.set(lists)
         }
 
     });
@@ -76,7 +79,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                         img {
                             class: "dropdown_images_search",
                             loading: "eager",
-                            src: entry.picture.clone().unwrap_or_else(|| "/assets/no_image.png".to_string()),
+                            src: li.image,
                             alt: "thumbanil"
                         },
                         span {
