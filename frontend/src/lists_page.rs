@@ -11,7 +11,8 @@ pub struct FetchLists{
 #[derive(Deserialize, Clone, Debug)]
 pub struct AList{
     pub name: String,
-    pub id: i64
+    pub id: i64,
+    pub picture: Vec<u8>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -72,12 +73,12 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                         onclick: move |_| {
                             navigator.push(crate::router::routes::ListPgFn { list_name: li.name.clone(), user_id: user_id });
                         },
-                        /*img {
+                        img {
                             class: "dropdown_images_search",
                             loading: "eager",
                             src: entry.picture.clone().unwrap_or_else(|| "/assets/no_image.png".to_string()),
                             alt: "thumbanil"
-                        },*/
+                        },
                         span {
                             class: "span_items_search",
                             "{li.name}"

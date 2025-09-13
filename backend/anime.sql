@@ -116,6 +116,8 @@ Create Table IF NOT EXISTS watch_list( --unordered watch-list
     user_id INTEGER NOT NUll,
     privacy_type TEXT NOT Null,
     is_ranked INT NOT NULL, -- 0 for not ranked and 1 for ranked.
+    list_image BLOB NOT NULL,
+    is_user_image INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
     UNIQUE(user_id, name) -- no duplicate list names per user
     -- maybe add a picture to these lists aswell when i implement longblob
