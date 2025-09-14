@@ -7,6 +7,8 @@ Backend:
     so use the date to check if the previous token is valid and if it is create a new entry with the token. Also maybe we can use the ip address where the request is coming from 
     to issue new tokens if the user is on a different device or even their platform.
     - use anyhow fo errors 
+    - duplicate recommendations and related entries, also limit them to 5 
+    - indec all major Where = ? values to speed up look ups 
     
 Frontend:
     -kinda fixed the css problem but i need to make sure every id and class name are distinct

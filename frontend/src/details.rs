@@ -110,6 +110,7 @@ pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> IsRanke
             list_name: list_name,
             user_id: user_id,
         })
+        .bearer_auth(TOKEN.read())
         .send()
         .await
     {
@@ -144,6 +145,7 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>) ->
                 list_name: list_name,
                 rank: rank,
             })
+            .bearer_auth(TOKEN.read())
             .send()
             .await
         {

@@ -59,8 +59,8 @@ struct FullAnimeResult {
     related_anime: Vec<RelatedAnime>
 }
 
-#[derive(Serialize, Default, Deserialize)]
-struct ReccomendResult{
+#[derive(Serialize, Default, Deserialize, PartialEq)]
+pub struct ReccomendResult{
     id: i32,
     title: String,
     picture: String,
@@ -68,8 +68,8 @@ struct ReccomendResult{
 }
 
 
-#[derive(Serialize, Default, Deserialize)]
-struct RelatedAnime{
+#[derive(Serialize, Default, Deserialize, PartialEq)]
+pub struct RelatedAnime{
     id: i32,
     title: String,
     picture: String,
