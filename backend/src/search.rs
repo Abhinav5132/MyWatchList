@@ -14,9 +14,8 @@ struct ScrollingResults{
     title_english: String,
     title_romanji: String,
     banner_image: String,
-    averageScore: u32,
+    averageScore: f32,
     description: String,
-    start_date: String,
     duration: u32,
     format: String
 }
@@ -127,10 +126,9 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
                 title_english: row.try_get("title_english").unwrap_or("Unknown".to_string()),
                 title_romanji: row.try_get("title_romanji").unwrap_or("Unknown".to_string()),
                 banner_image: row.try_get("banner_image").unwrap_or("None".to_string()),
-                averageScore: row.try_get("averageScore").unwrap_or(0),
+                averageScore: row.try_get("averageScore").unwrap_or(0.0),
                 description: row.try_get("description").unwrap_or("IDK".to_string()),
                 format: row.try_get("format").unwrap_or("Unknown".to_string()),
-                start_date: row.try_get("start_date").unwrap_or("Unknown".to_string()),
                 duration: row.try_get("duration").unwrap_or(0)
 
             }).collect();

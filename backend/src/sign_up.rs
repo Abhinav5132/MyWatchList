@@ -1,6 +1,5 @@
 use actix_web::HttpResponse;
 pub use std::fs;
-use std::hash::DefaultHasher;
 use crate::add_to_list::{create_list, file_to_blob_with_path};
 pub use crate::*;
 pub use authenticate::pwd_to_hash;
@@ -11,7 +10,6 @@ pub struct SignUpStruct{
     user_name: String,
     user_password: String,
     user_email: String,
-
 }
 
 

@@ -170,15 +170,11 @@ body{
 
 #Scrolling_suggestion_search{
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    display: flex;
-    scrollbar-width: none;
 }
 
 .scroll_item_wrapper{
     width: 100%;
     height: auto;
-    scroll-snap-align: start;
     flex: 0 0 auto;
     object-fit: contain;
     display: flex;
@@ -188,7 +184,65 @@ body{
 
 .Scrollable_images_search{
     width: 100%;
-    height: auto;
-    object-fit: contain;
-    border-radius: 6px;
+    height: 330px;
+    object-fit: cover; 
+    object-position: center; 
+    border-radius: 8px;
+}
+
+
+#Scrolling_description_search{
+    position: absolute;
+    left: 16px;
+    right: 70%;
+    height: 315px;
+    background: rgba(0,0,0,0.4);
+    color: white;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 6;      /* limit to 8 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#Scrolling_description {
+    line-clamp: 6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 12px;
+}
+
+#Scrolling_description_search h2 {
+    text-shadow:
+        -1px -1px 0 black,
+         1px -1px 0 black,
+        -1px  1px 0 black,
+         1px  1px 0 black;
+    margin: 12px;
+    
+}
+#Scrolling_buttons_div{
+    position: absolute;
+    right: center;
+    top: 380px;
+}
+
+#Scrolling_button_next, #Scrolling_button_prev{
+    border: 2px solid black;
+    border-radius: 5px;
+    margin-left: 5px;
+    background-color: rgb(44, 44, 44);
+    padding-top: 6px;
+    padding-bottom: 6px;
+    width: 45px;
+}
+
+#Scrolling_button_next:hover, #Scrolling_button_prev:hover {
+    cursor: pointer;
+
 }

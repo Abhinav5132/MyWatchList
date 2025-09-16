@@ -1,4 +1,3 @@
-use std::thread;
 
 use crate::*;
 use reqwest::Client;
@@ -18,9 +17,8 @@ struct ScrollingResults{
     title_english: String,
     title_romanji: String,
     banner_image: String,
-    averageScore: u32,
+    averageScore: f32,
     description: String,
-    start_date: String,
     duration: u32,
     format: String
 }
@@ -44,50 +42,142 @@ struct TrendingResponse {
 
 #[component]
 pub fn trending_component() -> Element{
-    let mut trending_results:Signal<Option<TrendingResponse>> = use_signal(|| None);
+    let mut trending_results:Signal<TrendingResponse> = use_signal(|| TrendingResponse { new_popular: vec![], most_popular: vec![], scroll_popular: vec![] });
     let navigator = use_navigator();
     let client = use_context::<Client>();
+    let mut current_index = use_signal(|| 0);
     use_effect(move || {
-        let mut trending_result = trending_results.clone();
-        let mut client = client.clone();
+        let client = client.clone();
         
         spawn(async move {
             if let Ok(res) = client.get(
                 format!("https://localhost:3000/trending")
             ).send().await {
                 if let Ok(names) = res.json::<TrendingResponse>().await{
-                    trending_results.set(Some(names));
+                    trending_results.set(names)
                 }
             }
+
         });
         }
     );
+
+    use_future(move || {
+        let trending_results = trending_results.clone();
+        let mut current_index = current_index.clone();
+        async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                let trending = trending_results.read();
+                let len = trending.scroll_popular.len();
+                if len > 0 {
+                    let next = (*current_index.read() + 1) % len;
+                    current_index.set(next);
+                }
+            }
+        }
+    });
+    let trending = trending_results.read();
+
+    // scrolling results
+    let len = trending.scroll_popular.len();
+    let current = {
+        if len == 0{
+            None
+        } else {
+            trending.scroll_popular.get(*current_index.read()).cloned()
+        }
+    };
+
+    let most_popular = &trending.most_popular;
+
     rsx!(
          div { 
             id:"Scrolling_suggestion_search",
-            if let Some(trending) = trending_results.read().as_ref(){
-                for new_trending in trending.scroll_popular.clone().into_iter() {
-                    div {
-                        class:"scroll_item_wrapper",
-                        onclick: move |_| {
-                            let navigator = navigator.clone();
-                            navigator.push(crate::router::routes::Details { id: new_trending.id }); },
+            if let Some(current_anime) = current {
+            div {
+                class:"scroll_item_wrapper",
+                img {
+                    class: "Scrollable_images_search",
+                    onclick: move |_| {
+                    let navigator = navigator.clone();
+                    navigator.push(crate::router::routes::Details { id: current_anime.id }); },
 
-                        img {
-                            class: "Scrollable_images_search",
-                            src:format!("{}", new_trending.banner_image),
-                            alt: "Trending anime"
-                        },
-                        div { 
-                            id:"Scrolling_description_search",
-                            "{new_trending.id}"
-                        }
-                      
-                    } 
-
+                    src:format!("{}", current_anime.banner_image),
+                    alt: "Trending anime",
+                    
+                },
+                
+                div { 
+                    id:"Scrolling_description_search",
+                    onclick: move |_| {
+                    let navigator = navigator.clone();
+                    navigator.push(crate::router::routes::Details { id: current_anime.id }); },
+                    h2 { "{current_anime.title_romanji} / {current_anime.title_english}" },
+                    p {
+                        id:"Scrolling_description",
+                        "{current_anime.description}"  
+                    }
+                    div { 
+                        id:"Scrolling_details_search",
+                        h4 { "Score: {current_anime.averageScore}" },
+                        h4 { "Duration: {current_anime.duration}" },
+                        h4 { "Format: {current_anime.format}" },
+                    }
                 }
+
+                
+
+                div {
+                    id:"Scrolling_buttons_div",
+                    button { 
+                        id:"Scrolling_button_prev",
+                        onclick: move |_| {
+                            let mut index = *current_index.read();
+                            if index == 0 {
+                                index = len - 1; 
+                            } else {
+                                index -= 1;
+                            }
+                            current_index.set(index);
+                        },
+                        img {
+                            src:"{PREV}"
+                        },
+                    },
+                    button { 
+                        id:"Scrolling_button_next",
+                        onclick: move |_| {
+                            let next = (*current_index.read() + 1) % len;
+                            current_index.set(next);
+                        },
+                        img {
+                            src:"{NEXT}"
+                        },
+                    
+                    } 
+                    
+                }
+            } 
+        }   
+    }
+
+        div {
+            id: "Top_trending_div_container",
+            h2 { "Top Trending" },
+
+            for trending in most_popular{
+                div {
+                    class: "Top_trending_div",
+                    img { 
+                        src:"{trending.thumbnail}"
+                    },
+                    h5 { "{trending.title_romanji}" }
+                  }
             }
-        } 
+
+        }
+    
     )
 }
 
@@ -111,13 +201,13 @@ pub fn Searchpg() -> Element {
         let query = search_input.read().clone();
         let page = page.read().clone();
         let mut results = search_results.clone();
-        let mut client = client.clone();
+        let client = client.clone();
         spawn(async move {
             if query.is_empty() {
                 results.set(vec![]);
                 return;
             }
-            thread::sleep(std::time::Duration::from_millis(100));
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
             if let Ok(res) = client
                 .get(format!(
