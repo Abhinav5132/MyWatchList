@@ -564,6 +564,7 @@ pub fn Details(id: i64) -> Element {
                 navigator.push(crate::router::routes::Searchpg {  });
                 }
             }
+            "Back"
         }},
 
 
