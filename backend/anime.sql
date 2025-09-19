@@ -120,7 +120,6 @@ Create Table IF NOT EXISTS watch_list( --unordered watch-list
     is_user_image INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
     UNIQUE(user_id, name) -- no duplicate list names per user
-    -- maybe add a picture to these lists aswell when i implement longblob
 );
 
 CREATE TABLE IF NOT EXISTS watch_list_anime (

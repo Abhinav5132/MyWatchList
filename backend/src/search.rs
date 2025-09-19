@@ -168,7 +168,7 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
 
     // return most trending anime based on their popularity stats
     match sqlx::query(
-        "SELECT title_romanji, title_english, thumbnail, id, averageScore
+        "SELECT title_romanji, title_english, picture, id, averageScore
         FROM anime
         ORDER BY popularity DESC LIMIT 20;"
     ).fetch_all(db.as_ref()).await {
@@ -177,7 +177,7 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
                 id: row.try_get("id").unwrap_or(-1),
                 title_english: row.try_get("title_english").unwrap_or("Unknown".to_string()),
                 title_romanji: row.try_get("title_romanji").unwrap_or("Unknown".to_string()),
-                thumbnail: row.try_get("thumbnail").unwrap_or("None".to_string()),
+                thumbnail: row.try_get("picture").unwrap_or("None".to_string()),
                 averageScore: row.try_get("averageScore").unwrap_or(0)
             }).collect();
         }

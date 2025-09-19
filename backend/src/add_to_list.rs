@@ -64,6 +64,19 @@ pub struct AddListToUser{
 
 }
 
+#[derive(Deserialize)]
+pub struct EditListPerUser{
+
+    user_id: i64,
+    current_name: String,
+    new_name: String,
+    new_privacy_type: String,
+    new_is_ranked: i32,
+    new_image: Vec<u8>,
+    is_user_image: i32,
+
+}
+
 #[derive(Serialize)]
 pub struct ExistsInList{
     exists: bool
@@ -517,7 +530,7 @@ pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy
 }
 
 #[post("/remove-list-from-user")]
-pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>)-> HttpResponse{
+pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>) -> HttpResponse{
     match sqlx::query("DELETE FROM watch_list WHERE name = ? and user_id = ?;")
     .bind(&to_add.name)
     .bind(&to_add.user_id)
@@ -529,6 +542,64 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
         Err(_) => {
            return HttpResponse::InternalServerError().into()
         }
+    }
+}
+
+#[post("/edit-watch-list-from-user")]
+pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUser>, req: HttpRequest) -> HttpResponse {
+
+    let auth_header =  match req.headers().get("Authorization") {
+        Some(token) => {
+            token.to_str().unwrap()
+        }
+        None=>{
+            return HttpResponse::Unauthorized().into();
+        }
+    };
+
+    if verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+
+        let mut tx = match db.begin().await {
+            Ok(transaction) => transaction,
+            Err(e) => {
+                dbg!(e);
+                return HttpResponse::InternalServerError().into();
+            }
+        };
+        match sqlx::query("UPDATE watch_list 
+            SET name = ? AND 
+            privacy_type = ? AND
+            is_ranked = ? AND list_image = ? AND 
+            is_user_image = ? WHERE user_id = ? AND name = ? ")
+            .bind(&to_add.new_name).bind(&to_add.new_privacy_type).bind(to_add.new_is_ranked).bind(&to_add.new_image)
+            .bind(to_add.is_user_image).bind(to_add.user_id).bind(&to_add.current_name).execute(&mut *tx).await {
+                Ok(_) => {
+                    match sqlx::query("Update watch_list_anime SET watch_name = ? WHERE watch_name = ? AND user_id = ?")
+                    .bind(&to_add.new_name).bind(&to_add.current_name).bind(to_add.user_id).execute(&mut *tx).await
+                     {
+                        Ok(_) => {
+                            let _ = tx.commit().await;
+                           return HttpResponse::Ok().into();
+                        }
+
+                        Err(e) => {
+                            dbg!(e);
+                            let _ = tx.rollback().await;
+                            return HttpResponse::InternalServerError().into();
+
+                        }
+                    }
+                } ,
+                Err(e) => {
+                    dbg!(e);
+                    let _ = tx.rollback().await;
+                    return HttpResponse::InternalServerError().into();
+
+                } 
+            };
+
+    } else {
+       return HttpResponse::Unauthorized().into();
     }
 }
 
