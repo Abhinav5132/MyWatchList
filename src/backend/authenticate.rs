@@ -1,10 +1,7 @@
-use std::path::{self, Path};
-
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use rand_core::{OsRng};
-
-use crate::*;
+use crate::backend::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims{

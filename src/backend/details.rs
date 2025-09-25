@@ -1,5 +1,5 @@
 
-pub use crate::*;
+pub use crate::backend::*;
 
 #[get("/details")] 
 pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {

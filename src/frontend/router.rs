@@ -1,8 +1,8 @@
-use crate::*;
-use crate::search_page::Searchpg;
-use crate::details::Details;
-use crate::list_page::ListPgFn;
-use crate::lists_page::ListsPgFn;
+use crate::frontend::*;
+use crate::frontend::search_page::Searchpg;
+use crate::frontend::details::Details;
+use crate::frontend::list_page::ListPgFn;
+use crate::frontend::lists_page::ListsPgFn;
 // fn names always have to have their first letter capital
 
 #[derive(Routable, Clone)]

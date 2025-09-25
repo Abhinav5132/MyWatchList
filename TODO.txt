@@ -25,6 +25,8 @@ Frontend:
     -popup only occurs when u click the image not the text 
     -add authentication to all requests 
     -storing jwt in a global signal is not secure change it 
+    -rewrite add_anime_to_list check if already in list with early returns
+
 prod:
     -https certificate
     -

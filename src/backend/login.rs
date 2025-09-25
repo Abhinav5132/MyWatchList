@@ -1,6 +1,6 @@
-pub use crate::*;
+pub use crate::backend::*;
 use serde_json::json;
-use actix_web::{cookie::{time::Duration, Cookie}, HttpResponse};
+use actix_web::HttpResponse;
 
 #[derive(Deserialize)]
 pub struct LoginStruct {

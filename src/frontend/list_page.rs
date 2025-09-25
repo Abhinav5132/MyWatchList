@@ -1,6 +1,6 @@
 use reqwest::ClientBuilder;
-pub use crate::search_page::Anime;
-pub use crate::*;
+use crate::frontend::search_page::Anime;
+pub use crate::frontend::*;
 
 #[derive(Deserialize)]
 pub struct AllAnimeSimple{
@@ -24,7 +24,7 @@ pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
         let page = page;
         spawn(async move {
             let client = ClientBuilder::new().danger_accept_invalid_certs(true).build().expect("failed to create client.");
-            if let Ok(res) = client.get("https://localhost:3000/get-animes-from-list")
+            if let Ok(res) = client.get("http://localhost:3000/get-animes-from-list")
             .json(&FetchAnimes{
                 watch_list_name: name.read().clone(),
                 user_id: user_id.clone(),
@@ -52,7 +52,7 @@ pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
                     div { 
                         id:"Anime_card_list_page",
                         onclick: move |_| {
-                            navigator.push(crate::router::routes::Details { id: entry.id.clone() });
+                            navigator.push(crate::frontend::router::routes::Details { id: entry.id.clone() });
                         },
                         img {
                             class: "dropdown_images_search",

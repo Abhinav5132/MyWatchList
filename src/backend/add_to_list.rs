@@ -1,13 +1,12 @@
 use std::{fs, io::Cursor};
-
-use actix_web::{web::{to, BufMut, Data, Json, Query}, HttpRequest, HttpResponse};
+use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
 use base64::{engine::general_purpose, Engine};
-use reqwest::{Client, ClientBuilder};
+use reqwest::Client;
 use serde_json::json;
 use sqlx::sqlite::SqliteRow;
 use image::ImageReader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageError, RgbaImage};
-use crate::*;
+use crate::backend::*;
 
 
 // watch list is always 1

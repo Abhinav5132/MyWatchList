@@ -1,12 +1,7 @@
-
-
-pub use crate::*;
-use crate::{
-    lists_page::{AllListSimple, FetchLists}, popup_add_anime::{PopupAddAnime, PopupError}, *
-};
+use crate::frontend::{lists_page::{AllListSimple, FetchLists}, popup_add_anime::{PopupAddAnime, PopupError}};
+pub use crate::frontend::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-pub use tracing;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -105,7 +100,7 @@ pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> IsRanke
         .expect("Failed to build client");
 
     if let Ok(resp) = client
-        .get("https://localhost:3000/get-if-ranked")
+        .get("http://localhost:3000/get-if-ranked")
         .json(&IfRanked {
             list_name: list_name,
             user_id: user_id,
@@ -138,7 +133,7 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>) ->
             .expect("Failed to build client");
         let userid = *USERID.read();
         if let Ok(resp) = client
-            .post("https://localhost:3000/add-anime-to-list")
+            .post("http://localhost:3000/add-anime-to-list")
             .json(&AddToList {
                 anime_id: id,
                 user_id: userid,
@@ -170,7 +165,7 @@ pub async fn get_all_lists() -> Option<AllListSimple> {
         .expect("Failed to build client.");
 
     if let Ok(res) = client
-        .get("https://localhost:3000/fetch-all-lists")
+        .get("http://localhost:3000/fetch-all-lists")
         .bearer_auth(TOKEN.read())
         .json(&FetchLists {
             user_id: *USERID.read(),
@@ -222,7 +217,7 @@ pub fn Details(id: i64) -> Element {
                 .expect("Failed to build client");
             if let Ok(res) = client
                 .get(format!(
-                    "https://localhost:3000/details?query={}",
+                    "http://localhost:3000/details?query={}",
                     id.clone()
                 ))
                 .send()
@@ -561,7 +556,7 @@ pub fn Details(id: i64) -> Element {
 
         button {
             onclick: move |_| {
-                navigator.push(crate::router::routes::Searchpg {  });
+                navigator.push(crate::frontend::router::routes::Searchpg {  });
                 }
             }
             "Back"

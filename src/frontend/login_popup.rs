@@ -1,10 +1,6 @@
-use std::{fs, ops::Not};
-
-use dioxus::{prelude::*};
 use reqwest::Client;
 use serde::Serialize;
-
-use crate::{get_userid_from_jwt, storage_file, TOKEN};
+pub use crate::frontend::*;
 
 #[derive(Serialize)]
 pub struct LoginStruct {
@@ -124,7 +120,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                             .expect("Failed to build client");
                             spawn(async move{
                                 // add actuall username and password checks
-                                if let Ok(res) = client.post("https://localhost:3000/login").json(&LoginStruct{
+                                if let Ok(res) = client.post("http://localhost:3000/login").json(&LoginStruct{
                                     username: username.read().to_string(),
                                     password: password.read().to_string()
                                 }).send().await{
@@ -159,7 +155,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                 .build()
                                 .expect("Failed to build client");
                                 spawn(async move {
-                                    if let Ok(res) = client.post("https://localhost:3000/Signup").json(&SignUpStruct{
+                                    if let Ok(res) = client.post("http://localhost:3000/Signup").json(&SignUpStruct{
                                         user_name: username.read().to_string(),
                                         user_email: email.read().to_string(),
                                         user_password: password.read().to_string()
