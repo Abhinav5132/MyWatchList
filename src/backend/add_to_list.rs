@@ -212,7 +212,7 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
     let mut image_bytes:Result<Vec<u8>> = Ok(vec![]); 
     match count {
         0 => {
-            image_bytes = file_to_blob_with_path("/src/backend/assets/images.png");
+            image_bytes = file_to_blob_with_path("assets/images.png");
         },
         1 => {
             let watch_name = list_name.clone();

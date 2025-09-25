@@ -103,11 +103,6 @@ pub async fn setup_backend() -> std::io::Result<()> {
             Err(e) => eprintln!("Failed to initialize database: {}", e),
         };
     }
-    
-    //https server initializations
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder.set_private_key_file("src/backend/keys/key.pem", SslFiletype::PEM).unwrap();
-    builder.set_certificate_chain_file("src/backend/keys/cert.pem").unwrap();
 
     HttpServer::new(move || {
         App::new()
@@ -123,7 +118,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(fetch_all_anime_from_list)
             .service(fetch_all_lists)
             .service(get_if_ranked)
-    }).bind_openssl("127.0.0.1:3000", builder)?
+    }).bind("127.0.0.1:3000")?
     .run()
     .await
     /* 

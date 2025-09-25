@@ -35,7 +35,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                 panic!("Failed to build a client") //.expect
             }
         };
-        if let Ok(res) = client.get("https://localhost:3000/fetch-all-lists")
+        if let Ok(res) = client.get("http://localhost:3000/fetch-all-lists")
         .bearer_auth(TOKEN.read())
         .json(
             &FetchLists{

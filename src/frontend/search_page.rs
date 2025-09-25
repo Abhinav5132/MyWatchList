@@ -76,7 +76,7 @@ pub fn trending_component() -> Element{
         
         spawn(async move {
             if let Ok(res) = client.get(
-                format!("https://localhost:3000/trending")
+                format!("http://localhost:3000/trending")
             ).send().await {
                 if let Ok(names) = res.json::<TrendingResponse>().await{
                     trending_results.set(names)
@@ -326,7 +326,7 @@ pub fn Searchpg() -> Element {
 
             if let Ok(res) = client
                 .get(format!(
-                    "https://localhost:3000/search?query={}&page={}",
+                    "http://localhost:3000/search?query={}&page={}",
                     query, page
                 ))
                 .send()

@@ -24,7 +24,7 @@ pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
         let page = page;
         spawn(async move {
             let client = ClientBuilder::new().danger_accept_invalid_certs(true).build().expect("failed to create client.");
-            if let Ok(res) = client.get("https://localhost:3000/get-animes-from-list")
+            if let Ok(res) = client.get("http://localhost:3000/get-animes-from-list")
             .json(&FetchAnimes{
                 watch_list_name: name.read().clone(),
                 user_id: user_id.clone(),
