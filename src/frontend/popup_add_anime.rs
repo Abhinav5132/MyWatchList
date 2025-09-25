@@ -1,7 +1,5 @@
 
-use serde_json::from_str;
-
-pub use crate::*;
+pub use crate::frontend::*;
 #[component]
 pub fn PopupAddAnime( 
     list_name: String,

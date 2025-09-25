@@ -1,9 +1,5 @@
-
-use std::io::Cursor;
-
-use image::ImageReader;
 use reqwest::Client;
-pub use crate::*;
+pub use crate::frontend::*;
 
 #[derive(Serialize)]
 pub struct FetchLists{
@@ -74,7 +70,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                     div{
                         id:"Anime_card_list_page",
                         onclick: move |_| {
-                            navigator.push(crate::router::routes::ListPgFn { list_name: li.name.clone(), user_id: user_id });
+                            navigator.push(crate::frontend::router::routes::ListPgFn { list_name: li.name.clone(), user_id: user_id });
                         },
                         img {
                             class: "dropdown_images_search",

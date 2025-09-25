@@ -1,13 +1,12 @@
 use std::{fs, io::Cursor};
-
-use actix_web::{web::{to, BufMut, Data, Json, Query}, HttpRequest, HttpResponse};
+use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
 use base64::{engine::general_purpose, Engine};
-use reqwest::{Client, ClientBuilder};
+use reqwest::Client;
 use serde_json::json;
 use sqlx::sqlite::SqliteRow;
 use image::ImageReader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageError, RgbaImage};
-use crate::*;
+use crate::backend::*;
 
 
 // watch list is always 1
@@ -213,7 +212,7 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
     let mut image_bytes:Result<Vec<u8>> = Ok(vec![]); 
     match count {
         0 => {
-            image_bytes = file_to_blob_with_path("assets/images.png");
+            image_bytes = file_to_blob_with_path("/src/backend/assets/images.png");
         },
         1 => {
             let watch_name = list_name.clone();

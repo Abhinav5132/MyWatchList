@@ -1,7 +1,7 @@
 use actix_web::HttpResponse;
 pub use std::fs;
-use crate::add_to_list::{create_list, file_to_blob_with_path};
-pub use crate::*;
+use crate::backend::add_to_list::{create_list, file_to_blob_with_path};
+pub use crate::backend::*;
 pub use authenticate::pwd_to_hash;
 pub use serde_json::json;
 //implement profile pic later

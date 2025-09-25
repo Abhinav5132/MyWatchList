@@ -1,12 +1,7 @@
-
-
-pub use crate::*;
-use crate::{
-    lists_page::{AllListSimple, FetchLists}, popup_add_anime::{PopupAddAnime, PopupError}, *
-};
+use crate::frontend::{lists_page::{AllListSimple, FetchLists}, popup_add_anime::{PopupAddAnime, PopupError}};
+pub use crate::frontend::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-pub use tracing;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct FullAnimeResult {
@@ -561,7 +556,7 @@ pub fn Details(id: i64) -> Element {
 
         button {
             onclick: move |_| {
-                navigator.push(crate::router::routes::Searchpg {  });
+                navigator.push(crate::frontend::router::routes::Searchpg {  });
                 }
             }
             "Back"

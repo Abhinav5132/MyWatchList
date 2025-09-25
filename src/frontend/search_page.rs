@@ -1,5 +1,5 @@
 
-use crate::*;
+use crate::frontend::*;
 use dioxus::desktop::{use_window};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -135,7 +135,7 @@ pub fn trending_component() -> Element{
                     class: "Scrollable_images_search",
                     onclick: move |_| {
                     let navigator = navigator.clone();
-                    navigator.push(crate::router::routes::Details { id: current_anime.id }); },
+                    navigator.push(crate::frontend::router::routes::Details { id: current_anime.id }); },
 
                     src:format!("{}", current_anime.banner_image),
                     alt: "Trending anime",
@@ -146,7 +146,7 @@ pub fn trending_component() -> Element{
                     id:"Scrolling_description_search",
                     onclick: move |_| {
                     let navigator = navigator.clone();
-                    navigator.push(crate::router::routes::Details { id: current_anime.id }); },
+                    navigator.push(crate::frontend::router::routes::Details { id: current_anime.id }); },
                     h2 { "{current_anime.title_romanji} / {current_anime.title_english}" },
                     p {
                         id:"Scrolling_description",
@@ -205,7 +205,7 @@ pub fn trending_component() -> Element{
                     div {
                         class: "Top_trending_div",
                         onclick: move |_| {
-                                navigator.push(crate::router::routes::Details { id: trending_anime.id });
+                                navigator.push(crate::frontend::router::routes::Details { id: trending_anime.id });
                             },
                         img { 
                             class: "trending_thumbnail",
@@ -254,7 +254,7 @@ pub fn trending_component() -> Element{
                     div {
                         class: "Top_trending_div",
                         onclick: move |_| {
-                                navigator.push(crate::router::routes::Details { id: trending_anime.id });
+                                navigator.push(crate::frontend::router::routes::Details { id: trending_anime.id });
                         },
                         img { 
                             class: "trending_thumbnail",
@@ -374,7 +374,7 @@ pub fn Searchpg() -> Element {
                         id:"Platlist_button_search",
                         onclick: move |_| {
                                 let navigator = navigator.clone();
-                                navigator.push(crate::router::routes::ListsPgFn { user_id: *USERID.read() });
+                                navigator.push(crate::frontend::router::routes::ListsPgFn { user_id: *USERID.read() });
                             //should technically redirect to the page with a list of all playlists 
                             },
                         img {
@@ -464,7 +464,7 @@ pub fn Searchpg() -> Element {
                         div {
                             class: "dropdown_items_search",
                             onclick: move |_| {
-                                navigator.push(crate::router::routes::Details { id: anime.id.clone() });
+                                navigator.push(crate::frontend::router::routes::Details { id: anime.id.clone() });
                             },
                         img {
                             class: "dropdown_images_search",

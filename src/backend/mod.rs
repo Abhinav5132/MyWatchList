@@ -22,11 +22,11 @@ pub use sign_up::sign_up_fn;
 pub use search::trending_search;
 
 pub mod authenticate;
-use crate::add_to_list::{check_if_an_anime_in_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked};
-pub use crate::authenticate::*;
+use crate::backend::add_to_list::{check_if_an_anime_in_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked};
+pub use crate::backend::authenticate::*;
 
 pub mod add_to_list;
-pub use crate::add_to_list::add_anime_to_list;
+pub use crate::backend::add_to_list::add_anime_to_list;
 
 #[derive(Deserialize)]
 struct SearchQuery {
@@ -76,22 +76,13 @@ pub struct RelatedAnime{
     RelationType: String
 }
 
-fn main() {
-    dotenvy::dotenv().ok();
-
-    let result = setup_backend();
-    if !result.is_err(){
-        println!("unable to start backend");
-    }
-}
-
 #[actix_web::main]
-async fn setup_backend() -> std::io::Result<()> {
+pub async fn setup_backend() -> std::io::Result<()> {
     let timestamp = chrono::Utc::now().timestamp();
     println!("{timestamp}");
     //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
-        .filename("anime.db")
+        .filename("anime.db") // for final relase make sure this is present in the same location as the binary or set a env variable with the file path.
         .create_if_missing(true);
 
     let connection = sqlite::SqlitePool::connect_with(opt).await.unwrap();
@@ -115,8 +106,8 @@ async fn setup_backend() -> std::io::Result<()> {
     
     //https server initializations
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder.set_private_key_file("keys/key.pem", SslFiletype::PEM).unwrap();
-    builder.set_certificate_chain_file("keys/cert.pem").unwrap();
+    builder.set_private_key_file("src/backend/keys/key.pem", SslFiletype::PEM).unwrap();
+    builder.set_certificate_chain_file("src/backend/keys/cert.pem").unwrap();
 
     HttpServer::new(move || {
         App::new()

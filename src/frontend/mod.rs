@@ -5,29 +5,30 @@ use base64::{Engine as _, engine::{ general_purpose}};
 use serde::*;
 use serde_json::Value;
 use std::{fs, path::PathBuf};
-use crate::router::routes;
+
 mod search_page;
 mod details;
 mod router;
+use router::routes;
 mod login_popup;
 mod popup_add_anime;
 pub mod list_page;
 pub mod lists_page;
 
-const LOGIN_CSS:Asset = asset!("/stylesheets/login_page.css");
-const DETAILS_CSS: Asset = asset!("/stylesheets/details_page.css");
-const SEARCH_CSS: Asset = asset!("/stylesheets/search_page.css");
+const LOGIN_CSS:Asset = asset!("/src/frontend/stylesheets/login_page.css");
+const DETAILS_CSS: Asset = asset!("/src/frontend/stylesheets/details_page.css");
+const SEARCH_CSS: Asset = asset!("/src/frontend/stylesheets/search_page.css");
 
-pub const HEART:Asset = asset!("/assets/heart.png");
-pub const TRAHSH:Asset = asset!("/assets/bin.png");
-pub const TICK:Asset = asset!("/assets/check-mark.png");
-pub const NOPFP:Asset = asset!("/assets/No_pfp.jpg");
-pub const ADD:Asset = asset!("/assets/plus.png");
-pub const PREV: Asset = asset!("/assets/prev-page.png");
-pub const NEXT: Asset = asset!("/assets/next-page.png");
-pub const MENU: Asset = asset!("/assets/menu.png");
-pub const PLAYLIST: Asset = asset!("/assets/playlist.png");
-pub const FRIENDS: Asset = asset!("/assets/friends.png");
+pub const HEART:Asset = asset!("/src/frontend/assets/heart.png");
+pub const TRAHSH:Asset = asset!("/src/frontend/assets/bin.png");
+pub const TICK:Asset = asset!("/src/frontend/assets/check-mark.png");
+pub const NOPFP:Asset = asset!("/src/frontend/assets/No_pfp.jpg");
+pub const ADD:Asset = asset!("/src/frontend/assets/plus.png");
+pub const PREV: Asset = asset!("/src/frontend/assets/prev-page.png");
+pub const NEXT: Asset = asset!("/src/frontend/assets/next-page.png");
+pub const MENU: Asset = asset!("/src/frontend/assets/menu.png");
+pub const PLAYLIST: Asset = asset!("/src/frontend/assets/playlist.png");
+pub const FRIENDS: Asset = asset!("/src/frontend/assets/friends.png");
 
 
 fn storage_file() -> PathBuf {
@@ -74,7 +75,7 @@ pub fn App() -> Element{
 }
 
 
-pub fn main() {
+pub fn launch_frontent() {
 
     dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
     .with_window(
