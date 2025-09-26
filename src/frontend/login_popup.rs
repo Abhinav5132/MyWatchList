@@ -1,3 +1,5 @@
+use std::time;
+
 use reqwest::Client;
 use serde::Serialize;
 pub use crate::frontend::*;
@@ -16,14 +18,39 @@ pub struct SignUpStruct{
 
 }
 // everything here needs to be changed from user_id to user_token 
-#[component]
+
+#[derive(Serialize)]
+pub struct CheckUserNameAvailability{
+    username: String,
+}
+
+#[derive(Deserialize)]
+pub struct CheckUserNameAvailabilityResponse{
+    available: bool
+}
+
+#[derive(Serialize)]
+pub struct CheckEmailAvailability{
+    email: String,
+}
+
+#[derive(Deserialize)]
+pub struct CheckEmailAvailabilityResponse{
+    available: bool
+}
+
+#[component] // it states username and email unavailable when typing one character at a time and disappears change this behaviour and change it from a p to a icon.
 pub fn Login(on_close: EventHandler<()>)-> Element{
     let mut username = use_signal(|| "".to_string());
     let mut password = use_signal(|| "".to_string());
     let mut password_again = use_signal(|| "".to_string());
     let mut email = use_signal(|| "".to_string());
     let mut trying_to_sign_up = use_signal(|| false);
-    
+    let mut username_available = use_signal(|| false);
+    let mut email_available = use_signal(|| false);
+    let mut debounce = use_signal(|| None::<std::time::Instant>);
+    let mut debounce_email = use_signal(|| None::<std::time::Instant>);
+
     rsx!(
         div{ 
             id: "Main_div",
@@ -41,6 +68,41 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     oninput: move |event| {
                         event.prevent_default();
                         username.set(event.value());
+
+                        if *trying_to_sign_up.read() {
+                            username_available.set(false);
+
+                            let client = Client::builder()
+                                .build()
+                                .expect("Failed to build client");
+                            debounce.set(Some(time::Instant::now()));
+                            spawn(async move{
+                                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                                if let Some(last) = *debounce.read(){
+                                    if last.elapsed().as_millis() >= 300 {
+                                        let usrname = username.read();
+                                        if let Ok(res) = client.get("http://localhost:3000/check_username_availability").json(
+                                            &CheckUserNameAvailability{
+                                                username: usrname.to_string()
+                                            }
+                                        )
+                                        .send().await {
+                                            let available = match res.json::<CheckUserNameAvailabilityResponse>().await {
+                                                Ok(avail) => avail,
+                                                Err(e) => {
+                                                    dbg!(e);
+                                                    CheckUserNameAvailabilityResponse{
+                                                        available:false
+                                                    } // sets user name as not available if unable to verify that username is available
+                                                }
+                                            };
+                                            username_available.set(available.available);
+                                            dbg!(available.available);
+                                        }
+                                    }
+                                }
+                            }); 
+                        }
                     },
                     onkeydown: move |event| async move{ 
                         if event.code().to_string() == "Enter".to_string(){
@@ -50,8 +112,18 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                 let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await.unwrap();
                             }
                         }
-                    }
+                    },
+
                 },
+                if *username.read() != "".to_string() {
+                    if !*username_available.read() {
+                        p { 
+                            "Username Unavailable. Please choose a different username."
+                        }
+                    } else{
+                        p {  }
+                    }
+                } 
 
                 if *trying_to_sign_up.read() {
                     label { "email:" },
@@ -62,15 +134,57 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                         oninput: move |event| {
                             event.prevent_default();
                             email.set(event.value());
+                            email_available.set(false);
+
+                            let client = Client::builder()
+                                .build()
+                                .expect("Failed to build client");
+                            debounce_email.set(Some(time::Instant::now()));
+                            spawn(async move{
+                                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                                if let Some(last) = *debounce_email.read(){
+                                    if last.elapsed().as_millis() >= 300 {
+                                        let email = email.read();
+                                        if let Ok(res) = client.get("http://localhost:3000/check_email_availability").json(
+                                            &CheckEmailAvailability{
+                                                email: email.to_string()
+                                            }
+                                        )
+                                        .send().await {
+                                            let available = match res.json::<CheckEmailAvailabilityResponse>().await {
+                                                Ok(avail) => avail,
+                                                Err(e) => {
+                                                    dbg!(e);
+                                                    CheckEmailAvailabilityResponse{
+                                                        available:false
+                                                    } // sets user name as not available if unable to verify that username is available
+                                                }
+                                            };
+                                            username_available.set(available.available);
+                                            dbg!(available.available);
+                                        }
+                                    }
+                                }
+                            }); 
                         },
                         onkeydown: move |event| async move{ 
                             if event.code().to_string() == "Enter".to_string(){
                                 let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await.unwrap();
                             }
                         }
-                    },
-    
-                }
+                    }
+
+                    if *email.read() != "".to_string() {
+                        if !*email_available.read() {
+                                p { 
+                                    "Email already taken please choose another email."
+                                }
+                            }
+                        } else {
+                            p {  }
+                        }
+                    }
+
                 label { "Password:" },
                 input { 
                     id:"Login_password",
@@ -88,7 +202,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                             }
                         }
                     }
-                },
+                }
 
                 if *trying_to_sign_up.read() {
                     label { "re-enter password:" },
@@ -120,6 +234,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                             .expect("Failed to build client");
                             spawn(async move{
                                 // add actuall username and password checks
+
                                 if let Ok(res) = client.post("http://localhost:3000/login").json(&LoginStruct{
                                     username: username.read().to_string(),
                                     password: password.read().to_string()
@@ -132,7 +247,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                             let path = storage_file();
                                             match fs::write(path, &token.to_string()){
                                                 Ok(a)=> {
-                                                    print!("Successfullt wrote the token to");
+                                                    print!("Successfull wrote the token to");
                                                     a
                                                     
                                                 }
@@ -162,21 +277,27 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                     }).send().await {
                                         if let Some(auth_header) = res.headers().get("Authorization"){
                                             if let Ok(toker_str) = auth_header.to_str(){
-                                                let token = toker_str.strip_prefix("Bearer ").unwrap_or(toker_str);
-                                                *TOKEN.write() = token.to_string();
-                                                get_userid_from_jwt();
-                                                let path = storage_file();
-                                                match fs::write(path, &token.to_string()){
-                                                    Ok(a)=> {
-                                                        a
+                                                if *username_available.read() && *email_available.read(){
+                                                    let token = toker_str.strip_prefix("Bearer ").unwrap_or(toker_str);
+                                                    *TOKEN.write() = token.to_string();
+                                                    get_userid_from_jwt();
+                                                    let path = storage_file();
+                                                    match fs::write(path, &token.to_string()){
+                                                        Ok(a)=> {
+                                                            a
+                                                        }
+                                                        Err(e)=>{
+                                                            dbg!("Failed to write token to the disk");
+                                                            dbg!(e);
+                                                        }
                                                     }
-                                                    Err(e)=>{
-                                                        dbg!("Failed to write token to the disk");
-                                                        dbg!(e);
-                                                    }
+                                                    on_close.call(());
+                                                    print!("{token}");
                                                 }
-                                                on_close.call(());
-                                                print!("{token}");
+
+                                                else {
+                                                    // show the cross again or make it grow in size and shrink back
+                                                }
                                             }
                                         }
                                     }

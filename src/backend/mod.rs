@@ -27,6 +27,7 @@ pub use crate::backend::authenticate::*;
 
 pub mod add_to_list;
 pub use crate::backend::add_to_list::add_anime_to_list;
+use crate::backend::sign_up::check_username_availability;
 
 #[derive(Deserialize)]
 struct SearchQuery {
@@ -118,6 +119,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(fetch_all_anime_from_list)
             .service(fetch_all_lists)
             .service(get_if_ranked)
+            .service(check_username_availability)
     }).bind("127.0.0.1:3000")?
     .run()
     .await

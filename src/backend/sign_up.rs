@@ -1,4 +1,4 @@
-use actix_web::HttpResponse;
+use actix_web::{web::{Data, Json}, HttpResponse};
 pub use std::fs;
 use crate::backend::add_to_list::{create_list, file_to_blob_with_path};
 pub use crate::backend::*;
@@ -12,7 +12,25 @@ pub struct SignUpStruct{
     user_email: String,
 }
 
+#[derive(Deserialize)]
+pub struct CheckUserNameAvailability{
+    username: String,
+}
 
+#[derive(Serialize)]
+pub struct CheckUserNameAvailabilityResponse{
+    available: bool
+}
+
+#[derive(Deserialize)]
+pub struct CheckEmailAvailability{
+    email: String,
+}
+
+#[derive(Serialize)]
+pub struct CheckEmailAvailabilityResponse{
+    available: bool
+}
 #[post("/Signup")]
 pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<SignUpStruct>) -> HttpResponse{
     let entered_pwd  = &credentials.user_password;
@@ -111,3 +129,46 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
 
 }
 
+#[get("/check_username_availability")]
+pub async fn check_username_availability(db: Data<Pool<Sqlite>>, username: Json<CheckUserNameAvailability>) -> HttpResponse {
+    let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_name = ?;").bind(&username.username).fetch_one(db.as_ref()).await {
+        Ok(c) => {
+            c
+        }
+
+        Err(e) => {
+            dbg!(e);
+            return HttpResponse::InternalServerError().into();
+        }
+    };
+
+    if count != 0 {
+        return HttpResponse::Ok().json(&CheckUserNameAvailabilityResponse{
+            available: false
+        });
+        }
+    return HttpResponse::Ok().json(&CheckUserNameAvailabilityResponse{
+            available: true
+        });
+}
+
+#[get("/check_email_availability")]
+pub async fn check_email_availability(db: Data<Pool<Sqlite>>, email: Json<CheckEmailAvailability>)-> HttpResponse{
+    let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_email = ?").bind(&email.email).fetch_one(db.as_ref()).await {
+        Ok(c) => c,
+        Err(e) => {
+            dbg!(e);
+            return HttpResponse::InternalServerError().into();
+        }
+    };
+
+    if count != 0 {
+        return HttpResponse::Ok().json(&CheckEmailAvailabilityResponse{
+            available: false
+        })
+    } else {
+        return HttpResponse::Ok().json(&CheckEmailAvailabilityResponse{
+            available: true
+        })
+    }
+}
