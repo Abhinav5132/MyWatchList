@@ -556,7 +556,7 @@ pub fn Details(id: i64) -> Element {
 
         button {
             onclick: move |_| {
-                navigator.push(crate::frontend::router::routes::Searchpg {  });
+                navigator.push(crate::frontend::router::routes::HomePage {  });
                 }
             }
             "Back"

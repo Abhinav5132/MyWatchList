@@ -1,5 +1,5 @@
 use reqwest::ClientBuilder;
-use crate::frontend::search_page::Anime;
+use crate::frontend::home_page::Anime;
 pub use crate::frontend::*;
 
 #[derive(Deserialize)]

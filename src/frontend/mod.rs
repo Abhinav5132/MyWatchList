@@ -6,14 +6,17 @@ use serde::*;
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
-mod search_page;
+mod home_page;
 mod details;
 mod router;
 use router::routes;
+
+use crate::frontend::title_bar::TitleBar;
 mod login_popup;
 mod popup_add_anime;
 pub mod list_page;
 pub mod lists_page;
+pub mod title_bar;
 
 const LOGIN_CSS:Asset = asset!("/src/frontend/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/src/frontend/stylesheets/details_page.css");
@@ -70,7 +73,7 @@ pub fn App() -> Element{
         document::Link{rel: "stylesheet", href: SEARCH_CSS}
         document::Link{rel: "stylesheet", href: LOGIN_CSS}
         document::Link{rel: "stylesheet", href: DETAILS_CSS}
-        Router::<routes> {} 
+        Router::<routes> { }    
     }
 }
 
