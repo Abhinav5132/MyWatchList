@@ -2,16 +2,17 @@
 
 use dioxus::{desktop::{Config, WindowBuilder}, prelude::*};
 use base64::{Engine as _, engine::{ general_purpose}};
+use reqwest::Client;
 use serde::*;
 use serde_json::Value;
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, time::Duration};
 
 mod home_page;
 mod details;
 mod router;
 use router::routes;
 
-use crate::frontend::title_bar::TitleBar;
+use crate::frontend::{login_popup::{get_refresh_token, AuthResponse}, title_bar::TitleBar};
 mod login_popup;
 mod popup_add_anime;
 pub mod list_page;
@@ -38,36 +39,41 @@ fn storage_file() -> PathBuf {
     let mut path = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
     path.push("MyWatchList");
     fs::create_dir_all(&path).unwrap();
-    path.push("auth.json");
+    path.push("username.json");
     path
 }
 
-
-#[derive(Serialize, Deserialize)]
-pub struct Claims{
-    pub sub: i64,
-    pub exp: usize
+#[derive(Serialize, Deserialize, Default)]
+pub struct IssueNewAccess{
+    access_token: String,
+    expiry: u64
 }
 
-//add the token here as a GlobalSignal 
-//when the token expires se this to null and ask the user to relogin
-//make sure this token persists over app closures cuz if it dosent this token will have to be stored as a cookie ect somewhere
+// if the acess token is empty request for a new one. This occurs when the app is reopened
 static TOKEN: GlobalSignal<String> = Signal::global(|| "".to_string());
 static USERID: GlobalSignal<i64> = Signal::global(|| -1);
-
+static REFRESHIN: GlobalSignal<u64> = Signal::global(|| 0);
+static USERNAME: GlobalSignal<String> = Signal::global(|| "".to_string());
 #[component]
 pub fn App() -> Element{
+    // if issue somewhere then just remove the username and attempt to remove the entry in the keyring
+    let username = fs::read_to_string(storage_file()).unwrap_or_else(|_| "".to_string());
+    let initial_username = use_signal(|| username);
 
-    let initial_token = fs::read_to_string(storage_file()).unwrap_or_else(|_| "".to_string());
-    let initial_token_signal = use_signal(|| initial_token);
-
-    use_effect(move || {
-        let token_val = initial_token_signal.read().clone();
+    use_future(move || {
+        async move {
+        let token_val = initial_username.read().clone();
         if !token_val.is_empty() {
-            *TOKEN.write() = token_val;
-            get_userid_from_jwt();
-            dbg!(*USERID.read());
+            if let Some(refresh_token) = get_refresh_token(&token_val){
+                let issue_new_token = get_access_token(refresh_token).await;
+                *TOKEN.write() = issue_new_token.access_token;
+                *REFRESHIN.write() = issue_new_token.expiry;
+                *USERNAME.write() = token_val;
+                get_userid_from_jwt();
+                spawn_token_refreser();
+            }
         }
+    }
     });
     rsx! { 
         document::Link{rel: "stylesheet", href: SEARCH_CSS}
@@ -89,6 +95,19 @@ pub fn launch_frontent() {
    
 }
 
+pub async fn get_access_token(refresh_token: String) -> IssueNewAccess{
+    let client = Client::new();
+    if let Ok(res) = client.post("http://localhost:3000/issue_new_access").json(&AuthResponse{
+        access_token: "".to_string(),
+        refresh_token: refresh_token,
+        expires_in: 0
+    }).send().await {
+        if let Ok(access_token) = res.json::<IssueNewAccess>().await {
+            return access_token;
+        }   
+    }
+    IssueNewAccess::default()
+}
 
 pub fn get_userid_from_jwt() {
     let token = TOKEN.read().clone();
@@ -130,4 +149,37 @@ pub fn get_userid_from_jwt() {
 
     }
     
+}
+
+pub fn spawn_token_refreser() {
+    spawn(async move {
+        loop {
+            let expiry = *REFRESHIN.read() - 60;
+            let now = chrono::Utc::now().timestamp() as u64;
+
+            let wait_secs = expiry.saturating_sub(now + 60);
+            let wait_time = Duration::from_secs(wait_secs);
+
+            tokio::time::sleep(wait_time).await;
+
+            if let Some(refresh_token) = get_refresh_token(&USERNAME.read()) {
+                match get_access_token(refresh_token).await {
+                    new_token if !new_token.access_token.is_empty() => {
+                        *TOKEN.write() = new_token.access_token;
+                        *REFRESHIN.write() = new_token.expiry;
+                        get_userid_from_jwt();
+                        dbg!("Token refreshed successfully");
+                        dbg!(TOKEN.read());
+                    }
+                    _ => {
+                        dbg!("Failed to refresh token, retrying in 30s...");
+                        tokio::time::sleep(Duration::from_secs(30)).await;
+                    }
+                }
+            } else {
+                dbg!("No refresh token found, stopping refresher");
+                break; // empty the username store here
+            }
+            }
+    });
 }

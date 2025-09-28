@@ -1,5 +1,5 @@
 use std::time;
-
+use keyring::Entry;
 use reqwest::Client;
 use serde::Serialize;
 pub use crate::frontend::*;
@@ -18,6 +18,12 @@ pub struct SignUpStruct{
 
 }
 // everything here needs to be changed from user_id to user_token 
+#[derive(Serialize, Deserialize)]
+pub struct AuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+    pub expires_in: u64,
+}
 
 #[derive(Serialize)]
 pub struct CheckUserNameAvailability{
@@ -239,26 +245,25 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                     username: username.read().to_string(),
                                     password: password.read().to_string()
                                 }).send().await{
-                                    if let Some(auth_header) = res.headers().get("Authorization") {
-                                        if let Ok(token_str) = auth_header.to_str(){
-                                            let token = token_str.strip_prefix("Bearer ").unwrap_or(token_str);
-                                            *TOKEN.write() = token.to_string(); // sets the token as a global signal that can be access anywhere 
-                                            get_userid_from_jwt(); // gets the user id and stores in the global signal
-                                            let path = storage_file();
-                                            match fs::write(path, &token.to_string()){
-                                                Ok(a)=> {
-                                                    print!("Successfull wrote the token to");
-                                                    a
-                                                    
-                                                }
-                                                Err(e)=>{
-                                                    dbg!("Failed to write token to the disk");
-                                                    dbg!(e);
-                                                }
+                                    if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                                        *TOKEN.write() = auth_response.access_token;
+                                        *REFRESHIN.write() = auth_response.expires_in;
+                                        let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
+                                        // do something with this status later. 
+                                         let path = storage_file();
+                                        match fs::write(path, &username.read().to_string()){
+                                            Ok(a)=> {
+                                                print!("Successfull wrote the token to");
+                                                a
+                                                
                                             }
-                                            print!("{token}");
-                                            on_close.call(());
+                                            Err(e)=>{
+                                                dbg!("Failed to write token to the disk");
+                                                dbg!(e);
+                                            }
                                         }
+                                        get_userid_from_jwt();
+                                        on_close.call(());
                                     }
                                 }
                             });
@@ -275,31 +280,27 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                         user_email: email.read().to_string(),
                                         user_password: password.read().to_string()
                                     }).send().await {
-                                        if let Some(auth_header) = res.headers().get("Authorization"){
-                                            if let Ok(toker_str) = auth_header.to_str(){
-                                                if *username_available.read() && *email_available.read(){
-                                                    let token = toker_str.strip_prefix("Bearer ").unwrap_or(toker_str);
-                                                    *TOKEN.write() = token.to_string();
-                                                    get_userid_from_jwt();
-                                                    let path = storage_file();
-                                                    match fs::write(path, &token.to_string()){
-                                                        Ok(a)=> {
-                                                            a
-                                                        }
-                                                        Err(e)=>{
-                                                            dbg!("Failed to write token to the disk");
-                                                            dbg!(e);
-                                                        }
-                                                    }
-                                                    on_close.call(());
-                                                    print!("{token}");
-                                                }
-
-                                                else {
-                                                    // show the cross again or make it grow in size and shrink back
-                                                }
+                                        if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                                        *TOKEN.write() = auth_response.access_token;
+                                        *REFRESHIN.write() = auth_response.expires_in;
+                                        let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
+                                        // do something with this status later. 
+                                        let path = storage_file();
+                                        match fs::write(path, &username.read().to_string()){
+                                            Ok(a)=> {
+                                                print!("Successfull wrote the token to");
+                                                a
+                                                
+                                            }
+                                            Err(e)=>{
+                                                dbg!("Failed to write token to the disk");
+                                                dbg!(e);
                                             }
                                         }
+                                            
+                                        get_userid_from_jwt();
+                                        on_close.call(());
+                                    }
                                     }
                                 });
                             
@@ -328,4 +329,23 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
             }    
         }    
     )
+}
+
+
+pub fn store_refresh_token(user_id: &str, refresh_token: &str) -> Result<(), keyring::Error> {
+    let entry = Entry::new("MyWatchList", user_id)?;
+    entry.set_password(refresh_token);
+    dbg!("Added refresh token to the store.");
+    Ok(())
+}
+
+pub fn get_refresh_token(user_id: &str) -> Option<String> {
+    let entry = Entry::new("MyWatchList", user_id).ok()?;
+    match entry.get_password() {
+        Ok(token) => Some(token), 
+        Err(e) => {
+            dbg!("Failed to get refresh token", e);
+            None
+        }
+    }
 }

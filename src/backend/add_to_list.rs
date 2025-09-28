@@ -319,7 +319,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
         }
     };
 
-    if verify_token(auth_header).await {
+    if verify_token(db.clone(), auth_header).await {
         if get_userid_from_jwt(auth_header).await != details.user_id {
             return HttpResponse::Unauthorized().into();
         } else {
@@ -387,7 +387,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
         }
     };
 
-    if verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+    if verify_token(db.clone(), &auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
 
         let anime_id = &to_add.anime_id;
         let list_name = &to_add.list_name;
@@ -473,7 +473,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
         }
     };
 
-    if !verify_token(&auth_header).await || get_userid_from_jwt(&auth_header).await != to_add.user_id {
+    if !verify_token(db.clone(),&auth_header).await || get_userid_from_jwt(&auth_header).await != to_add.user_id {
         return HttpResponse::Unauthorized().into();
     }
     match sqlx::query("DELETE FROM watch_list_anime WHERE anime_id = ?, user_id = ?, watch_name = ?") 
@@ -556,7 +556,7 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
         }
     };
 
-    if verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+    if verify_token(db.clone(), &auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
 
         let mut tx = match db.begin().await {
             Ok(transaction) => transaction,
@@ -615,7 +615,7 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
         }
     };
 
-    if verify_token(auth_header).await {
+    if verify_token(db.clone(), auth_header).await {
         let mut lists:Vec<SqliteRow> = vec![];
         if get_userid_from_jwt(auth_header).await != user.user_id{
             lists = match sqlx::query("

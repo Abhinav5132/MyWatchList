@@ -30,7 +30,7 @@ Frontend:
 
 prod:
     -https certificate
-    -
+    -the install script should check to see if they ahve a wallet manager if not install one
     
 Nice looking colours:
 #8FD54E

@@ -1,3 +1,4 @@
+use crate::backend::sign_up::AuthResponse;
 pub use crate::backend::*;
 use serde_json::json;
 use actix_web::HttpResponse;
@@ -33,7 +34,15 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
             match verify_pwd(&password, &hash_pwd) {
                 Ok(_)=>{
                     let user_id = row_exist.try_get("id").unwrap_or(-1);
-                    let token = match generate_token(user_id).await{
+                    let access_token = match generate_access_token(user_id).await{
+                        Ok(tok)=> tok,
+                        Err(_)=> {
+                            dbg!("Unable to login");
+                            return HttpResponse::InternalServerError().json(serde_json::json!({
+                                "Status": "Unable to login"
+                                }))}
+                    };
+                    let refresh_token = match generate_refresh_token(user_id).await{
                         Ok(tok)=> tok,
                         Err(_)=> {
                             dbg!("Unable to login");
@@ -43,21 +52,22 @@ pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginS
                     };
 
                     let query = sqlx::query("
-                    UPDATE user SET user_token = ? WHERE id = ?;
-                    ").bind(&token).bind(user_id).execute(db.as_ref()).await;
+                    UPDATE user SET (user_access_token, user_refresh_token) = (?, ?) WHERE id = ?;
+                    ").bind(&access_token).bind(&refresh_token).bind(user_id).execute(db.as_ref()).await;
+
 
                     match query {
                         Ok(_)=>{
                             dbg!("Login successful");
-                            HttpResponse::Ok()
-                            .insert_header(("Authorization", format!("Bearer {token}")))
-                             .json(json!({
-                                "Status": "Login successful"
-                            }))
+                            HttpResponse::Ok().json(AuthResponse{
+                                access_token: access_token,
+                                refresh_token: refresh_token,
+                                expires_in: (chrono::Utc::now() + chrono::Duration::minutes(3)).timestamp() as u64
+                            })
                         }
 
-                        Err(_)=>{
-                            dbg!("Unable to login");
+                        Err(e)=>{
+                            dbg!("Unable to login", e);
                             return HttpResponse::InternalServerError().json(serde_json::json!({
                                 "Status": "Unable to login"
                                 }))

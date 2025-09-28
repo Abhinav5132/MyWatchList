@@ -83,6 +83,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
     println!("{timestamp}");
     //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
+        .disable_statement_logging()
         .filename("anime.db") // for final relase make sure this is present in the same location as the binary or set a env variable with the file path.
         .create_if_missing(true);
 
@@ -120,6 +121,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(fetch_all_lists)
             .service(get_if_ranked)
             .service(check_username_availability)
+            .service(issue_new_access_token)
     }).bind("127.0.0.1:3000")?
     .run()
     .await

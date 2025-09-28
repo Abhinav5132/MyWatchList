@@ -12,6 +12,13 @@ pub struct SignUpStruct{
     user_email: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct AuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+    pub expires_in: u64,
+}
+
 #[derive(Deserialize)]
 pub struct CheckUserNameAvailability{
     username: String,
@@ -60,7 +67,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
         }
     };
 
-    let token = match generate_token(user_id).await {
+    let access_token = match generate_access_token(user_id).await {
         Ok(tok) => tok,
         Err(_)=>{
             dbg!("Unable to login 3");
@@ -70,9 +77,19 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
         }
     };
 
+    let refresh_token = match generate_refresh_token(user_id).await {
+        Ok(tok) => tok,
+        Err(e)=> {
+            dbg!("Unable to login", e);
+            return HttpResponse::InternalServerError().json(json!({
+                "status": "Internal error generating token"
+            }));
+        }
+    };
+
     let query = sqlx::query("
-        UPDATE user SET user_token = ? WHERE id = ?;
-        ").bind(&token).bind(&user_id).execute(db.as_ref()).await;
+    UPDATE user SET (user_access_token, user_refresh_token) = (?, ?) WHERE id = ?;
+    ").bind(&access_token).bind(&refresh_token).bind(user_id).execute(db.as_ref()).await;
 
     let default_image = match file_to_blob_with_path("assets/images.png") {
         Ok(image) => image,
@@ -112,11 +129,11 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     match query {
         Ok(_)=>{
             dbg!("login successful 4");
-            HttpResponse::Ok() 
-            .insert_header(("Authorization", format!("Bearer {token}")))
-            .json(json!({
-                "Status": "Login successful"
-            }))
+            HttpResponse::Ok().json(AuthResponse{
+                access_token: access_token,
+                refresh_token: refresh_token,
+                expires_in: (chrono::Utc::now() + chrono::Duration::minutes(3)).timestamp() as u64
+            })
         }
 
         Err(_)=>{

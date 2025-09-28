@@ -28,6 +28,7 @@ chrono = "0.4.41"
 jsonwebtoken = "9.3.1"
 image = "0.25.8"
 actix-rt = "2.11.0"
+keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native"]}
 
 [features]
 default = ["desktop"]

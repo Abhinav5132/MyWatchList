@@ -106,7 +106,8 @@ Create TABLE IF NOT EXISTS user (
     user_name TEXT NOT NULL UNIQUE,
     user_email TEXT NOT NULL UNIQUE,
     user_password TEXT NOT NULL,
-    user_token TEXT,
+    user_access_token TEXT,
+    user_refresh_token TEXT,
     user_pfp TEXT -- should be not null in production
 );
 
