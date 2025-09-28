@@ -247,7 +247,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                 }).send().await{
                                     if let Ok(auth_response) = res.json::<AuthResponse>().await {
                                         *TOKEN.write() = auth_response.access_token;
-                                        *REFRESHIN.write() = auth_response.expires_in;
+                                        *REFRESHIN.write() = auth_response.expires_in as i64;
                                         let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
                                         // do something with this status later. 
                                          let path = storage_file();
@@ -282,7 +282,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                     }).send().await {
                                         if let Ok(auth_response) = res.json::<AuthResponse>().await {
                                         *TOKEN.write() = auth_response.access_token;
-                                        *REFRESHIN.write() = auth_response.expires_in;
+                                        *REFRESHIN.write() = auth_response.expires_in as i64;
                                         let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
                                         // do something with this status later. 
                                         let path = storage_file();

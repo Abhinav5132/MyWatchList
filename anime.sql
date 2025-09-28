@@ -108,7 +108,7 @@ Create TABLE IF NOT EXISTS user (
     user_password TEXT NOT NULL,
     user_access_token TEXT,
     user_refresh_token TEXT,
-    user_pfp TEXT -- should be not null in production
+    user_pfp BLOB NOT NULL -- should be not null in production
 );
 
 Create Table IF NOT EXISTS watch_list( --unordered watch-list 

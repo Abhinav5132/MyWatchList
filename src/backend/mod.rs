@@ -28,6 +28,25 @@ pub use crate::backend::authenticate::*;
 pub mod add_to_list;
 pub use crate::backend::add_to_list::add_anime_to_list;
 use crate::backend::sign_up::check_username_availability;
+use crate::backend::user_profile::{get_user_details, logout};
+
+pub mod user_profile;
+
+
+// simple macro that takes a try get expression and a HttpResponse and 
+// unwraps the result and returns the HttpResponse if the result is an error
+#[macro_export]
+macro_rules! try_or {
+    ($expr:expr, $resp:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                dbg!(e);
+                return $resp;
+            }
+        }
+    };
+}
 
 #[derive(Deserialize)]
 struct SearchQuery {
@@ -122,6 +141,8 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(get_if_ranked)
             .service(check_username_availability)
             .service(issue_new_access_token)
+            .service(get_user_details)
+            .service(logout)
     }).bind("127.0.0.1:3000")?
     .run()
     .await

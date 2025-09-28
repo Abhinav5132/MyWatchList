@@ -18,6 +18,7 @@ mod popup_add_anime;
 pub mod list_page;
 pub mod lists_page;
 pub mod title_bar;
+pub mod logedin_dropdown;
 
 const LOGIN_CSS:Asset = asset!("/src/frontend/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/src/frontend/stylesheets/details_page.css");
@@ -52,7 +53,7 @@ pub struct IssueNewAccess{
 // if the acess token is empty request for a new one. This occurs when the app is reopened
 static TOKEN: GlobalSignal<String> = Signal::global(|| "".to_string());
 static USERID: GlobalSignal<i64> = Signal::global(|| -1);
-static REFRESHIN: GlobalSignal<u64> = Signal::global(|| 0);
+static REFRESHIN: GlobalSignal<i64> = Signal::global(|| -1);
 static USERNAME: GlobalSignal<String> = Signal::global(|| "".to_string());
 #[component]
 pub fn App() -> Element{
@@ -67,7 +68,7 @@ pub fn App() -> Element{
             if let Some(refresh_token) = get_refresh_token(&token_val){
                 let issue_new_token = get_access_token(refresh_token).await;
                 *TOKEN.write() = issue_new_token.access_token;
-                *REFRESHIN.write() = issue_new_token.expiry;
+                *REFRESHIN.write() = issue_new_token.expiry as i64;
                 *USERNAME.write() = token_val;
                 get_userid_from_jwt();
                 spawn_token_refreser();
@@ -154,7 +155,8 @@ pub fn get_userid_from_jwt() {
 pub fn spawn_token_refreser() {
     spawn(async move {
         loop {
-            let expiry = *REFRESHIN.read() - 60;
+            if *REFRESHIN.read() != -1{
+            let expiry = (*REFRESHIN.read() - 60) as u64;
             let now = chrono::Utc::now().timestamp() as u64;
 
             let wait_secs = expiry.saturating_sub(now + 60);
@@ -166,7 +168,7 @@ pub fn spawn_token_refreser() {
                 match get_access_token(refresh_token).await {
                     new_token if !new_token.access_token.is_empty() => {
                         *TOKEN.write() = new_token.access_token;
-                        *REFRESHIN.write() = new_token.expiry;
+                        *REFRESHIN.write() = new_token.expiry as i64;
                         get_userid_from_jwt();
                         dbg!("Token refreshed successfully");
                         dbg!(TOKEN.read());
@@ -180,6 +182,9 @@ pub fn spawn_token_refreser() {
                 dbg!("No refresh token found, stopping refresher");
                 break; // empty the username store here
             }
-            }
+            }else {
+               break; 
+            } 
+        }
     });
 }

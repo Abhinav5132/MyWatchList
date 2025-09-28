@@ -1,6 +1,15 @@
 use reqwest::Client;
-use crate::frontend::{home_page::Anime, login_popup::Login};
+use serde_json::json;
+use crate::frontend::{home_page::Anime, logedin_dropdown::loged_in_dropdown, login_popup::Login};
 pub use crate::frontend::*;
+
+
+#[derive(Serialize, Deserialize)]
+pub struct UserDetails{
+    username: String,
+    user_email: String,
+    user_pfp: String,
+}
 
 #[component]
 pub fn TitleBar() -> Element {
@@ -17,6 +26,12 @@ pub fn TitleBar() -> Element {
     let search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
     let mut page: Signal<i32> = use_signal(|| 1);
     let client = use_context::<Client>();
+
+    let mut username = use_signal(|| "".to_string());
+    let mut user_email = use_signal(|| "".to_string());
+    let mut user_pfp = use_signal(|| "".to_string());
+
+    let mut show_logedin_dropdown = use_signal(|| false);
 
     use_effect(move || {
         let query = search_input.read().clone();
@@ -46,6 +61,23 @@ pub fn TitleBar() -> Element {
         });
         ()
     });
+
+    if *USERID.read() != -1 && *USERNAME.read() != "".to_string(){             
+        use_effect(move || {
+            spawn (async move{
+                let client = Client::new();
+                if let Ok(res) = client.post("http://localhost:3000/get_user_details").json(&json!({ // can posibly turned into a macro
+                    "user_id": *USERID.read()
+                })).send().await {
+                    if let Ok(usr_dets) = res.json::<UserDetails>().await{
+                        username.set(usr_dets.username);
+                        user_email.set(usr_dets.user_email);
+                        user_pfp.set(usr_dets.user_pfp);
+                    }
+                }
+            });
+        });
+    }
 
     
     rsx! {
@@ -120,20 +152,48 @@ pub fn TitleBar() -> Element {
                             submitted_title.set(search_input.read().clone()); }
                         }
                     }
-
-                    button {
-                        class:"Icon_button_search",
-                        id:"Account_button_search",
-                        onclick: move |_| {
-                            fade_direction.set("fade-in");
-                            show_login.set(true);
-                        },
-                        img {
-                            class:"Feeling_icon",
-                            src:"{NOPFP}",
+                    // change to no pfp if not loged in, if loged in change to the users pfp
+                    if !(*USERID.read() != -1 && *USERNAME.read() != "".to_string()){
+                        button {
+                            class:"Icon_button_search",
+                            id:"Account_button_search",
+                            onclick: move |_| {
+                                fade_direction.set("fade-in");
+                                show_login.set(true);
+                            },
+                            img {
+                                class:"Feeling_icon",
+                                src:"{NOPFP}",
+                                
+                            }
                             
                         }
-                        
+                    } else {
+                        button {
+                            class:"Icon_button_search",
+                            id:"Account_button_search",
+                            onclick: move |e|  {
+                                e.stop_propagation();
+                                show_logedin_dropdown.set(true);
+                                
+                            },
+                            img {
+                                class:"Feeling_icon",
+                                src:"{user_pfp}",
+                                
+                            }
+                            
+                        }
+
+                        if *show_logedin_dropdown.read(){
+                            loged_in_dropdown {
+                                username: username.read(), 
+                                user_email: user_email.read(),
+                                onclose: move |_| {
+                                    show_logedin_dropdown.set(false);
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -52,10 +52,19 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     };
     dbg!(&credentials.user_name);
     dbg!(&entered_pwd);
-    let user_id = match sqlx::query("INSERT INTO user (user_name, user_email, user_password) VALUES (?,?,?);")
+    let no_pfp_blob = match file_to_blob_with_path("/assets/No_pfp.jpg"){
+        Ok(pfp)=> pfp,
+        Err(e) => {
+            dbg!(e);
+            return HttpResponse::InternalServerError().into();
+        }
+    };
+    
+    let user_id = match sqlx::query("INSERT INTO user (user_name, user_email, user_password, user_pfp) VALUES (?,?,?,?);")
     .bind(&credentials.user_name)
     .bind(&credentials.user_email)
     .bind(hashed_pwd)
+    .bind(no_pfp_blob)
     .execute(db.as_ref()).await
     {
         Ok(rows) => rows.last_insert_rowid(),
