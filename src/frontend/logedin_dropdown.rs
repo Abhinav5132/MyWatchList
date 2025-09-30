@@ -1,5 +1,5 @@
 pub use crate::frontend::*;
-
+use dioxus::prelude::spawn;
 #[derive(Serialize, Deserialize, Default)]
 pub struct UserDetails{
     username: String,
@@ -38,8 +38,22 @@ pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHan
             div {
                 class: "dropdown-item logout",
                 onclick: move |_| {
+                    logout();
+                    // this part of the code just dosent work for some reasonp
                     spawn(async move {
-                        logout().await;
+                        dbg!("async task started");
+                        let token = TOKEN.read().clone();
+                        let client = Client::new();
+                        match client.post("http://localhost:3000/logout")
+                        .bearer_auth(token)
+                        .send().await {
+                            Ok(_) => {
+                                dbg!("Logout request sent");
+                            } 
+                            Err(e) => {
+                                dbg!(e);
+                            }
+                        }
                     });
                     
                     onclose.call(()); // also close dropdown after logout
@@ -59,9 +73,9 @@ pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHan
 }
 
 
-pub async fn logout() {
+pub fn logout() {
     let username = USERNAME.read().clone();
-    let token = TOKEN.read().clone();
+    
     dbg!("Logging out");
      if let Err(e) = match keyring::Entry::new("MyWatchList", username.as_str()) {
         Ok(a) => a.delete_credential(),
@@ -71,20 +85,6 @@ pub async fn logout() {
     } {
         dbg!(e);
     }
-    
-    let client = Client::new();
-    match client.post("http://localhost:3000/logout")
-    .bearer_auth(token)
-    .send().await {
-        Ok(_) => {
-            dbg!("Logout request sent");
-        } 
-        Err(e) => {
-            dbg!(e);
-        }
-    }
-
-
     *USERNAME.write() = "".to_string();
     *USERID.write() = -1;
     *TOKEN.write() = "".to_string();

@@ -248,6 +248,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                     if let Ok(auth_response) = res.json::<AuthResponse>().await {
                                         *TOKEN.write() = auth_response.access_token;
                                         *REFRESHIN.write() = auth_response.expires_in as i64;
+                                        *USERNAME.write() = username.read().to_string();
                                         let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
                                         // do something with this status later. 
                                          let path = storage_file();

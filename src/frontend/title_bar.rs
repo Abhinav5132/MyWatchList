@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde_json::json;
-use crate::frontend::{home_page::Anime, logedin_dropdown::loged_in_dropdown, login_popup::Login};
+use crate::frontend::{home_page::Anime, list_page::ListPgFnPropsBuilder_Error_Repeated_field_user_id, logedin_dropdown::loged_in_dropdown, login_popup::Login};
 pub use crate::frontend::*;
 
 
@@ -62,12 +62,15 @@ pub fn TitleBar() -> Element {
         ()
     });
 
-    if *USERID.read() != -1 && *USERNAME.read() != "".to_string(){             
-        use_effect(move || {
+                
+    use_effect(move || {
+        let user_name = USERNAME.cloned();
+        let user_id = USERID.cloned();
+        if user_id != -1 && user_name != "".to_string(){ 
             spawn (async move{
                 let client = Client::new();
                 if let Ok(res) = client.post("http://localhost:3000/get_user_details").json(&json!({ // can posibly turned into a macro
-                    "user_id": *USERID.read()
+                    "user_id": user_id,
                 })).send().await {
                     if let Ok(usr_dets) = res.json::<UserDetails>().await{
                         username.set(usr_dets.username);
@@ -76,8 +79,9 @@ pub fn TitleBar() -> Element {
                     }
                 }
             });
-        });
-    }
+        }}
+    );
+    
 
     
     rsx! {
