@@ -6,9 +6,9 @@ pub use crate::frontend::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct UserDetails{
-    username: String,
-    user_email: String,
-    user_pfp: String,
+    pub username: String,
+    pub user_email: String,
+    pub user_pfp: String,
 }
 
 #[component]
@@ -81,8 +81,6 @@ pub fn TitleBar() -> Element {
             });
         }}
     );
-    
-
     
     rsx! {
             body {
@@ -159,7 +157,7 @@ pub fn TitleBar() -> Element {
                     // change to no pfp if not loged in, if loged in change to the users pfp
                     if !(*USERID.read() != -1 && *USERNAME.read() != "".to_string()){
                         button {
-                            class:"Icon_button_search",
+                            class:"Icon_but = tryton_search",
                             id:"Account_button_search",
                             onclick: move |_| {
                                 fade_direction.set("fade-in");

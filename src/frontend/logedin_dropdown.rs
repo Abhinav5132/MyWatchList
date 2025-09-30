@@ -1,5 +1,5 @@
 pub use crate::frontend::*;
-use dioxus::prelude::spawn;
+pub use dioxus::prelude::spawn;
 #[derive(Serialize, Deserialize, Default)]
 pub struct UserDetails{
     username: String,
@@ -9,7 +9,7 @@ pub struct UserDetails{
 
 #[component]
 pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHandler<()>)-> Element{
-
+    let navigator = use_navigator();
     rsx!(
         div { 
             id: "user_logedin_dropdown",
@@ -22,7 +22,7 @@ pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHan
             div {
                 class: "dropdown-item",
                 onclick: move |_| {
-                    // TODO: route to manage account
+                    navigator.push(crate::frontend::router::routes::ManageAccount {  });
                 },
                 "Manage account"
             }
