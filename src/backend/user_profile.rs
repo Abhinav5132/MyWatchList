@@ -100,6 +100,7 @@ pub async fn change_username(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
 
 #[post("/change_password")]
 pub async fn change_password(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangePassword>) -> HttpResponse{
+    dbg!("changing_password");
     let token = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")
@@ -112,7 +113,7 @@ pub async fn change_password(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
     let pwd_hash = try_or!(pwd_to_hash(&username.pwd), HttpResponse::Unauthorized().into());
     if verify_token(db.clone(), token).await{
         let _row =try_or!(
-            sqlx::query("UPDATE user SET user_name = ? WHERE id = ?")
+            sqlx::query("UPDATE user SET user_password = ? WHERE id = ?")
             .bind(pwd_hash).bind(user_id).execute(db.as_ref()).await, HttpResponse::InternalServerError().finish()
         );
         return HttpResponse::Ok().into();

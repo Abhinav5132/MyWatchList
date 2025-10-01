@@ -6,8 +6,8 @@ pub use crate::frontend::*;
 
 #[derive(Serialize)]
 pub struct LoginStruct {
-    username: String,
-    password: String
+    pub username: String,
+    pub password: String
 }
 
 #[derive(Serialize)]

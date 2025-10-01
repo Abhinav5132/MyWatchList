@@ -1,7 +1,7 @@
-use actix_web::{web::{Data, Json}, HttpResponse};
+use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};use rand_core::{OsRng};
-use crate::backend::{sign_up::AuthResponse, *};
+use crate::{backend::{login::LoginStruct, sign_up::AuthResponse, *}, try_or};
 #[derive(Serialize, Deserialize)]
 pub struct Claims{
     pub sub: i64,
@@ -172,3 +172,31 @@ pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<
         }
     }
 }   
+
+#[post("/verify_password")]
+pub async fn verify_entered_password(db: Data<Pool<Sqlite>>, req: HttpRequest, user: Json<LoginStruct>) -> HttpResponse {
+    let auth_header =  match req.headers().get("Authorization") {
+        Some(token) => {
+            token.to_str().unwrap()
+        }
+        None=>{
+            return HttpResponse::Unauthorized().into();
+        }
+    };
+
+    let user_id = get_userid_from_jwt(auth_header).await;
+    let row = try_or!(
+        sqlx::query("SELECT user_password FROM user WHERE id = ?").bind(user_id).fetch_one(db.as_ref()).await,
+        HttpResponse::InternalServerError().finish()
+    );
+
+    let hash:&str = try_or!(row.try_get("user_password"), HttpResponse::InternalServerError().finish());
+
+    let verification = try_or!(verify_pwd(&user.password, hash), HttpResponse::Unauthorized().into());
+
+    if verification {
+        return HttpResponse::Ok().into();
+    }
+    
+    HttpResponse::Unauthorized().into()
+}

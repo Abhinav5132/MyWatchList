@@ -52,7 +52,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     };
     dbg!(&credentials.user_name);
     dbg!(&entered_pwd);
-    let no_pfp_blob = match file_to_blob_with_path("/assets/No_pfp.jpg"){
+    let no_pfp_blob = match file_to_blob_with_path("assets/No_pfp.jpg"){
         Ok(pfp)=> pfp,
         Err(e) => {
             dbg!(e);

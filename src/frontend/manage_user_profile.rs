@@ -1,7 +1,8 @@
 use std::path::Path;
-use crate::frontend::title_bar::UserDetails;
+use crate::frontend::{logedin_dropdown::logout, login_popup::LoginStruct, title_bar::UserDetails};
 pub use crate::frontend::*;
 use dioxus::desktop::tao::event;
+use reqwest::StatusCode;
 use rfd::AsyncFileDialog;
 pub use anyhow::Result;
 use serde_json::json;
@@ -33,9 +34,14 @@ pub fn ManageAccount() -> Element{
     let mut user_pfp = use_signal(|| "".to_string());
     let mut refetch_title = use_context::<Signal<bool>>();
 
+    let mut password = use_signal(|| "".to_string());
+    let mut password_again = use_signal(|| "".to_string());
+    let mut current_pwd = use_signal(|| "".to_string());
+    let mut is_current_pwd_correct = use_signal(|| (0, false));
+
     let mut edit_username_trigger = use_signal(|| true);
     let mut edit_email_trigger = use_signal(|| true);
-    let mut edit_pwd_trigger = use_signal(|| true);
+    let mut edit_pwd_trigger = use_signal(|| false);
 
     use_effect(move || {
         //let mut _a = refetch_signal.read();
@@ -110,7 +116,64 @@ pub fn ManageAccount() -> Element{
         }
     };
 
+    let verify_current_pwd = {
+        let current_pwd = current_pwd.clone();
+        
+        move || {
+            spawn(async move {
+                let client = Client::new();
+                let current_pwd_attempt = *is_current_pwd_correct.read();
+                if let Ok(res) = client
+                    .post("http://localhost:3000/verify_password")
+                    .json(&LoginStruct {
+                        username: username.read().to_string(),
+                        password: current_pwd.read().to_string(),
+                    })
+                    .bearer_auth(TOKEN.read())
+                    .send()
+                    .await
+                {
+                    match res.status() {
+                        StatusCode::OK => {
+                            is_current_pwd_correct.set((0, true));
+                        }
 
+                        StatusCode::INTERNAL_SERVER_ERROR => {
+                            is_current_pwd_correct.set((current_pwd_attempt.0 + 1, false));
+                            
+                        }
+
+                        StatusCode::UNAUTHORIZED => {
+                            is_current_pwd_correct.set((current_pwd_attempt.0 + 1, false));
+                        }
+
+                        _ => {} ,
+                    } 
+                }
+            });
+        }
+    };
+
+    let add_password = {
+        let password = password.clone();
+        
+        move || {
+            spawn(async move {
+                let client = Client::new();
+                if let Ok(res) = client
+                    .post("http://localhost:3000/change_password")
+                    .json(&ChangePassword {
+                        pwd: password.read().to_string(),
+                    })
+                    .bearer_auth(TOKEN.read())
+                    .send()
+                    .await
+                {
+                    dbg!("Sending new password");
+                }
+            });
+        }
+    };
     rsx!(
 
         div { 
@@ -119,7 +182,7 @@ pub fn ManageAccount() -> Element{
                 spawn(async move{
                     if let Some(blob) = choose_image().await {
                         let client = Client::new();
-                        if let Ok(res) = client.post("http://localhost:3000/change_pfp").json(
+                        if let Ok(_res) = client.post("http://localhost:3000/change_pfp").json(
                             &ChangePfp{
                                 pfp: base64::engine::general_purpose::STANDARD.encode(blob)
                             }
@@ -196,7 +259,7 @@ pub fn ManageAccount() -> Element{
                     }
                 }
                 
-                if *edit_username_trigger.read(){
+                if *edit_email_trigger.read(){
                     button { 
                         class: "confirm_change_buttons",
                         onclick: move |_| {
@@ -213,6 +276,91 @@ pub fn ManageAccount() -> Element{
                 }
             }
          }
+
+         div {
+                id: "security_privacy",
+                h2 { 
+                    "Security and Privacy"
+                }
+                
+                div { 
+                    id:"change_password",
+                    if *edit_pwd_trigger.read() {
+                        if !is_current_pwd_correct.read().1 {
+                            input { 
+                                class:"change_details_div",
+                                r#type: "password",
+                                value: "{ current_pwd }",
+                                oninput: move |evt| {
+                                    current_pwd.set(evt.value());
+                                },
+                                onkeydown: move |evt| {
+                                    if evt.code().to_string() == "Enter".to_string() {
+                                        let current_pwd_attempt = *is_current_pwd_correct.read();
+                                        if current_pwd_attempt.0 <= 5 { // max 5 attempts 
+                                            verify_current_pwd();
+                                        } else {
+                                            logout();
+                                        }
+                                    }   
+                                }
+                            } 
+                        } else {
+                            input{
+                                class:"change_details_div",
+                                id: "first_password_enter",
+                                r#type:"password",
+                                value: "{ password }",
+                                oninput: move |evt| {
+                                    password.set(evt.value());
+                                },
+                                onkeydown: move |evt| {
+                                    if evt.code().to_string() == "Enter".to_string() {
+                                        let _ = document::eval(r#"document.getElementById('second_password_enter').focus();"#);
+                                    }   
+                                }
+
+                            }
+                            input{
+                                class:"change_details_div",
+                                id: "second_password_enter",
+                                r#type:"password",
+                                value: "{ password_again }",
+                                oninput: move |evt| {
+                                    password_again.set(evt.value());
+                                },
+                                onkeydown: move |evt| {
+                                    if evt.code().to_string() == "Enter".to_string() {
+                                        let _ = document::eval(r#"document.getElementById('confirm_password_button').focus();"#);
+                                    }   
+                                }
+
+                            }
+
+                            button { 
+                                class: "confirm_change_buttons",
+                                id: "confirm_password_button",
+                                onclick: move |_| {
+                                    add_password();
+                                    let current = *edit_pwd_trigger.read();
+                                    edit_pwd_trigger.set(!current);
+                                } ,
+                                "Submit"
+                             }
+                        }
+                    }
+                    else {
+                        button { 
+                            class: "confirm_change_buttons",
+                            onclick: move |_| {
+                                let current = *edit_pwd_trigger.read();
+                                edit_pwd_trigger.set(!current);
+                            },
+                            "Change Password"
+                         }
+                    }
+                 }
+            }
     )
 }
 
