@@ -28,7 +28,7 @@ pub use crate::backend::authenticate::*;
 pub mod add_to_list;
 pub use crate::backend::add_to_list::add_anime_to_list;
 use crate::backend::sign_up::check_username_availability;
-use crate::backend::user_profile::{change_pfp, get_user_details, logout};
+use crate::backend::user_profile::{change_email, change_pfp, change_username, get_user_details, logout};
 
 pub mod user_profile;
 
@@ -144,6 +144,8 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(get_user_details)
             .service(logout)
             .service(change_pfp)
+            .service(change_username)
+            .service(change_email)
     }).bind("127.0.0.1:3000")?
     .run()
     .await
