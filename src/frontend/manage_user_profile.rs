@@ -16,6 +16,7 @@ pub fn ManageAccount() -> Element{
     let mut user_email = use_signal(|| "".to_string());
     let mut user_pfp = use_signal(|| "".to_string());
     let mut refetch_signal = use_signal(|| false);
+    let mut refetch_title = use_context::<Signal<bool>>();
 
     use_effect(move || {
         let mut _a = refetch_signal.read();
@@ -54,6 +55,8 @@ pub fn ManageAccount() -> Element{
                             let current_refresh = *refetch_signal.read();
                             refetch_signal.set(!current_refresh);
                             // add some actuall error handeling
+                            let mut current = !*refetch_title.read();
+                            refetch_title.set(current);
                         }
                     }
                 });

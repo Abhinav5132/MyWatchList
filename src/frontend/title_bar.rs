@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde_json::json;
-use crate::frontend::{home_page::Anime, list_page::ListPgFnPropsBuilder_Error_Repeated_field_user_id, logedin_dropdown::loged_in_dropdown, login_popup::Login};
+use crate::frontend::{home_page::Anime, logedin_dropdown::loged_in_dropdown, login_popup::Login};
 pub use crate::frontend::*;
 
 
@@ -17,6 +17,8 @@ pub fn TitleBar() -> Element {
     let mut search_input = use_signal(|| "".to_string());
     let mut submitted_title = use_signal(|| String::new());
     let mut fade_direction = use_signal(|| "fade-in");
+    let mut refetch_signal = use_signal(|| false);
+    provide_context(refetch_signal);
     let navigator = use_navigator();
     let client = Client::builder()
                 .danger_accept_invalid_certs(true)
@@ -64,6 +66,7 @@ pub fn TitleBar() -> Element {
 
                 
     use_effect(move || {
+        let _ = refetch_signal.read();
         let user_name = USERNAME.cloned();
         let user_id = USERID.cloned();
         if user_id != -1 && user_name != "".to_string(){ 
