@@ -1,12 +1,12 @@
 use std::{fs, io::Cursor};
-use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
+use actix_web::{web::{Data, Json, Query}, HttpRequest, HttpResponse};
 use base64::{engine::general_purpose, Engine};
 use reqwest::Client;
 use serde_json::json;
 use sqlx::sqlite::SqliteRow;
 use image::ImageReader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageError, RgbaImage};
-use crate::backend::*;
+use crate::{backend::*, try_or};
 
 
 // watch list is always 1
@@ -26,6 +26,15 @@ struct AList{
     name: String,
     id: i64,
     image: String
+}
+
+#[derive(Serialize)]
+struct ACompleteList{
+    name: String,
+    image: String,
+    is_ranked: bool,
+    is_user_image: bool,
+    privacy_type: String
 }
 
 #[derive(Serialize)]
@@ -92,6 +101,11 @@ pub struct IfRanked{
 pub struct IsRanked{
     is_ranked: i32,
     last_rank: i32
+}
+
+#[derive(Deserialize)]
+pub struct ListId{
+    list_name: String,
 }
 
 pub fn file_to_blob_with_path(path: &str) -> Result<Vec<u8>> {
@@ -500,7 +514,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
     }
 }
 
-#[post("/add-list-to-user")]
+#[post("/add-list-to-user")] // needs verification
 pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>)-> HttpResponse{
     match create_list(&db, &to_add.name, &to_add.user_id, &to_add.privacy_type, to_add.is_ranked, &to_add.image, to_add.is_user_image).await {
         Ok(_) => {
@@ -772,6 +786,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
 
 #[get("/check_if_already_in_list")]
 pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddToList>)->HttpResponse {
+
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;
     let user_id = &to_add.user_id;
@@ -793,4 +808,43 @@ pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddT
             exists: true
         })
     }
+}
+
+
+#[get("/get_list_details")]
+pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Query<ListId> ) -> HttpResponse {
+    let auth_header =  match req.headers().get("Authorization") {
+        Some(token) => {
+            token.to_str().unwrap()
+        }
+        None=>{
+            return HttpResponse::Unauthorized().into();
+        }
+    };
+
+    let user_id = get_userid_from_jwt(auth_header).await;
+
+    let row = try_or!(
+        sqlx::query("SELECT * FROM watch_list WHERE user_id = ? AND name = ?;")
+        .bind(user_id)
+        .bind(&query.list_name)
+        .fetch_one(db.as_ref()).await, HttpResponse::InternalServerError().finish()
+    );
+
+    let name = query.list_name.clone();
+    let is_ranked:bool = try_or!(row.try_get("is_ranked"), HttpResponse::InternalServerError().finish());
+    let is_user_image:bool = try_or!(row.try_get("is_user_image"), HttpResponse::InternalServerError().finish());
+    let list_image:Vec<u8> = try_or!(row.try_get("list_image"), HttpResponse::InternalServerError().finish());
+    let privacy_type:String = try_or!(row.try_get("privacy_type"), HttpResponse::InternalServerError().finish());
+
+    let base64_img = general_purpose::STANDARD.encode(&list_image);
+    let data_url = format!("data:image/png;base64,{}", base64_img);
+
+    HttpResponse::Ok().json(&ACompleteList{
+        name: name,
+        is_ranked:is_ranked,
+        is_user_image: is_user_image,
+        image: data_url,
+        privacy_type: privacy_type
+    })
 }

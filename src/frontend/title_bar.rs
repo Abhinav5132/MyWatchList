@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde_json::json;
-use crate::frontend::{home_page::Anime, logedin_dropdown::loged_in_dropdown, login_popup::Login};
+use crate::frontend::{home_page::Anime, lists_page::ListsPgFn, logedin_dropdown::loged_in_dropdown, login_popup::Login};
 pub use crate::frontend::*;
 
 
@@ -18,6 +18,7 @@ pub fn TitleBar() -> Element {
     let mut submitted_title = use_signal(|| String::new());
     let mut fade_direction = use_signal(|| "fade-in");
     let mut refetch_signal = use_signal(|| false);
+
     provide_context(refetch_signal);
     let navigator = use_navigator();
     let client = Client::builder()
@@ -96,7 +97,6 @@ pub fn TitleBar() -> Element {
                         class:"Icon_button_search",
                         id: "Menu_button_search",
                         onclick: move |_| {
-                            //does noting for now
                         },
                         img {
                             class: "Feeling_icon",
@@ -203,6 +203,8 @@ pub fn TitleBar() -> Element {
                 }
             }
 
+            
+
             if *show_login.read(){
                 div { 
                     class:"modal_overlay_search {fade_direction}",
@@ -229,6 +231,7 @@ pub fn TitleBar() -> Element {
                     id: "page_content",
                     Outlet::<routes> { }
                 }
+                
             }
 
             if !search_results.read().is_empty() {

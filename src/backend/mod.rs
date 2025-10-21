@@ -22,16 +22,18 @@ pub use sign_up::sign_up_fn;
 pub use search::trending_search;
 
 pub mod authenticate;
-use crate::backend::add_to_list::{check_if_an_anime_in_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked};
+use crate::backend::add_to_list::{check_if_an_anime_in_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked, get_list_details};
 pub use crate::backend::authenticate::*;
 
 pub mod add_to_list;
 pub use crate::backend::add_to_list::add_anime_to_list;
+use crate::backend::details::{ReccomendResult, RelatedAnime};
 use crate::backend::sign_up::check_username_availability;
 use crate::backend::user_profile::{change_email, change_password, change_pfp, change_username, get_user_details, logout};
 
 pub mod user_profile;
-
+pub mod AnimeStructs;
+pub mod update_database;
 
 // simple macro that takes a try get expression and a HttpResponse and 
 // unwraps the result and returns the HttpResponse if the result is an error
@@ -77,23 +79,6 @@ struct FullAnimeResult {
     tags: Option<Vec<String>>,
     recommendations: Vec<ReccomendResult>,
     related_anime: Vec<RelatedAnime>
-}
-
-#[derive(Serialize, Default, Deserialize, PartialEq)]
-pub struct ReccomendResult{
-    id: i32,
-    title: String,
-    picture: String,
-    score: f32,
-}
-
-
-#[derive(Serialize, Default, Deserialize, PartialEq)]
-pub struct RelatedAnime{
-    id: i32,
-    title: String,
-    picture: String,
-    RelationType: String
 }
 
 #[actix_web::main]
@@ -148,6 +133,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(change_email)
             .service(verify_entered_password)
             .service(change_password)
+            .service(get_list_details)
     }).bind("127.0.0.1:3000")?
     .run()
     .await

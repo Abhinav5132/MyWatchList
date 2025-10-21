@@ -1,11 +1,7 @@
 Backend:
-    -voice actors need to be incorporated
-    -change it to large pictures 
     -add tag percentages
     - use anyhow fo errors 
-    - duplicate recommendations and related entries, also limit them to 5 
     - indec all major Where = ? values to speed up look ups 
-    - when username is updated the global signal ect dont get updates and the refresh token store dosent get changed. so refreshing fails
     -logging out on account page should redirect back to main menu
 Frontend:
     -if name is too long do ... the causes the image cards to become too big in the search page 
@@ -15,7 +11,6 @@ Frontend:
     -plus icon needs to be replaced.
     -add a showing results for on search page.
     -fix the load_times for images somehow // need to switch to serving smaller images 
-    -fix pfp.
     -recommend button is only reactive if hovering over the image
     -popup only occurs when u click the image not the text 
     -add authentication to all requests 

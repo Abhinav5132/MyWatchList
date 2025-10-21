@@ -1,5 +1,8 @@
-use crate::frontend::{lists_page::{AllListSimple, FetchLists}, popup_add_anime::{PopupAddAnime, PopupError}};
 pub use crate::frontend::*;
+use crate::frontend::{
+    lists_page::{AllListSimple, FetchLists},
+    popup_add_anime::{PopupAddAnime, PopupError},
+};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -69,7 +72,7 @@ pub async fn check_if_in_list(id: i64, list_name: String) -> bool {
         .build()
         .expect("Failed to build client");
     if let Ok(resp) = client
-        .get("/check_if_already_in_list")
+        .get("http://localhost:3000/check_if_already_in_list")
         .json(&AddToList {
             anime_id: id.clone(),
             list_name: list_name,
@@ -80,11 +83,7 @@ pub async fn check_if_in_list(id: i64, list_name: String) -> bool {
         .await
     {
         if let Ok(count) = resp.json::<ExistsInList>().await {
-            if count.exists {
-                true
-            } else {
-                false
-            }
+            if count.exists { true } else { false }
         } else {
             false
         }
@@ -178,14 +177,14 @@ pub async fn get_all_lists() -> Option<AllListSimple> {
         let alllist = res.json::<AllListSimple>().await;
         match alllist {
             Ok(mut lists) => {
-               lists.list = lists
-                .list
-                .into_iter()
-                .filter(|l| l.name != "Recommended" && l.name != "Watch_List")
-                .collect();
+                lists.list = lists
+                    .list
+                    .into_iter()
+                    .filter(|l| l.name != "Recommended" && l.name != "Watch_List")
+                    .collect();
 
                 Some(lists)
-            },
+            }
             Err(e) => {
                 dbg!(e);
                 None
@@ -361,7 +360,7 @@ pub fn Details(id: i64) -> Element {
                                     div {
                                     id:"dropdown_of_lists",
                                     if let Some(all_list) = all_lists.read().as_ref(){
-                                        
+
                                         for alist in all_list.list.clone() { // on)ly prints out watch_list for some reaon
 
                                             div {

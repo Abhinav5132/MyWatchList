@@ -1,7 +1,6 @@
 use std::path::Path;
 use crate::frontend::{logedin_dropdown::logout, login_popup::LoginStruct, title_bar::UserDetails};
 pub use crate::frontend::*;
-use dioxus::desktop::tao::event;
 use reqwest::StatusCode;
 use rfd::AsyncFileDialog;
 pub use anyhow::Result;

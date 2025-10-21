@@ -31,6 +31,8 @@ actix-rt = "2.11.0"
 keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native"]}
 rfd = "0.15.4"
 anyhow = "1.0.100"
+regex = "1.12.2"
+html-escape = "0.2.13"
 
 [features]
 default = ["desktop"]

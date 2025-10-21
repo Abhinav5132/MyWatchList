@@ -86,7 +86,7 @@ pub fn App() -> Element{
 }
 
 
-pub fn launch_frontent() {
+pub fn launch_frontend() {
 
     dioxus::LaunchBuilder::new().with_cfg(Config::default().with_menu(None)
     .with_window(

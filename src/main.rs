@@ -1,9 +1,7 @@
 use std::{env, thread};
-use crate::{backend::setup_backend, frontend::launch_frontent};
+use crate::{backend::setup_backend, frontend::launch_frontend};
 pub mod backend;
 pub mod frontend;
-
-
 
 pub fn main() {
     dotenvy::dotenv().ok();
@@ -15,6 +13,6 @@ pub fn main() {
         }
     });
     
-    launch_frontent();
+    launch_frontend();
 
 }

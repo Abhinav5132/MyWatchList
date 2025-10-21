@@ -1,4 +1,5 @@
 use reqwest::Client;
+use crate::frontend::manage_user_profile::choose_image;
 pub use crate::frontend::*;
 
 #[derive(Serialize)]
@@ -17,6 +18,16 @@ pub struct AList{
 #[derive(Deserialize, Clone)]
 pub struct AllListSimple{
     pub list: Vec<AList>
+
+}
+
+#[derive(Deserialize, Default)]
+struct ACompleteList{
+    name: String,
+    image: String,
+    is_ranked: bool,
+    is_user_image: bool,
+    privacy_type: String
 }
 
 // TODO add actual error checking here, if user id is -1 unauthorized
@@ -27,6 +38,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
         list: vec![]
     });
     let navigator = use_navigator();
+    let mut show_edit_list = use_signal(|| false);
     use_future(move || async move {
         let client = match Client::builder().danger_accept_invalid_certs(true).build() {
             Ok(c) => c,
@@ -82,9 +94,95 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                             class: "span_items_search",
                             "{li.name}"
                         } 
+
+                        button { 
+                            class:"edit_buttons",
+                            onclick: move |_| {
+                                // add a popup allowing them to change the details of the list, add custom images ect
+                                show_edit_list.set(true);
+                            },
+                            "Edit list"
+                         }
                     }
                 }
             }
+
+            button { 
+                id:"add_new_list_button",
+                onclick: move |_| {
+
+                }
+             }
         }
+
+        if *show_edit_list.read() {
+            EditList {  }
+        }
+    )
+}
+
+#[component]
+pub fn EditList( ) -> Element {
+
+    let mut name = use_signal(|| "".to_string());
+    let mut image = use_signal(|| "".to_string());
+    let mut is_ranked= use_signal(|| false);
+    let mut is_user_image = use_signal(|| false);
+    let mut privacy_type= use_signal(|| "".to_string());
+
+    use_effect(move || {
+        spawn(async move{
+            let client = Client::new();
+            if let Ok(res) = client.get("http://localhost:3000/get_list_details")
+            .bearer_auth(TOKEN.read()).send().await{
+                if let Ok(complete_list) = res.json::<ACompleteList>().await{
+                   name.set(complete_list.name);
+                   image.set(complete_list.image);
+                   is_ranked.set(complete_list.is_ranked);
+                   is_user_image.set(complete_list.is_user_image);
+                   privacy_type.set(complete_list.privacy_type);
+                   
+                } 
+            }
+        });
+    });
+
+    rsx!(
+
+        div { 
+            id: "edit_list_details",
+            h2 { "Edit Details" }
+            div {
+                id:"edit_details_div",  
+                div { 
+                    id: "edit_list_image", 
+                    img { 
+                        id:"list_image_edit",
+                        src: image.read().to_string(),
+                        alt:"list image",
+                        onclick: move |_| {
+                            spawn(async move {
+                                if let Some(blob) = choose_image().await {
+                                    let base_64_img = base64::engine::general_purpose::STANDARD.encode(blob);
+                                    let data_url = format!("data:image/png;base64,{}", base_64_img);
+                                    image.set(data_url);
+                                    is_user_image.set(true);
+                                }
+                            });
+                        }
+                    },
+                    
+                }
+
+                div { 
+                    id:"edit_other_details",
+                    input { 
+                        id: "edit_list_name",
+
+                     }
+                }
+            }
+         }
+
     )
 }

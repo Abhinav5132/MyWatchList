@@ -191,6 +191,7 @@ def fetch_page(page, per_page=BATCH_SIZE):
                         airingAt
                     }
                 }
+                updatedAt
             }
         }
     }

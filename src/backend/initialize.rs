@@ -5,63 +5,65 @@ use sqlx::Sqlite;
 use serde::{Deserialize, Serialize};
 use sqlx::Pool;
 
+
+/* this whole thing needs to be completetly revamped */
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AnimeEntry {
-    id: u64,
-    titleEnglish: Option<String>,
-    titleRomaji: String,
-    description: Option<String>,
-    format: Option<String>,
-    episodes: Option<u32>,
-    status: Option<String>,
-    startDate: Option<String>,
-    endDate: Option<String>,
-    season: Option<String>,
-    seasonYear: Option<u32>,
-    thumbnailImage: Option<String>,
-    coverImage: Option<String>,
-    duration: Option<u32>,  // in minutes
-    popularity: Option<u64>,
-    averageScore: Option<u32>,
-    synonyms: Vec<String>,
-    tags: Vec<String>,
-    genres: Vec<String>,
-    studios: Vec<String>,
-    relations: Vec<RelatedAnime>,
-    trailer: Option<String>,
-    characters: Vec<Characters>,
-    recommendations: Vec<Recommendation>,
-    bannerImage: Option<String>,
-    nextAiringEpisode: Option<NextAiringEpisode>
+    pub id: u64,
+    pub titleEnglish: Option<String>,
+    pub titleRomaji: String,
+    pub description: Option<String>,
+    pub format: Option<String>,
+    pub episodes: Option<u32>,
+    pub status: Option<String>,
+    pub startDate: Option<String>,
+    pub endDate: Option<String>,
+    pub season: Option<String>,
+    pub seasonYear: Option<u32>,
+    pub thumbnailImage: Option<String>,
+    pub coverImage: Option<String>,
+    pub duration: Option<u32>,  // in minutes
+    pub popularity: Option<u64>,
+    pub averageScore: Option<u32>,
+    pub synonyms: Vec<String>,
+    pub tags: Vec<String>,
+    pub genres: Vec<String>,
+    pub studios: Vec<String>,
+    pub relations: Vec<RelatedAnime>,
+    pub trailer: Option<String>,
+    pub characters: Vec<Characters>,
+    pub recommendations: Vec<Recommendation>,
+    pub bannerImage: Option<String>,
+    pub nextAiringEpisode: Option<NextAiringEpisode>
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Relations {
-    nodes: Vec<RelatedAnime>,
+    pub nodes: Vec<RelatedAnime>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RelatedAnime {
-    title: String,
-    r#type: Option<String>,
+    pub title: String,
+    pub r#type: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)] 
 pub struct Characters{
-    name: Option<String>,
-    role: Option<String>,
-    image: Option<String>,
+    pub name: Option<String>,
+    pub role: Option<String>,
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Recommendation{
-    title: String
+    pub title: String
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct  NextAiringEpisode{
-    episode: Option<i32>,
-    airingAt: Option<i64>,
+    pub episode: Option<i32>,
+    pub airingAt: Option<i64>,
 }
 pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn std::error::Error>> {
     println!("INITIALIZING");
@@ -191,6 +193,7 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
             .bind(tag_id)
             .execute(&mut *tx)
             .await?;
+    }
 
     // inserting characters 
     for character in &anime.characters{
@@ -241,7 +244,7 @@ pub async fn initialize_database(connection: Pool<Sqlite>) -> Result<(), Box<dyn
         .await?;
     }
 
-} 
+
 }
     tx.commit().await?;
     Ok(())

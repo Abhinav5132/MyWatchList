@@ -1,6 +1,23 @@
 
 pub use crate::backend::*;
 
+#[derive(Serialize, Default, Deserialize, PartialEq)]
+pub struct RelatedAnime{
+    title_romaji: String,
+    id: i64,
+    picture: String,
+    relationType: String,
+}
+
+#[derive(Serialize, Default, Deserialize, PartialEq)]
+pub struct ReccomendResult{
+     id: i32,
+    title: String,
+    picture: String,
+    score: f32,
+}
+
+
 #[get("/details")] 
 pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {
     let id = format!("{}", query.query);
@@ -172,10 +189,10 @@ pub async fn get_related(db: &Pool<Sqlite>, id: &String) -> Vec<RelatedAnime> {
     let mut related:Vec<RelatedAnime> = vec![];
     for row in r {
         let rel = RelatedAnime{
-            title: row.try_get("realted_name").unwrap_or("Unkown".to_string()),
+            title_romaji: row.try_get("realted_name").unwrap_or("Unkown".to_string()),
             id: row.try_get("id").unwrap_or(-1),
             picture: row.try_get("picture").unwrap_or("Unkonwn".to_string()),
-            RelationType: row.try_get("relation_type").unwrap_or("Unknown".to_string())
+            relationType: row.try_get("relation_type").unwrap_or("Unknown".to_string())
         };
 
        if !related.contains(&rel){
