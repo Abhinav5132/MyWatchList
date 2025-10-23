@@ -1,143 +1,55 @@
+use actix_web::web::Data;
+use anyhow::Result;
 use reqwest::Client;
 use sqlx::{Pool, Sqlite};
 pub use crate::backend::*;
 pub use crate::backend::AnimeStructs::Anime;
 
-// is an entry is older than the latest updatedAt in the database then it stops executing
-// however the updated at changes everytime ani list changes popularity ect 
-
-#[derive(Deserialize)]
-pub struct AnilistResponse {
-    data: DataPage,
+#[derive(Deserialize, Debug)]
+pub struct UpdateCurrentResponse {
+    pub data: Option<AnilistData>,
 }
 
-#[derive(Deserialize)]
-pub struct DataPage {
-    Page: Page,
+#[derive(Deserialize, Debug)]
+pub struct AnilistData {
+    pub Media: Option<AnimeMedia>,
 }
 
-#[derive(Deserialize)]
-pub struct Page {
-   pub media: Vec<Anime>,
+#[derive(Deserialize, Debug)]
+pub struct AnimeMedia {
+    pub updatedAt: Option<i64>,
+    pub popularity: Option<i64>,
 }
 
+/*updates the anime that are already in the db and are finished can be run way more periodically than the rest */
+//TODO this needs to also update its reccommendations and related as those can change.
+pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<()> { 
+    let updatedAt:i64 = sqlx::query("SELECT updatedAt 
+    FROM anime 
+    ORDER BY updatedAt ASC 
+    LIMIT 1")
+    .fetch_one(db.as_ref()).await?
+    .try_get("updatedAt")?;
 
-// there can be - many types of updates needed: Finished anime that arent in the databse,
-// ongoing anime that arent in the databse 
+    let current_anime_list = sqlx::query("SELECT title_romanji FROM anime WHERE status = ? ORDER BY updatedAt DESC").bind("FINISHED")
+    .fetch_all(db.as_ref()).await?;
 
-pub async fn update_completed_database(db: web::Data<Pool<Sqlite>>)->anyhow::Result<()> { 
-    let query = query("SELECT upadtedAt FROM anime ORDER BY updatedAt ASC").fetch_one(db.as_ref()).await?;
-    let last_updated:i64 = query.try_get("updatedAt")?;
-    
-    
-    /*first lets update finished anime from the last updated date. */
     let anilist_query = "
-        query ($page: Int, $perPage: Int) {
-        Page(page: $page, perPage: $perPage) {
-            media(type: ANIME, sort: [UPDATED_AT_DESC], status: RELEASING) {
-            title{
-                romaji
-                english
-            }
+    query ($search: String) {
+        Media(search: $search, type: ANIME, sort: [UPDATED_AT_DESC], status: FINISHED) {
             updatedAt
-            description
-            format
-            episodes
-            status
-            season
-            seasonYear
-            startDate {
-                year
-                month
-                day
-            }
-            endDate {
-                year
-                month
-                day
-            }
-            coverImage {
-                extraLarge
-                large
-                medium
-            }
-            bannerImage
-            duration
             popularity
-            averageScore
-            synonyms
-            genres
-            tags {
-                name
-                rank
-                isAdult
-            }
-            studios {
-                nodes {
-                    name
-                }
-            }
-            relations {
-                edges {
-                    relationType
-                    node {
-                        title {
-                            romaji
-                        }
-                    }
-                }
-            }
-            characters(perPage: 10, sort: [ROLE, RELEVANCE]) {
-                edges {
-                    role
-                    node {
-                        name {
-                            full
-                        }
-                        image {
-                            medium
-                        }
-                    }
-                }
-            }
-            recommendations(perPage: 10, sort: [RATING_DESC]) {
-                nodes {
-                    mediaRecommendation {
-                        title {
-                            romaji
-                        }
-                    }
-                }
-            }
-
-            airingSchedule(notYetAired: true, perPage: 1) {
-                nodes {
-                    episode
-                    airingAt
-                }
-            }
-            }
         }
-        }
-
-    ";
-    let mut page = 1;
-    let per_page = 50;
+    }";
 
     let client = Client::new();
-
-
-    use std::collections::HashMap;
-    let mut studio_cache: HashMap<String, i64> = HashMap::new();
-    let mut tag_cache: HashMap<String, i64> = HashMap::new();
-    let mut character_cache: HashMap<String, i64> = HashMap::new();
     let mut tx = db.begin().await?;
 
-    loop {
+    for row in current_anime_list {
+        let current_title:String = row.try_get("title_romanji")?;
+
         let variables = serde_json::json!({
-            "page": page,
-            "perPage": per_page,
-            "since": last_updated
+            "search":current_title
         });
 
         let res = client
@@ -146,148 +58,147 @@ pub async fn update_completed_database(db: web::Data<Pool<Sqlite>>)->anyhow::Res
             .send()
             .await?;
 
-        let json: AnilistResponse = res.json().await?;
-        let media_list:Vec<Anime> = json.data.Page.media;
+        let response:UpdateCurrentResponse = res.json().await?;
 
-        if media_list.is_empty() {
-           break; // No completed anime to update  
+        let updated_at_anilist = if let Some(ref data) = response.data{
+            if let Some(media) = &data.Media{
+                media.updatedAt.unwrap_or(-1)
+            } 
+            else {-1}
+        } else {-1};
+
+        let popularity_anilist = if let Some(ref data) = response.data{
+            if let Some(media) = &data.Media{
+                media.popularity.unwrap_or(-1)
+            } 
+            else {-1}
+        } else {-1};
+
+        if updatedAt >= updated_at_anilist {
+            break; // we are up to date
         }
 
-        for entry in media_list{
-            let updated_at = entry.get_updated_at();
-            if updated_at <= last_updated {
-                return Ok(()) // this dosent need to be updated anymore
-            }
-            let title_romaji = entry.get_title_romaji();
-            let title_english = entry.get_title_romaji();
-            let description = &entry.get_description();
-            let format = entry.get_format();
-            let episodes = entry.get_episodes();
-            let status = entry.get_status();
-            let start_date = entry.get_start_date();
-            let end_date = entry.get_end_date();
-            let anime_season = entry.get_season();
-            let anime_year = entry.get_season_year();
-            let cover = entry.get_cover_images();
-            let extra_large = cover.0;
-            let large = cover.1;
-            let medium = cover.2;
-            let duration = entry.get_duration();
-            let averageScore = entry.get_averageScore();
-            let popularity = entry.get_popularity();
-            let banner_image = entry.get_bannner_image();
-            let next = entry.get_airing_at();
-            let next_episode = next.0;
-            let next_episode_airing_at = next.1;
-            let id = sqlx::query(" 
-            INSERT INTO anime
-            (title_english, title_romanji, description, format, episodes, status, start_date, end_date, anime_season, 
-            anime_year, extraLargeImage, largeImage, medium, duration, averageScore, popularity, banner_image, next_episode, next_episode_airing_at, updatedAt) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-            ").bind(title_english).bind(title_romaji).bind(description).bind(format)
-            .bind(episodes).bind(status).bind(start_date).bind(end_date)
-            .bind(anime_season).bind(anime_year).bind(extra_large).bind(large)
-            .bind(medium).bind(duration).bind(averageScore).bind(popularity)
-            .bind(banner_image).bind(next_episode).bind(next_episode_airing_at).bind(updated_at)
-            .execute(&mut *tx).await?.last_insert_rowid();
+        sqlx::query("UPDATE anime SET popularity = ?, updatedAt = ?")
+        .bind(popularity_anilist)
+        .bind(updatedAt).execute(&mut *tx).await?;
 
-            // inserting synonyms
-            let synonyms = entry.get_synonyms();
-             for synonym in synonyms {
-                sqlx::query("INSERT INTO synonyms(anime_id, synonym) VALUES (?, ?)")
-                .bind(id)
-                .bind(synonym)
-                .execute(&mut *tx).await?;
-            }
-
-            //inserting studios 
-            let studios = entry.get_studios(); 
-            for studio in studios{
-                let studio_id = if let Some(id) = studio_cache.get(&studio) {
-                            *id
-                        } else {
-                            let id = sqlx::query("INSERT OR IGNORE INTO studios (name) VALUES (?)")
-                                .bind(&studio)
-                                .execute(&mut *tx)
-                                .await?.last_insert_rowid();
-                            studio_cache.insert(studio.clone(), id);
-                            id
-                        };
-                sqlx::query("INSERT INTO anime_studio(anime_id, studio_id) VALUES (?, ?)")
-                    .bind(id)
-                    .bind(studio_id)
-                    .execute(&mut *tx)
-                    .await?;
-            }
-
-            let related = entry.get_related();
-            for (name, relation) in related {
-                sqlx::query("INSERT INTO related_anime(anime_id, related_name, relation_type) VALUES (?, ?, ?)")
-                    .bind(id)
-                    .bind(name)
-                    .bind(relation)
-                    .execute(&mut *tx)
-                    .await?;
-            }
-
-            let tags = entry.get_tags();
-            for tag in tags {
-                let tag_name = tag.name.as_deref().unwrap_or("UNKNOWN");
-                let tag_id = if let Some(id) = tag_cache.get(tag_name) {
-                            *id
-                    } else {
-                        let id = sqlx::query("INSERT OR IGNORE INTO tags (tag, rank, isAdult) VALUES (?, ? , ?)")
-                            .bind(tag_name)
-                            .bind(tag.rank)
-                            .bind(tag.isAdult)
-                            .execute(&mut *tx)
-                            .await?.last_insert_rowid();
-                        tag_cache.insert(tag_name.to_string(), id);
-                        id
-                    };
-
-                sqlx::query("INSERT INTO anime_tags(anime_id, tag_id) VALUES (?, ?)")
-                    .bind(id)
-                    .bind(tag_id)
-                    .execute(&mut *tx)
-                    .await?;
-            }
-
-            let characters = entry.get_characters();
-            for (name, role, image) in characters{
-                let character_id = if let Some(id) = character_cache.get(name) {
-                        *id
-                    } else {
-                        let id = sqlx::query("INSERT OR IGNORE INTO characters(name) VALUES (?)")
-                            .bind(name)
-                            .execute(&mut *tx)
-                            .await?.last_insert_rowid();
-                        character_cache.insert(name.to_string().clone(), id);
-                        id
-                    };
-
-                sqlx::query("INSERT INTO anime_character(anime_id, character_id, role, image) VALUES (?,?,?,?)")
-                    .bind(id)
-                    .bind(character_id)
-                    .bind(role)
-                    .bind(image)
-                    .execute(&mut *tx)
-                    .await?;
-            }
-
-            let recommendations = entry.get_recommended();
-            for (name, rating ) in recommendations{
-                sqlx::query("INSERT INTO recommendations(anime_id, recommended_title, rating) VALUES (?,?,?)")
-                .bind(id)
-                .bind(name)
-                .bind(rating)
-                .execute(&mut *tx)
-                .await?;
-            }
-        }   
-        page += 1;
-    }    
+    }
 
     tx.commit().await?;
-    return Ok(());
+    Ok(())
 }
+
+/*updates anime that are releasing*/
+pub async fn update_ones_not_in_db(db: Data<Pool<Sqlite>>) -> Result<()> {
+    let updatedAt:i64 = sqlx::query("SELECT updatedAt 
+    FROM anime 
+    ORDER BY updatedAt ASC 
+    LIMIT 1")
+    .fetch_one(db.as_ref()).await?
+    .try_get("updatedAt")?;
+
+    let anilist_query = "
+        query ($page: Int, $perPage: Int) {
+            Page(page: $page, perPage: $perPage) {
+                media(type: ANIME, sort: [UPDATED_AT_DESC], status_not: FINISHED) {
+                title{
+                    romaji
+                    english
+                }
+                updatedAt
+                description
+                format
+                episodes
+                status
+                season
+                seasonYear
+                startDate {
+                    year
+                    month
+                    day
+                }
+                endDate {
+                    year
+                    month
+                    day
+                }
+                coverImage {
+                    extraLarge
+                    medium
+                }
+                bannerImage
+                duration
+                popularity
+                averageScore
+                synonyms
+                genres
+                tags {
+                    name
+                    rank
+                    isAdult
+                }
+                studios {
+                    nodes {
+                        name
+                    }
+                }
+                relations {
+                    edges {
+                        relationType
+                        node {
+                            title {
+                                romaji
+                            }
+                            type
+                        }
+                    }
+                }
+                characters(perPage: 10, sort: [ROLE, RELEVANCE]) {
+                    edges {
+                        role
+                        node {
+                            name {
+                                full
+                            }
+                            image {
+                                medium
+                            }
+                        }
+                        voiceActors {
+                            name {
+                                full
+                            }
+                        }
+                    }
+                }
+                trailer {
+                    site
+                    id
+                }
+                recommendations(perPage: 10, sort: [RATING_DESC]) {
+                    nodes {
+                        media {
+                            title {
+                                romaji
+                            }
+                        }
+                        rating
+                    }
+                }
+
+                airingSchedule(notYetAired: true, perPage: 1) {
+                    nodes {
+                        episode
+                        airingAt
+                    }
+                }
+                }
+            }
+            }
+
+    
+    ";
+
+    Ok(())
+}
+

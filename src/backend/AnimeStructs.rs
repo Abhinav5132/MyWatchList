@@ -23,9 +23,9 @@ pub struct Anime {
     pub genres: Option<Vec<String>>,
     pub tags: Option<Vec<Tag>>,
     pub studios: Option<Studios>,
-    pub relations: Option<Vec<Relations>>,
-    pub characters: Option<Vec<Characters>>,
-    pub recommendations: Option<Vec<Recommendations>>,
+    pub relations: Option<Relations>,   
+    pub characters: Option<Characters>,
+    pub recommendations: Option<Recommendations>,
     pub bannerImage: Option<String>,
     pub coverImage: Option<CoverImage>,
     pub nextAiringEpisode: Option<NextAiringEpisode>,
@@ -83,7 +83,7 @@ impl Anime {
         "UNKNOWN".to_string()
     }
     pub fn get_end_date(&self)-> String{
-        if let Some(date) = &self.startDate {
+        if let Some(date) = &self.endDate {
             if let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
                 return format!("{}-{}-{}", day, month, year);
             }
@@ -144,25 +144,22 @@ impl Anime {
         vec![]
     }
 
-    pub fn get_recommended(&self)-> Vec<(String, i32)>{
+    pub fn get_recommended(&self)-> Vec<String>{
         let mut recommendations = Vec::new();
 
         if let Some(recommendations_data) = &self.recommendations {
-            for data in recommendations_data {
-                let node = &data.nodes;
-                for node_data in node{
-                    let title = node_data
-                        .media
-                        .as_ref()
-                        .and_then(|m| m.title.romaji.clone())
-                        .unwrap_or_else(|| "UNKNOWN".to_string());
+            let node = &recommendations_data.nodes;
+            for node_data in node{
+                let title = node_data
+                    .mediaRecommendation
+                    .as_ref()
+                    .and_then(|m| m.title.romaji.clone())
+                    .unwrap_or_else(|| "UNKNOWN".to_string());
 
-                    let rating = node_data.rating.unwrap_or(-1);
 
-                    recommendations.push((title, rating));
-                }
-            }   
-        }
+                recommendations.push(title);
+            }
+        }   
 
         recommendations
     }
@@ -171,8 +168,7 @@ impl Anime {
         let mut relations = vec![];
 
         if let Some(rel) = &self.relations{
-            for relation in rel {
-                let relation_edges = &relation.edges;
+                let relation_edges = &rel.edges;
                 for edges in relation_edges {
                     let realtion_type = edges.relationType.as_deref().unwrap_or("UNKNOWN");
                     let relation_name = edges.node.as_ref()
@@ -180,7 +176,6 @@ impl Anime {
                     relations.push((relation_name, realtion_type));
                 }
             }
-        }
         relations
     }
 
@@ -188,13 +183,11 @@ impl Anime {
         let mut characters = vec![];
 
         if let Some(character_vec) = &self.characters{
-            for character in character_vec{
-                for edge in &character.edges{
-                    let role = edge.role.as_deref().unwrap_or("UNKNOWN");
-                    let name = edge.node.name.full.as_deref().unwrap_or("UNKNOWN");
-                    let image = edge.node.image.as_ref().and_then(|img| img.medium.as_deref()).unwrap_or("UNKNWON");
-                    characters.push((name, role, image));
-                }
+            for edge in &character_vec.edges{
+                let role = edge.role.as_deref().unwrap_or("UNKNOWN");
+                let name = edge.node.name.full.as_deref().unwrap_or("UNKNOWN");
+                let image = edge.node.image.as_ref().and_then(|img| img.medium.as_deref()).unwrap_or("UNKNOWN");
+                characters.push((name, role, image));
             }
         }
         characters
@@ -218,9 +211,9 @@ impl Anime {
     pub fn get_cover_images(&self) -> (&str, &str, &str) {
         if let Some(ref cover) = self.coverImage {
             (
-                cover.ExtraLargeImage.as_deref().unwrap_or("UNKNOWN"),
-                cover.LargeImage.as_deref().unwrap_or("UNKNOWN"),
-                cover.mediumImage.as_deref().unwrap_or("UNKNOWN"),
+                cover.extraLarge.as_deref().unwrap_or("UNKNOWN"),
+                cover.large.as_deref().unwrap_or("UNKNOWN"),
+                cover.medium.as_deref().unwrap_or("UNKNOWN"),
             )
         } else {
             ("UNKNOWN", "UNKNOWN", "UNKNOWN")
@@ -268,9 +261,9 @@ pub struct Tag{
 
 #[derive(Deserialize, Serialize,Default)]
 pub struct CoverImage {
-    pub mediumImage: Option<String>,
-    pub LargeImage: Option<String>,
-    pub ExtraLargeImage: Option<String>,
+    pub medium: Option<String>,
+    pub large: Option<String>,
+    pub extraLarge: Option<String>,
 }
 
 #[derive(Deserialize, Serialize )]
@@ -323,8 +316,7 @@ pub struct Recommendations {
 
 #[derive(Deserialize, Serialize )]
 pub struct RecommendationNode {
-    pub rating: Option<i32>,
-    pub media: Option<RecommendationMedia>,
+    pub mediaRecommendation: Option<RecommendationMedia>,
 }
 
 #[derive(Deserialize, Serialize )]

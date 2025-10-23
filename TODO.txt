@@ -16,6 +16,7 @@ Frontend:
     -add authentication to all requests 
     - text looks awfull for some reason
     -removing and adding username from the local store 
+    - on first install check initialization and if that process has started show a progrress bar or a spinny animation thingy.
 
 prod:
     -https certificate

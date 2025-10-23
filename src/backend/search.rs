@@ -42,7 +42,7 @@ pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
     let page = query.page.unwrap_or_default();
     let offset = (page - 1) * 28;
     match sqlx::query("
-            SELECT anime.title_romanji, anime.picture, anime.id
+            SELECT anime.title_romanji, anime.mediumImage, anime.largeImage, anime.id
             FROM anime
             WHERE anime.title_romanji LIKE ? COLLATE NOCASE
             ORDER BY anime.popularity DESC 
@@ -58,7 +58,7 @@ pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
             .map(|r| AnimeResult{
                 id: r.try_get("id").unwrap_or_default(),
                 title: r.try_get("title_romanji").unwrap_or_default(),
-                picture: r.try_get("picture").ok(),
+                picture: r.try_get("mediumImage").ok(),
             })
             .collect();
             if names.is_empty() {
@@ -155,7 +155,7 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
                 id: row.try_get("id").unwrap_or(-1),
                 title_english: row.try_get("title_english").unwrap_or("Unknown".to_string()),
                 title_romanji: row.try_get("title_romanji").unwrap_or("Unknown".to_string()),
-                thumbnail: row.try_get("thumbnail").unwrap_or("None".to_string()),
+                thumbnail: row.try_get("largeImage").unwrap_or("None".to_string()),
                 averageScore: row.try_get("averageScore").unwrap_or(0)
             }).collect();
 
@@ -167,7 +167,7 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
 
     // return most trending anime based on their popularity stats
     match sqlx::query(
-        "SELECT title_romanji, title_english, picture, id, averageScore
+        "SELECT title_romanji, title_english, largeImage, id, averageScore
         FROM anime
         ORDER BY popularity DESC LIMIT 20;"
     ).fetch_all(db.as_ref()).await {
@@ -176,7 +176,7 @@ pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder {
                 id: row.try_get("id").unwrap_or(-1),
                 title_english: row.try_get("title_english").unwrap_or("Unknown".to_string()),
                 title_romanji: row.try_get("title_romanji").unwrap_or("Unknown".to_string()),
-                thumbnail: row.try_get("picture").unwrap_or("None".to_string()),
+                thumbnail: row.try_get("largeImage").unwrap_or("None".to_string()),
                 averageScore: row.try_get("averageScore").unwrap_or(0)
             }).collect();
         }

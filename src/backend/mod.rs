@@ -3,7 +3,7 @@ use actix_web::{get, post, App, HttpServer, Responder, web};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
-
+use env_logger::Env;
 pub mod initialize;
 pub use initialize::initialize_database;
 
@@ -91,9 +91,21 @@ pub async fn setup_backend() -> std::io::Result<()> {
         .filename("anime.db") // for final relase make sure this is present in the same location as the binary or set a env variable with the file path.
         .create_if_missing(true);
 
-    let connection = sqlite::SqlitePool::connect_with(opt).await.unwrap();
+    let connection = match sqlite::SqlitePool::connect_with(opt).await {
+        Ok(c) => c,
+        Err(e) => {
+            dbg!(e);
+            panic!("Failed to establish connection to the db")
+        }
+    };
     let schema = std::fs::read_to_string("anime.sql").unwrap_or_default();
-    connection.execute(&*schema).await.unwrap();
+    match connection.execute(&*schema).await {
+        Ok(c) => c,
+        Err(r) => {
+            dbg!(r); 
+            panic!("Failed to execure schema.");
+        }
+    };
     
     let _ = sqlx::query("PRAGMA journal_mode = WAL;")
         .execute(&connection)
@@ -103,17 +115,20 @@ pub async fn setup_backend() -> std::io::Result<()> {
         .fetch_one(&connection)
         .await
         .unwrap_or(0);
+
+    let db = web::Data::new(connection.clone());
     if count == 0 {
-        match initialize_database(connection.clone()).await {
+        match initialize_database(db.clone()).await {
             Ok(_) => println!("Database initialized successfully"),
             Err(e) => eprintln!("Failed to initialize database: {}", e),
         };
     }
+    env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
 
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
-            .app_data(web::Data::new(connection.clone()))
+            .app_data(db.clone())
             .service(main_search)
             .service(get_details)
             .service(trending_search)

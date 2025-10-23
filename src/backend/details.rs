@@ -31,7 +31,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
         let status = row.try_get("status").unwrap_or("Unknown".to_string());
         let anime_season = row.try_get("anime_season").unwrap_or("Unknown").to_string();
         let anime_year = row.try_get("anime_year").unwrap_or(0000);
-        let picture:String = row.try_get("picture").unwrap_or_default();
+        let picture:String = row.try_get("largeImage").unwrap_or_default(); // implement cache here
         let duration = row.try_get("duration").unwrap_or(0);
         let score = row.try_get("averageScore").unwrap_or(0.0);
         let trailer_url = row.try_get("trailer_url").unwrap_or("Unknown".to_string());

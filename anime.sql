@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS anime (
     averageScore FLOAT,
     next_episode TEXT,
     next_episode_airing_at TEXT,
-    updatedAt INTEGER,
+    updatedAt INTEGER
 );
 
 Create Table If not Exists synonyms(
@@ -36,7 +36,7 @@ Create Table If not Exists synonyms(
 CREATE TABLE IF NOT EXISTS related_anime (
     related_anime_id INTEGER PRIMARY KEY AUTOINCREMENT,
     anime_id INTEGER NOT NULL,
-    related_name TEXT NOT NUll,
+    related_name TEXT NOT NULL,
     relation_type TEXT,
     Foreign Key (anime_id) REFERENCES anime(id)
 
@@ -46,7 +46,7 @@ CREATE Table IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tag Text,
     rank INTEGER,
-    isAdult INTEGER,
+    isAdult INTEGER
 );
 
 Create Table If Not EXISTS anime_tags(
@@ -82,8 +82,8 @@ CREATE Table IF NOT EXISTS anime_studio(
 
 -- Characters
 CREATE TABLE IF NOT EXISTS characters (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL, 
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL 
 );
 
 
@@ -139,7 +139,3 @@ CREATE TABLE IF NOT EXISTS watch_list_anime (
     FOREIGN KEY (anime_id) REFERENCES anime(id),
     UNIQUE(user_id, watch_name, rank)
 );
-
-CREATE TABLE IF NOT EXISTS db_settings( -- will later include sync data for the syncing with postgres
-    last_updated_at TEXT,
-)
