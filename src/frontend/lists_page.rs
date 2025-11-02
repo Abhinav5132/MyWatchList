@@ -40,13 +40,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
     let navigator = use_navigator();
     let mut show_edit_list = use_signal(|| false);
     use_future(move || async move {
-        let client = match Client::builder().danger_accept_invalid_certs(true).build() {
-            Ok(c) => c,
-            Err(e) => {
-                dbg!(e);
-                panic!("Failed to build a client") //.expect
-            }
-        };
+        let client = Client::new();
         if let Ok(res) = client.get("http://localhost:3000/fetch-all-lists")
         .bearer_auth(TOKEN.read())
         .json(

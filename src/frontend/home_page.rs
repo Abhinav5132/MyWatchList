@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Anime {
     pub id: i64,
     pub title: String,
-    pub picture: Option<String>,
+    pub largeImage: Option<String>,
 }
 
 #[derive(Serialize,Deserialize, Clone)]

@@ -745,7 +745,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
             let mut animes:Vec<AnimeResult> = vec![];
             for id  in anime_ids{
                 let anime_details = match sqlx::query(
-                    "SELECT title_romanji, picture FROM anime WHERE id = ?"
+                    "SELECT title_romanji, largeImage FROM anime WHERE id = ?"
                 ).bind(&id).fetch_one(db.as_ref()).await{
                     Ok(id)=>id,
                     Err(e)=>{
@@ -762,7 +762,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
                     }
                 }; 
 
-                let picture:String = match anime_details.try_get("picture") {
+                let picture:String = match anime_details.try_get("largeImage") {
                     Ok(picture)=>picture,
                     Err(e)=>{
                         dbg!(e);
@@ -770,7 +770,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
                     }
                 };
 
-                animes.push(AnimeResult { id: id, title: title, picture: Some(picture) });
+                animes.push(AnimeResult { id: id, title: title, largeImage: Some(picture) });
 
                 
             }

@@ -15,7 +15,7 @@ struct FullAnimeResult {
     status: String,
     anime_season: String,
     anime_year: i32,
-    picture: String,
+    largeImage: String,
     duration: i32,
     score: f32,
     trailer_url: String,
@@ -255,7 +255,7 @@ pub fn Details(id: i64) -> Element {
                         id:"picture_div",
                         img {
                             id:"Detail_image",
-                            src: "{ details.picture }",
+                            src: "{ details.largeImage }",
                             alt: "picture"
                             }
 

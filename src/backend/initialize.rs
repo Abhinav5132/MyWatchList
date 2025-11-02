@@ -33,7 +33,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
     let anilist_query = "
         query ($page: Int, $perPage: Int) {
         Page(page: $page, perPage: $perPage) {
-            media(type: ANIME, sort: [UPDATED_AT_DESC]) {
+            media(type: ANIME, sort: POPULARITY_DESC) {
             title{
                 romaji
                 english
@@ -203,8 +203,19 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             let next = entry.get_airing_at();
             let next_episode = next.0;
             let next_episode_airing_at = next.1;
+
+            let is_present: i64 = sqlx::query("SELECT COUNT(1) FROM anime WHERE title_romanji = ?")
+            .bind(title_romaji)
+            .fetch_one(&mut *tx)
+            .await?
+            .try_get(0)?;
+
+            if is_present == 1 {
+                continue;
+            }
+
             let id = sqlx::query(" 
-            INSERT INTO anime
+            INSERT OR IGNORE INTO anime
             (title_english, title_romanji, description, format, episodes, status, start_date, end_date, anime_season, 
             anime_year, extraLargeImage, largeImage, mediumImage, duration, averageScore, popularity, banner_image, next_episode, next_episode_airing_at, updatedAt) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
@@ -214,7 +225,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             .bind(medium).bind(duration).bind(averageScore).bind(popularity)
             .bind(banner_image).bind(next_episode).bind(next_episode_airing_at).bind(updated_at)
             .execute(&mut *tx).await?.last_insert_rowid();
-
+ 
             // inserting synonyms
             let synonyms = entry.get_synonyms();
              for synonym in synonyms {

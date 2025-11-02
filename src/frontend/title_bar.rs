@@ -246,7 +246,7 @@ pub fn TitleBar() -> Element {
                         img {
                             class: "dropdown_images_search",
                             loading: "eager",
-                            src: anime.picture.clone().unwrap_or("{SEARCH_ICON}".to_string()),
+                            src: anime.largeImage.clone().unwrap_or("{SEARCH_ICON}".to_string()),
                             alt: "thumbanil"
                         }
                         span {

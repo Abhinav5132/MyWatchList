@@ -59,7 +59,7 @@ struct SearchQuery {
 struct AnimeResult {
     id: i32,
     title: String,
-    picture: Option<String>,
+    largeImage: Option<String>,
 }
 #[derive(Serialize, Default, Deserialize)]
 struct FullAnimeResult {

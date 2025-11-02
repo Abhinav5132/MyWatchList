@@ -57,7 +57,7 @@ pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
                         img {
                             class: "dropdown_images_search",
                             loading: "eager",
-                            src: entry.picture.clone().unwrap_or_else(|| "/assets/no_image.png".to_string()),
+                            src: entry.largeImage.clone().unwrap_or_else(|| "/assets/no_image.png".to_string()),
                             alt: "thumbanil"
                         },
                         span {
