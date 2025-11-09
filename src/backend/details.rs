@@ -3,7 +3,7 @@ pub use crate::backend::*;
 
 #[derive(Serialize, Default, Deserialize, PartialEq)]
 pub struct RelatedAnime{
-    title_romaji: String,
+    title_romanji: String,
     id: i64,
     picture: String,
     relationType: String,
@@ -11,7 +11,7 @@ pub struct RelatedAnime{
 
 #[derive(Serialize, Default, Deserialize, PartialEq)]
 pub struct ReccomendResult{
-     id: i32,
+    id: i32,
     title: String,
     picture: String,
     score: f32,
@@ -21,7 +21,8 @@ pub struct ReccomendResult{
 #[get("/details")] 
 pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {
     let id = format!("{}", query.query);
-    match sqlx::query("SELECT * FROM anime WHERE id = ?
+    match sqlx::query("SELECT title_romanji, format, description, episodes, status, anime_season, anime_year,
+     LargeImage, duration, averageScore FROM anime WHERE id = ?
     ").bind(&id).fetch_one(db.as_ref()).await {
         Ok(row) => {
         let title = row.try_get("title_romanji").unwrap_or("Unknown").to_string();
@@ -31,10 +32,9 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
         let status = row.try_get("status").unwrap_or("Unknown".to_string());
         let anime_season = row.try_get("anime_season").unwrap_or("Unknown").to_string();
         let anime_year = row.try_get("anime_year").unwrap_or(0000);
-        let picture:String = row.try_get("largeImage").unwrap_or_default(); // implement cache here
+        let picture:String = row.try_get("LargeImage").unwrap_or_default(); // implement cache here
         let duration = row.try_get("duration").unwrap_or(0);
         let score = row.try_get("averageScore").unwrap_or(0.0);
-        let trailer_url = row.try_get("trailer_url").unwrap_or("Unknown".to_string());
         
         let (synonyms, studios, tags, reccomendation, related) = tokio::join!(
             get_synonyms(db.as_ref(), &id),
@@ -52,19 +52,19 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
             status:status,
             anime_season:anime_season,
             anime_year:anime_year ,
-            picture:picture ,
+            largeImage :picture ,
             duration:duration ,
             score:score ,
             studio: Some(studios),
             synonyms: Some(synonyms),
             tags: Some(tags),
-            trailer_url: trailer_url,
             recommendations: reccomendation,
             related_anime: related
         };
         web::Json(anime_deatils)
         }
-        Err(_) => {
+        Err(e) => {
+            dbg!(e);
             web::Json(FullAnimeResult::default())
         }
     }
@@ -145,7 +145,7 @@ pub async fn get_tags(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
 pub async fn get_recommendations(db: &Pool<Sqlite>, id: &String) -> Vec<ReccomendResult> {
 
     let r = match sqlx::query("
-    SELECT r.recommended_title ,a.id, a.picture, a.averageScore
+    SELECT r.recommended_title ,a.id, a.mediumImage, a.averageScore
     FROM recommendations r
     JOIN anime a ON a.title_romanji = r.recommended_title
     WHERE anime_id = ?")
@@ -159,9 +159,9 @@ pub async fn get_recommendations(db: &Pool<Sqlite>, id: &String) -> Vec<Reccomen
     let mut recommendations: Vec<ReccomendResult> = vec![];
     for row in r{
         let recommended_result = ReccomendResult{
-        title: row.try_get("title_romanji").unwrap_or("Unknown".to_string()),
+        title: row.try_get("recommended_title").unwrap_or("Unknown".to_string()),
         id: row.try_get("id").unwrap_or(-1),
-        picture: row.try_get("picture").unwrap_or("Unknown".to_string()), // i should have made sure that there are no nulls in pictures adding unknown image where non existant
+        picture: row.try_get("mediumImage").unwrap_or("Unknown".to_string()), // i should have made sure that there are no nulls in pictures adding unknown image where non existant
         score: row.try_get("averageScore").unwrap_or(0.0)
         };
         if !recommendations.contains(&recommended_result) { // if already in list dont add again, need to sanitize the data in the database so this dosent happen
@@ -175,7 +175,7 @@ pub async fn get_recommendations(db: &Pool<Sqlite>, id: &String) -> Vec<Reccomen
 
 pub async fn get_related(db: &Pool<Sqlite>, id: &String) -> Vec<RelatedAnime> {
     let r = match sqlx::query("
-    SELECT r.related_name, r.relation_type, a.id, a.picture 
+    SELECT r.related_name, r.relation_type, a.id, a.mediumImage
     FROM related_anime r
     JOIN anime a ON a.title_romanji = r.related_name
     WHERE anime_id = ?")
@@ -189,9 +189,9 @@ pub async fn get_related(db: &Pool<Sqlite>, id: &String) -> Vec<RelatedAnime> {
     let mut related:Vec<RelatedAnime> = vec![];
     for row in r {
         let rel = RelatedAnime{
-            title_romaji: row.try_get("realted_name").unwrap_or("Unkown".to_string()),
+            title_romanji: row.try_get("related_name").unwrap_or("Unkown".to_string()),
             id: row.try_get("id").unwrap_or(-1),
-            picture: row.try_get("picture").unwrap_or("Unkonwn".to_string()),
+            picture: row.try_get("mediumImage").unwrap_or("Unkonwn".to_string()),
             relationType: row.try_get("relation_type").unwrap_or("Unknown".to_string())
         };
 

@@ -21,11 +21,8 @@ pub fn TitleBar() -> Element {
 
     provide_context(refetch_signal);
     let navigator = use_navigator();
-    let client = Client::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .expect("Failed to build client");
-            provide_context(client);
+    let client = Client::new();
+    provide_context(client);
     let search_results: Signal<Vec<Anime>> = use_signal(|| vec![]);
     let mut page: Signal<i32> = use_signal(|| 1);
     let client = use_context::<Client>();
@@ -107,10 +104,15 @@ pub fn TitleBar() -> Element {
                     button{
                         class:"Icon_button_search",
                         id:"Home_buttons_search",
+                        onclick: move |_| {
+                            let navigator = navigator.clone();
+                            navigator.push(crate::frontend::router::routes::HomePage {  });
+                        },
                         h1 {
                             id:"h1_search",
                             "MyWatchList",
                         }
+                        
                     }
                     button {
                         class:"Icon_button_search",
@@ -118,7 +120,6 @@ pub fn TitleBar() -> Element {
                         onclick: move |_| {
                                 let navigator = navigator.clone();
                                 navigator.push(crate::frontend::router::routes::ListsPgFn { user_id: *USERID.read() });
-                            //should technically redirect to the page with a list of all playlists 
                             },
                         img {
                             class: "Feeling_icon",

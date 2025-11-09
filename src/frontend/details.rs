@@ -12,33 +12,33 @@ struct FullAnimeResult {
     format: String,
     description: String,
     episodes: i32,
-    status: String,
+    status:String,
     anime_season: String,
     anime_year: i32,
     largeImage: String,
     duration: i32,
     score: f32,
-    trailer_url: String,
     studio: Option<Vec<String>>,
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     recommendations: Vec<ReccomendResult>,
-    related_anime: Vec<RelatedAnime>,
+    related_anime: Vec<RelatedAnime>
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-struct ReccomendResult {
+#[derive(Serialize, Default, Deserialize, PartialEq, Clone, Debug)]
+pub struct RelatedAnime{
+    title_romanji: String,
+    id: i64,
+    picture: String,
+    relationType: String,
+}
+
+#[derive(Serialize, Default, Deserialize, PartialEq, Clone, Debug)]
+pub struct ReccomendResult{
     id: i32,
     title: String,
     picture: String,
     score: f32,
-}
-#[derive(Serialize, Default, Deserialize, Clone, Debug, PartialEq)]
-struct RelatedAnime {
-    id: i32,
-    title: String,
-    picture: String,
-    RelationType: String,
 }
 
 #[derive(Serialize)]
@@ -158,10 +158,7 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>) ->
 }
 
 pub async fn get_all_lists() -> Option<AllListSimple> {
-    let client = Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("Failed to build client.");
+    let client = Client::new();
 
     if let Ok(res) = client
         .get("http://localhost:3000/fetch-all-lists")
@@ -210,10 +207,7 @@ pub fn Details(id: i64) -> Element {
     use_effect(move || {
         let mut details = anime_details.clone();
         spawn(async move {
-            let client = Client::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .expect("Failed to build client");
+            let client = Client::new();
             if let Ok(res) = client
                 .get(format!(
                     "http://localhost:3000/details?query={}",
@@ -222,8 +216,19 @@ pub fn Details(id: i64) -> Element {
                 .send()
                 .await
             {
-                if let Ok(detail) = res.json::<FullAnimeResult>().await {
+                /*if let Ok(detail) = res.json::<FullAnimeResult>().await {
                     details.set(Some(detail));
+                } else {
+                    dbg!("Failed to decode into json");
+                }*/
+
+                match res.json::<FullAnimeResult>().await{
+                    Ok(detail) => {
+                        details.set(Some(detail));
+                    }
+                    Err(e) => {
+                        dbg!(e);
+                    }
                 }
             }
             let option_lists = get_all_lists().await;
@@ -470,8 +475,8 @@ pub fn Details(id: i64) -> Element {
                                         }
                                         div {
                                             id:"rel_title_div",
-                                            "{related.title}",
-                                            "{related.RelationType}"
+                                            "{related.title_romanji}",
+                                            "{related.relationType}"
                                         }
                                     }
                                 }
