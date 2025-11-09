@@ -44,6 +44,7 @@ pub struct ReccomendResult{
 #[derive(Serialize)]
 struct AddToList {
     anime_id: i64,
+    list_id: i64,
     list_name: String,
     user_id: i64,
     rank: Option<i32>,
@@ -66,14 +67,12 @@ pub struct IsRanked {
     last_rank: i32,
 }
 
-pub async fn check_if_in_list(id: i64, list_name: String) -> bool {
-    let client = Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("Failed to build client");
+pub async fn check_if_in_list(id: i64, list_name: String, list_id: i64) -> bool {
+    let client = Client::new();
     if let Ok(resp) = client
         .get("http://localhost:3000/check_if_already_in_list")
         .json(&AddToList {
+            list_id:list_id,
             anime_id: id.clone(),
             list_name: list_name,
             user_id: *USERID.read(),
@@ -124,18 +123,16 @@ pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> IsRanke
     }
 }
 
-pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>) -> bool {
-    if !check_if_in_list(id.clone(), list_name.clone()).await {
-        let client = Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .expect("Failed to build client");
+pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>, list_id: i64) -> bool {
+    if !check_if_in_list(id.clone(), list_name.clone(), list_id.clone()).await {
+        let client = Client::new();
         let userid = *USERID.read();
         if let Ok(resp) = client
             .post("http://localhost:3000/add-anime-to-list")
             .json(&AddToList {
                 anime_id: id,
                 user_id: userid,
+                list_id: list_id,
                 list_name: list_name,
                 rank: rank,
             })
@@ -203,6 +200,7 @@ pub fn Details(id: i64) -> Element {
     let mut list_name = use_signal(|| "".to_string());
     let mut all_lists: Signal<Option<AllListSimple>> = use_signal(|| None);
     let mut show_list = use_signal(|| false);
+    let mut list_id = use_signal(|| 0i64);
     let navigator = use_navigator();
     use_effect(move || {
         let mut details = anime_details.clone();
@@ -277,7 +275,7 @@ pub fn Details(id: i64) -> Element {
                                         },
                                         on_submit: move |rank:i32| {
                                             spawn({async move {
-                                                let status = add_anime_to_list(id.clone(), list_name.read().clone(), Some(rank)).await;
+                                                let status = add_anime_to_list(id.clone(), list_name.read().clone(), Some(rank), *list_id.read()).await;
                                                 pop_error.set(!status);
                                             }
                                         });
@@ -308,26 +306,25 @@ pub fn Details(id: i64) -> Element {
                                 onclick: move |_| {
                                     list_name.set("Recommended".to_string());
 
-                                    spawn(async move {
+                                    // getting the id for the recommened list
+                                    if let Some(all_list) = all_lists.read().as_ref(){
+                                        if let Some(list) = all_list.list.iter().find(|l| l.name =="Recommended") {
+                                            list_id.set(list.id);
+                                        }
+                                    }
 
+                                    spawn(async move {
                                         let rank_status = check_if_list_is_ranked("Recommended".to_string(), *USERID.read()).await;
                                         if rank_status.is_ranked == 0 {
                                             // not ranked
                                             is_ranked.set(false);
                                             last_rank.set(0); // this should be null
-                                            show_popup.set(true);
                                         }
                                         else if rank_status.is_ranked == 1 {
                                             is_ranked.set(true);
-                                            last_rank.set(rank_status.last_rank);
-                                            show_popup.set(true);
-
-
+                                            last_rank.set(rank_status.last_rank);  
                                         }
-                                        else{
-                                            // this is an error change things here.
-                                        }
-
+                                        show_popup.set(true);
                                     });
 
                                 },
@@ -365,14 +362,13 @@ pub fn Details(id: i64) -> Element {
                                     div {
                                     id:"dropdown_of_lists",
                                     if let Some(all_list) = all_lists.read().as_ref(){
-
                                         for alist in all_list.list.clone() { // on)ly prints out watch_list for some reaon
-
                                             div {
                                                 class: "a_list_div",
                                                 onclick: move |_| {
                                                     let current_list_name = alist.name.clone();
                                                     list_name.set(alist.name.clone());
+                                                    list_id.set(alist.id);
                                                     spawn(async move {
                                                         dbg!("this code ran");
                                                         let is_rank = check_if_list_is_ranked(current_list_name, *USERID.read()).await;

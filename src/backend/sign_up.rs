@@ -1,6 +1,6 @@
 use actix_web::{web::{Data, Json}, HttpResponse};
 pub use std::fs;
-use crate::backend::add_to_list::{create_list, file_to_blob_with_path};
+use crate::backend::add_to_list::{WatchListType, create_list, file_to_blob_with_path};
 pub use crate::backend::*;
 pub use authenticate::pwd_to_hash;
 pub use serde_json::json;
@@ -109,7 +109,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     };
 
     // adding the basic lists to the user after account creation
-    match create_list(db.as_ref(), &"Watch_List".to_string(), &user_id, &"Private".to_string(), 0, &default_image, 0).await{ // make these have actuall distinct images later.
+    match create_list(db.as_ref(), &"Watch_List".to_string(), &user_id, &WatchListType::Private.string(), 0, &default_image, 0, &"".to_string()).await{ // make these have actuall distinct images later.
         Ok(_)=>(),
         Err(e)=>{
             dbg!(e);
@@ -118,7 +118,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     }
 
 
-    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &"Public".to_string(), 1, &default_image, 0).await{
+    match create_list(db.as_ref(), &"Recommended".to_string(), &user_id, &WatchListType::Public.string(), 1, &default_image, 0, &"".to_string()).await{
         Ok(_)=>(),
         Err(e)=>{
             dbg!(e);
@@ -127,7 +127,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     }
 
 
-    match create_list(db.as_ref(), &"Private_list".to_string(), &user_id, &"Private".to_string(), 1, &default_image, 0).await{ // only for debugging remove later
+    match create_list(db.as_ref(), &"Private_list".to_string(), &user_id, &WatchListType::FriendsOnly.string(), 1, &default_image, 0, &"".to_string()).await{ // only for debugging remove later
         Ok(_)=>(),
         Err(e)=>{
             dbg!(e);

@@ -22,7 +22,7 @@ pub use sign_up::sign_up_fn;
 pub use search::trending_search;
 
 pub mod authenticate;
-use crate::backend::add_to_list::{check_if_an_anime_in_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked, get_list_details};
+use crate::backend::add_to_list::{check_if_an_anime_in_list, edit_watch_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked, get_list_details};
 pub use crate::backend::authenticate::*;
 
 pub mod add_to_list;
@@ -148,6 +148,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(verify_entered_password)
             .service(change_password)
             .service(get_list_details)
+            .service(edit_watch_list)
     }).bind("127.0.0.1:3000")?
     .run()
     .await

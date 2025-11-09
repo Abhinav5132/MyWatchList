@@ -120,6 +120,7 @@ Create TABLE IF NOT EXISTS user (
 Create Table IF NOT EXISTS watch_list( --unordered watch-list 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    description TEXT,
     user_id INTEGER NOT NUll,
     privacy_type TEXT NOT Null,
     is_ranked INT NOT NULL, -- 0 for not ranked and 1 for ranked.
@@ -132,10 +133,11 @@ Create Table IF NOT EXISTS watch_list( --unordered watch-list
 CREATE TABLE IF NOT EXISTS watch_list_anime (
     user_id INTEGER NOT NULL,
     watch_name TEXT NOT NULL,
+    list_id INTEGER NOT NULL,
     anime_id INTEGER NOT NULL,
     rank INTEGER, -- add date added to allow sorting through date
-    PRIMARY KEY (user_id, watch_name, anime_id),
-    FOREIGN KEY (user_id, watch_name) REFERENCES watch_list(user_id, name) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, list_id, anime_id),
+    FOREIGN KEY (list_id) REFERENCES watch_list(id) ON DELETE CASCADE,
     FOREIGN KEY (anime_id) REFERENCES anime(id),
     UNIQUE(user_id, watch_name, rank)
 );

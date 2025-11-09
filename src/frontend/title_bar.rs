@@ -155,7 +155,7 @@ pub fn TitleBar() -> Element {
                     },
                     onkeydown: move |event| {
                         if event.code().to_string() == "ENTER".to_string() {
-                            submitted_title.set(search_input.read().clone()); }
+                            submitted_title.set(search_input.read().clone()); } // change fade direction here as welle
                         }
                     }
                     // change to no pfp if not loged in, if loged in change to the users pfp

@@ -85,3 +85,127 @@
 .modal_overlay_search.fade-out{
     animation: fadeOut 0.3s ease forwards;
 }
+
+#edit_list_details {
+    background-color: rgb(35, 35, 35);
+    color: white;
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px auto;
+    max-width: 800px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+#edit_list_details h2 {
+    text-align: left;
+    color: rgb(147, 78, 213);
+    text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black;
+}
+
+#edit_details_div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: space-between;
+}
+
+/* Left side (image) */
+#edit_list_image {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#list_image_edit {
+    width: 220px;
+    height: 280px;
+    border-radius: 12px;
+    object-fit: cover;
+    background-color: rgb(50, 50, 50);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border 0.2s, transform 0.2s;
+}
+
+#list_image_edit:hover {
+    border-color: rgb(147, 78, 213);
+    transform: scale(1.02);
+}
+
+/* Right side (inputs) */
+#edit_other_details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#edit_list_name,
+#edit_list_description {
+    width: 100%;
+    background-color: rgb(45, 45, 45);
+    color: white;
+    border: 1px solid #666;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+#edit_list_description {
+    min-height: 80px;
+    resize: vertical;
+}
+
+#edit_list_name:focus,
+#edit_list_description:focus {
+    outline: none;
+    border-color: rgb(147, 78, 213);
+    box-shadow: 0 0 6px rgba(147, 78, 213, 0.5);
+}
+
+/* Button rows */
+.button_row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    margin-top: 10px;
+}
+
+/* Modal overlay (dark translucent background) */
+#edit_list_modal_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Modal content box */
+#edit_list_modal_content {
+    background-color: rgba(40, 40, 40, 0);
+    width: 80%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: popUp 0.25s ease-in-out;
+}
+
+/* Small animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popUp {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
