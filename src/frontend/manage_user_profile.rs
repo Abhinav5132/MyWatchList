@@ -183,7 +183,7 @@ pub fn ManageAccount() -> Element{
                         let client = Client::new();
                         if let Ok(_res) = client.post("http://localhost:3000/change_pfp").json(
                             &ChangePfp{
-                                pfp: base64::engine::general_purpose::STANDARD.encode(blob)
+                                pfp: blob
                             }
                         )
                         .bearer_auth(TOKEN.read()).send().await {
@@ -363,7 +363,7 @@ pub fn ManageAccount() -> Element{
     )
 }
 
-pub async fn choose_image() -> Option<Vec<u8>> {
+pub async fn choose_image() -> Option<String> {
     let new_image = AsyncFileDialog::new().add_filter("pictures", &["png", "jpg", "jpeg"]).
     pick_file().await;
 
@@ -377,7 +377,12 @@ pub async fn choose_image() -> Option<Vec<u8>> {
                 None
             }
         };
-        return blob;
+
+        if let Some(blob_exists) = blob{
+            let base_64_img = base64::engine::general_purpose::STANDARD.encode(blob_exists);
+            let data_url = format!("data:image/png;base64,{}", base_64_img);
+            return Some(data_url);
+        }
     }
     None
 }

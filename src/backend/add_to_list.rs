@@ -89,22 +89,21 @@ pub struct AddListToUser{
     name: String,
     privacy_type: String,
     is_ranked: i32,
-    image: Vec<u8>,
+    image: String,
     is_user_image: i32,
     description: String,
 }
 
 #[derive(Deserialize)]
 pub struct EditListPerUser{
-
     user_id: i64,
     list_id: i64,
-    new_name: String,
-    new_privacy_type: String,
-    new_is_ranked: i32,
-    new_image: String,
-    is_user_image: i32,
-    description: String
+    new_name: Option<String>,
+    new_privacy_type: Option<String>,
+    new_is_ranked: Option<i32>,
+    new_image: Option<String>,
+    is_user_image: Option<i32>,
+    description: Option<String>
 }
 
 #[derive(Serialize)]
@@ -135,6 +134,13 @@ pub fn file_to_blob_with_path(path: &str) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
+pub async fn encode_to_base64(bytes: Vec<u8>) -> Option<String>{
+    
+    let base_64_img = base64::engine::general_purpose::STANDARD.encode(bytes);
+    let data_url = format!("data:image/png;base64,{}", base_64_img);
+    return Some(data_url);
+}
+
 pub async fn file_to_blob_with_link(path: &str) -> Result<Vec<u8>, reqwest::Error> {
     let client = Client::new();
     let resp = client.get(path).send().await?; 
@@ -144,7 +150,6 @@ pub async fn file_to_blob_with_link(path: &str) -> Result<Vec<u8>, reqwest::Erro
         Err(resp.error_for_status().unwrap_err())
     }
 }
-
 
 pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_name: String, user_id:i64) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
@@ -538,7 +543,19 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
 }
 
 #[post("/add-list-to-user")] // needs verification
-pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>)-> HttpResponse{
+pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>, req: HttpRequest)-> HttpResponse{
+    let auth_header =  match req.headers().get("Authorization") {
+            Some(token) => {
+                token.to_str().unwrap()
+            }
+            None=>{
+                return HttpResponse::Unauthorized().into();
+            }
+        };
+
+    if !verify_token(db.clone(),&auth_header).await{
+        return HttpResponse::Unauthorized().into();
+    }
     match create_list(&db, &to_add.name, &to_add.user_id, &to_add.privacy_type, to_add.is_ranked, &to_add.image, to_add.is_user_image, &to_add.description).await { // this was a shitty way to write this
         Ok(_) => {
             HttpResponse::Ok().into()
@@ -550,7 +567,7 @@ pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
     }
 }
 
-pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy_type: &String, is_ranked: i32, image: &Vec<u8>, is_user_image: i32, description: &String)->Result<(), sqlx::Error>{
+pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy_type: &String, is_ranked: i32, image: &String, is_user_image: i32, description: &String)->Result<(), sqlx::Error>{
 
     sqlx::query("INSERT INTO watch_list(name, description, user_id, privacy_type, is_ranked, list_image, is_user_image) VALUES (?,?,?,?,?,?,?);")
     .bind(name)
@@ -603,12 +620,13 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
                 return HttpResponse::InternalServerError().into();
             }
         };
+
         match sqlx::query("UPDATE watch_list 
-            SET name = ? AND 
-            description = ? AND
-            privacy_type = ? AND
-            is_ranked = ? AND list_image = ? AND 
-            is_user_image = ? WHERE user_id = ? AND id = ? ")
+            SET name = COALESCE(?, name),
+            description = COALESCE(?, description),
+            privacy_type = COALESCE(?, privacy_type),
+            is_ranked = COALESCE(?, is_ranked) , list_image = COALESCE(?, list_image), 
+            is_user_image = COALESCE (?, is_user_image) WHERE user_id = ? AND id = ? ")
             .bind(&to_add.new_name).bind(&to_add.description).bind(&to_add.new_privacy_type).bind(to_add.new_is_ranked).bind(&to_add.new_image)
             .bind(to_add.is_user_image).bind(to_add.user_id).bind(&to_add.list_id).execute(&mut *tx).await {
                 Ok(_) => {
@@ -694,7 +712,7 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
                 }
             };
 
-            let image:Vec<u8> = match r.try_get("list_image") {
+            let image = match r.try_get("list_image") {
                 Ok(img) => img,
                 Err(e) => {
                     dbg!(e);
@@ -709,13 +727,10 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
                 }
             };
 
-            let base64_img = general_purpose::STANDARD.encode(&image);
-            let data_url = format!("data:image/png;base64,{}", base64_img);
-
             let alist = AList{
                 name: name,
                 id: id,
-                image: data_url,
+                image: image,
                 description: description
             };
             all_list.list.push(alist);
@@ -849,18 +864,15 @@ pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Q
     let name = try_or!(row.try_get("name"), HttpResponse::InternalServerError().finish());
     let is_ranked:i32 = try_or!(row.try_get("is_ranked"), HttpResponse::InternalServerError().finish());
     let is_user_image:i32 = try_or!(row.try_get("is_user_image"), HttpResponse::InternalServerError().finish());
-    let list_image:Vec<u8> = try_or!(row.try_get("list_image"), HttpResponse::InternalServerError().finish());
+    let list_image:String = try_or!(row.try_get("list_image"), HttpResponse::InternalServerError().finish());
     let privacy_type:String = try_or!(row.try_get("privacy_type"), HttpResponse::InternalServerError().finish());
     let description: String = try_or!(row.try_get("description"), HttpResponse::InternalServerError().finish());
-
-    let base64_img = general_purpose::STANDARD.encode(&list_image);
-    let data_url = format!("data:image/png;base64,{}", base64_img);
 
     HttpResponse::Ok().json(&ACompleteList{
         name: name,
         is_ranked:is_ranked,
         is_user_image: is_user_image,
-        image: data_url,
+        image: list_image,
         privacy_type: privacy_type,
         description: description
     })

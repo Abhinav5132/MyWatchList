@@ -114,7 +114,7 @@ Create TABLE IF NOT EXISTS user (
     user_password TEXT NOT NULL,
     user_access_token TEXT,
     user_refresh_token TEXT,
-    user_pfp BLOB NOT NULL -- should be not null in production
+    user_pfp TEXT NOT NULL -- should be not null in production
 );
 
 Create Table IF NOT EXISTS watch_list( --unordered watch-list 
@@ -124,7 +124,7 @@ Create Table IF NOT EXISTS watch_list( --unordered watch-list
     user_id INTEGER NOT NUll,
     privacy_type TEXT NOT Null,
     is_ranked INT NOT NULL, -- 0 for not ranked and 1 for ranked.
-    list_image BLOB NOT NULL,
+    list_image TEXT NOT NULL, --text instead of blob to directly store base 64 encoded image
     is_user_image INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
     UNIQUE(user_id, name) -- no duplicate list names per user

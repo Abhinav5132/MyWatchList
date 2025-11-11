@@ -41,17 +41,15 @@ pub async fn get_user_details(db: web::Data<Pool<Sqlite>>, user_id: Json<UserId>
     let row = try_or!(sqlx::query("SELECT user_name, user_email, user_pfp FROM user WHERE id = ?;")
     .bind(user_id.user_id).fetch_one(db.as_ref()).await, HttpResponse::InternalServerError().finish());
 
-    let image:Vec<u8> = try_or!(row.try_get("user_pfp"), HttpResponse::InternalServerError().finish());
+    let image:String = try_or!(row.try_get("user_pfp"), HttpResponse::InternalServerError().finish());
     let user_name:String = try_or!(row.try_get("user_name"), HttpResponse::InternalServerError().finish());
     let user_email:String = try_or!(row.try_get("user_email"), HttpResponse::InternalServerError().finish());
 
-    let base64_img = general_purpose::STANDARD.encode(&image);
-    let data_url = format!("data:image/png;base64,{}", base64_img);
 
     return HttpResponse::Ok().json( &UserDetails{
         username: user_name,
         user_email: user_email,
-        user_pfp: data_url
+        user_pfp: image
     });
 }
 
@@ -175,14 +173,10 @@ pub async fn change_pfp(db: Data<Pool<Sqlite>>, req: HttpRequest, new_pfp: Json<
         }
     };
     let user_id = get_userid_from_jwt(token).await;
-    let image_bytes = match general_purpose::STANDARD.decode(&new_pfp.pfp) {
-            Ok(bytes) => bytes,
-            Err(_) => return HttpResponse::BadRequest().body("Invalid base64"),
-        };
     if verify_token(db.clone(), token).await{
         let _ = try_or!(
             sqlx::query("UPDATE user SET user_pfp = ? WHERE id = ?")
-            .bind(image_bytes).bind(user_id).execute(db.as_ref()).await, 
+            .bind(&new_pfp.pfp).bind(user_id).execute(db.as_ref()).await, 
             HttpResponse::InternalServerError().finish() 
         );
 

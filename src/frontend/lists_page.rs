@@ -33,16 +33,16 @@ struct ACompleteList{
     description: String
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct EditListPerUser{
     user_id: i64,
     list_id: i64,
-    new_name: String,
-    new_privacy_type: String,
-    new_is_ranked: i32,
-    new_image: String,
-    is_user_image: i32,
-    description: String
+    new_name: Option<String>,
+    new_privacy_type: Option<String>,
+    new_is_ranked: Option<i32>,
+    new_image: Option<String>,
+    is_user_image: Option<i32>,
+    description: Option<String>
 }
 
 // TODO add actual error checking here, if user id is -1 unauthorized
@@ -164,6 +164,14 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
     let mut is_user_image = use_signal(|| -1);
     let mut privacy_type= use_signal(|| "".to_string());
 
+    let mut new_name = use_signal(|| None);
+    let mut new_description = use_signal(|| None);
+    let mut new_image = use_signal(|| None);
+    let mut new_is_ranked= use_signal(|| None);
+    let mut new_is_user_image = use_signal(|| None);
+    let mut new_privacy_type= use_signal(|| None);
+
+
     use_effect(move || {
         spawn(async move{
             let client = Client::new();
@@ -196,11 +204,10 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                         alt:"list image",
                         onclick: move |_| {
                             spawn(async move {
-                                if let Some(blob) = choose_image().await {
-                                    let base_64_img = base64::engine::general_purpose::STANDARD.encode(blob);
-                                    let data_url = format!("data:image/png;base64,{}", base_64_img);
-                                    image.set(data_url);
-                                    is_user_image.set(1);
+                                if let Some(link) = choose_image().await {
+                                    image.set(link.clone());
+                                    new_image.set(Some(link));
+                                    new_is_user_image.set(Some(1));
                                 }
                             });
                         }
@@ -217,10 +224,14 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                         placeholder: "Enter name here:",
                         oninput: move |event| {
                             name.set(event.value());
+                            new_name.set(Some(event.value()));
+
                         },
                         onkeydown: move |event| {
                             if event.code().to_string() == "ENTER".to_string() {
+                                new_name.set(Some(name.read().to_string()));
                                 // name is set move focus to the next field
+
                             }
                         }
                     }
@@ -232,10 +243,12 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                         value: description,
                         oninput: move |event| {
                             description.set(event.value());
+                            new_description.set(Some(event.value()));
                         },
                         onkeydown: move |event| {
                             if event.code().to_string() == "ENTER".to_string() {
-                                    // name is set move focus to the next field
+                                new_description.set(Some(description.read().to_string()));
+                                // name is set move focus to the next field
                             }
                         } 
                     }
@@ -247,7 +260,8 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                             id:"Change_to_ranked",
                             onclick: move |_| {
                                 if *is_ranked.read() != 1 {
-                                    is_ranked.set(1);  // only set if not already set 
+                                    is_ranked.set(1);
+                                    new_is_ranked.set(Some(1));  // only set if not already set 
                                 }
                             },
                             "Ranked"
@@ -257,7 +271,8 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                             id:"Change_to_unranked",
                             onclick: move |_| {
                                 if *is_ranked.read() == 1{
-                                    is_ranked.set(0);  // only set if true
+                                    is_ranked.set(0);
+                                    new_is_ranked.set(Some(0));  // only set if true
                                 }
 
                             },
@@ -272,6 +287,7 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                             id:"set_to_public",
                             onclick: move |_| {
                                 privacy_type.set(WatchListType::Public.string());  
+                                new_privacy_type.set(Some(WatchListType::Public.string()));  
                                 
                             },
                             "Public"
@@ -281,6 +297,8 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                             id:"Change_to_private",
                             onclick: move |_| {
                                 privacy_type.set(WatchListType::Private.string()); 
+                                new_privacy_type.set(Some(WatchListType::Private.string()));  
+
                             },
                             "Private"
                         }
@@ -288,7 +306,9 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                         button { 
                             id:"Change_to_friendsonly",
                             onclick: move |_| {
-                                privacy_type.set(WatchListType::FriendsOnly.string());  
+                                privacy_type.set(WatchListType::FriendsOnly.string()); 
+                                new_privacy_type.set(Some(WatchListType::FriendsOnly.string()));  
+
                             },
                             "Friends Only"
                         }
@@ -309,23 +329,27 @@ pub fn EditList(id: i64, on_close: EventHandler<()>) -> Element {
                             id:"Submit_button_edit_list",
                             onclick: move |_| {
                                 let client = Client::new();
-                                spawn(async move {
-                                    if let Ok(res) = client.post("http://localhost:3000/edit-watch-list-from-user").json(
-                                        &EditListPerUser{
-                                            new_image: image.read().to_string(),
+                                let edit_list = EditListPerUser{
+                                            new_image: new_image.read().clone(),
                                             user_id: *USERID.read(),
                                             list_id: id.clone(),
-                                            new_name: name.read().to_string(),
-                                            new_is_ranked: *is_ranked.read(),
-                                            new_privacy_type: privacy_type.read().to_string(),
-                                            is_user_image: *is_user_image.read(),
-                                            description: description.read().to_string()
-                                        }
+                                            new_name: new_name.read().clone(),
+                                            new_is_ranked: *new_is_ranked.read(),
+                                            new_privacy_type: new_privacy_type.read().clone(),
+                                            is_user_image: new_is_user_image.read().clone(),
+                                            description: new_description.read().clone()
+                                        };
+                                spawn(async move {
+                                    if let Ok(res) = client.post("http://localhost:3000/edit-watch-list-from-user").json(
+                                       &edit_list 
                                     ).bearer_auth(TOKEN.read()).send().await {
+                                        dbg!(edit_list);
                                         if res.status().is_server_error(){
                                             // use the status code do do error management later 
                                         }
                                         on_close.call(());
+                                    } else {
+                                        dbg!("Failed to send edit list per user");
                                     }
                                 });
                             },

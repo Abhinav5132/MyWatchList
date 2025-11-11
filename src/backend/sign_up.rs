@@ -1,6 +1,6 @@
 use actix_web::{web::{Data, Json}, HttpResponse};
 pub use std::fs;
-use crate::backend::add_to_list::{WatchListType, create_list, file_to_blob_with_path};
+use crate::backend::add_to_list::{WatchListType, create_list, encode_to_base64, file_to_blob_with_path};
 pub use crate::backend::*;
 pub use authenticate::pwd_to_hash;
 pub use serde_json::json;
@@ -101,7 +101,19 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
     ").bind(&access_token).bind(&refresh_token).bind(user_id).execute(db.as_ref()).await;
 
     let default_image = match file_to_blob_with_path("assets/images.png") {
-        Ok(image) => image,
+        Ok(image) => {
+           let a = match encode_to_base64(image).await{
+                Some(image)=>image,
+                None=>{
+                    dbg!("Something is coocked");
+                    "".to_string()
+                }
+
+            };
+            dbg!(&a);
+            a
+            
+        }
         Err(e) => {
             dbg!(e);
             return HttpResponse::InternalServerError().into();

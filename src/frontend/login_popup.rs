@@ -113,9 +113,9 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     onkeydown: move |event| async move{ 
                         if event.code().to_string() == "Enter".to_string(){
                             if *trying_to_sign_up.read(){
-                                let _ = document::eval(r#"document.getElementById('Login_email').focus();"#).await.unwrap();
+                                let _ = document::eval(r#"document.getElementById('Login_email').focus();"#).await;
                             } else{
-                                let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await.unwrap();
+                                let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await;
                             }
                         }
                     },
@@ -175,7 +175,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                         },
                         onkeydown: move |event| async move{ 
                             if event.code().to_string() == "Enter".to_string(){
-                                let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await.unwrap();
+                                let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await;
                             }
                         }
                     }
@@ -202,9 +202,9 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     onkeydown: move |event| async move {
                         if event.code().to_string() == "Enter".to_string(){
                             if *trying_to_sign_up.read() {
-                                let _ = document::eval(r#"document.getElementById('Login_password_again').click();"#).await.unwrap();
+                                let _ = document::eval(r#"document.getElementById('Login_password_again').click();"#).await;
                             }else{
-                                let _ = document::eval(r#"document.getElementById('submit_button').click();"#).await.unwrap();
+                                let _ = document::eval(r#"document.getElementById('submit_button').click();"#).await;
                             }
                         }
                     }
@@ -222,7 +222,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                         },
                         onkeydown: move |event| async move{ 
                             if event.code().to_string() == "Enter".to_string(){
-                                let _ = document::eval(r#"document.getElementById('submit_button').focus();"#).await.unwrap();
+                                let _ = document::eval(r#"document.getElementById('submit_button').focus();"#).await;
                             }
                         }
                     },
