@@ -1,4 +1,4 @@
-use std::{env, thread};
+use std::{thread};
 use crate::{backend::setup_backend, frontend::launch_frontend};
 pub mod backend;
 pub mod frontend;
@@ -12,7 +12,5 @@ pub fn main() {
             dbg!(err);
         }
     });
-    
     launch_frontend();
-
 }

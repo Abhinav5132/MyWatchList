@@ -1,6 +1,5 @@
 use actix_cors::Cors;
 use actix_web::{get, post, App, HttpServer, Responder, web};
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
 use env_logger::Env;

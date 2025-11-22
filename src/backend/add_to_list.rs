@@ -1,11 +1,8 @@
 use std::{fs, io::Cursor};
 use actix_web::{web::{Data, Json, Query}, HttpRequest, HttpResponse};
-use base64::{engine::general_purpose, Engine};
-use openssl::pkey::Public;
-use rand_core::impls;
+use base64::Engine;
 use reqwest::Client;
 use serde_json::json;
-use sqlx::sqlite::SqliteRow;
 use image::ImageReader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageError, RgbaImage};
 use crate::{backend::*, try_or};
@@ -583,21 +580,33 @@ pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy
 
 }
 
-#[post("/remove-list-from-user")]
-pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>) -> HttpResponse{
-    match sqlx::query("DELETE FROM watch_list WHERE name = ? and user_id = ?;")
-    .bind(&to_add.name)
-    .bind(&to_add.user_id)
-    .execute(db.as_ref()).await {
+#[post("/delete_list")]
+pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req: HttpRequest) -> HttpResponse{
+    let auth_header =  match req.headers().get("Authorization") {
+        Some(token) => {
+            token.to_str().unwrap()
+        }
+        None=>{
+            return HttpResponse::Unauthorized().into();
+        }
+    };
+    if verify_token(db.clone(), &auth_header).await {
+        match sqlx::query("DELETE FROM watch_list WHERE id = ? and user_id = ?;")
+        .bind(query.list_id)
+        .bind(get_userid_from_jwt(auth_header).await)
+        .execute(db.as_ref()).await {
         Ok(_) => {
-           return HttpResponse::Ok().into()
+            return HttpResponse::Ok().into()
         }
 
         Err(_) => {
-           return HttpResponse::InternalServerError().into()
+            return HttpResponse::InternalServerError().into()
         }
+        } 
     }
+    HttpResponse::InternalServerError().into()
 }
+    
 
 #[post("/edit-watch-list-from-user")]
 pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUser>, req: HttpRequest) -> HttpResponse {

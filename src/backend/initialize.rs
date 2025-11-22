@@ -4,8 +4,8 @@ use std::time::Duration;
 use actix_web::web::Data;
 use anyhow::Result;
 use reqwest::Client;
-use sqlx::{query, Sqlite};
-use serde::{Deserialize, Serialize};
+use sqlx::Sqlite;
+use serde::Deserialize;
 use sqlx::Pool;
 
 use crate::backend::AnimeStructs::Anime;

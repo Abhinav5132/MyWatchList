@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde_json::json;
-use crate::frontend::{home_page::Anime, lists_page::ListsPgFn, logedin_dropdown::loged_in_dropdown, login_popup::Login};
+use crate::frontend::{home_page::Anime, logedin_dropdown::loged_in_dropdown, login_popup::Login};
 pub use crate::frontend::*;
 
 

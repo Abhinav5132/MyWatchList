@@ -1,6 +1,4 @@
 use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
-use base64::{engine::general_purpose, Engine};
-
 pub use crate::backend::*;
 use crate::try_or;
 

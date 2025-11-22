@@ -5,6 +5,8 @@ use sqlx::{Pool, Sqlite};
 pub use crate::backend::*;
 pub use crate::backend::AnimeStructs::Anime;
 
+//TODO: This whole thing is shit
+
 #[derive(Deserialize, Debug)]
 pub struct UpdateCurrentResponse {
     pub data: Option<AnilistData>,

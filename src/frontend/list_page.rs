@@ -18,7 +18,7 @@ struct FetchAnimes{
 pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
     let name = use_signal(|| list_name);
     let navigator = navigator();
-    let mut page = use_signal(|| 1); // page starts at 1
+    let page = use_signal(|| 1); // page starts at 1
     let mut anime = use_signal(|| vec![]);
     use_effect(move || {
         let page = page;

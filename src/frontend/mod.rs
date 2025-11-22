@@ -20,10 +20,12 @@ pub mod lists_page;
 pub mod title_bar;
 pub mod logedin_dropdown;
 pub mod manage_user_profile;
+pub mod popup_edit_list;
 
 const LOGIN_CSS:Asset = asset!("/src/frontend/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/src/frontend/stylesheets/details_page.css");
 const SEARCH_CSS: Asset = asset!("/src/frontend/stylesheets/search_page.css");
+const LIST_CSS: Asset = asset!("/src/frontend/stylesheets/lists_page.css");
 
 pub const HEART:Asset = asset!("assets/heart.png");
 pub const TRAHSH:Asset = asset!("assets/bin.png");

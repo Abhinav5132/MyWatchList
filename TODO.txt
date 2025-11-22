@@ -1,7 +1,6 @@
 Backend:
     -add tag percentages
     - use anyhow fo errors 
-    - indec all major Where = ? values to speed up look ups 
     -logging out on account page should redirect back to main menu
 Frontend:
     -if name is too long do ... the causes the image cards to become too big in the search page 
@@ -18,6 +17,7 @@ Frontend:
     -removing and adding username from the local store 
     - on first install check initialization and if that process has started show a progrress bar or a spinny animation thingy.
     - fix task bar css by scaling the components instead of moving the things beside it
+    -refresh pages when stuff happens 
 
 prod:
     -https certificate
