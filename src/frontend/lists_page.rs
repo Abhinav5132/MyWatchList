@@ -111,23 +111,30 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                             p { 
                                 "{li.description}"
                             }
+                            div {
+                                class: "button_row",
+                                button { 
+                                        class:"edit_buttons",
+                                    onclick: move |_| {
+                                        // add a popup allowing them to change the details of the list, add custom images ect
+                                        show_edit_list.set(true);
+                                        edit_which_list.set(li.id);
+                                    },
+                                    "Edit list"
+                                }
 
-                            button { 
-                                class:"edit_buttons",
-                                onclick: move |_| {
-                                    // add a popup allowing them to change the details of the list, add custom images ect
-                                    show_edit_list.set(true);
-                                    edit_which_list.set(li.id);
-                                },
-                                "Edit list"
-                            }
-
-                            button { 
-                                class:"delete_list_button",
-                                onclick: move |_| {
-                                    show_delete_popup.set((true, li.id.clone()));
+                                button { 
+                                    class:"delete_list_button",
+                                    onclick: move |_| {
+                                        show_delete_popup.set((true, li.id.clone()));
+                                    },
+                                    img {
+                                        class:"Feeling_icon",
+                                        src: TRAHSH
+                                    }
                                 }
                             }
+                            
                         }
                     }
                 }
@@ -167,6 +174,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
         }
 
         if show_delete_popup.read().0 && show_delete_popup.read().1 != -1 {
+
             list_delete_pop_up { 
                 list_id: show_delete_popup.read().1,
                 onClose: move |_| {
@@ -191,12 +199,13 @@ pub fn list_delete_pop_up(onClose: EventHandler, list_id: i64)-> Element {
                     let client = Client::new();
 
                     spawn(async move {
-                        if let Ok(req) = client.post(format!("http://localhost:3000/delete_list?query= {}", list_id))
+                        if let Ok(req) = client.post(format!("http://localhost:3000/delete_list?list_id={}", list_id))
                         .bearer_auth(TOKEN.read()).send().await{
                             if req.status() != StatusCode::OK {
                                 // something wrong happened here.
-                                onClose.call(())
+                                dbg!(req.status());
                             }
+                            onClose.call(())
                         }
                         else{
                             // failed to send the request 

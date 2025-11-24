@@ -591,9 +591,22 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
         }
     };
     if verify_token(db.clone(), &auth_header).await {
-        match sqlx::query("DELETE FROM watch_list WHERE id = ? and user_id = ?;")
+        let user_id = match sqlx::query("Select user_id from watch_list WHERE id = ?").bind(&query.list_id).fetch_one(db.as_ref()).await {
+            Ok(row) => {
+                let user_id = try_or!(row.try_get("user_id"), HttpResponse::InternalServerError().finish());
+                user_id
+            },
+            Err(e) =>{
+                dbg!(e);
+                -1i64
+            }
+        };
+
+        if user_id != get_userid_from_jwt(auth_header).await {
+            return HttpResponse::Unauthorized().into();
+        }
+        match sqlx::query("DELETE FROM watch_list WHERE id = ?;")
         .bind(query.list_id)
-        .bind(get_userid_from_jwt(auth_header).await)
         .execute(db.as_ref()).await {
         Ok(_) => {
             return HttpResponse::Ok().into()

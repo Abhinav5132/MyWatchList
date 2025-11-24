@@ -1,0 +1,197 @@
+#main_div_list_page {
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#main_div_list_page h2 {
+    color: rgb(147, 78, 213);
+    font-size: 2rem;
+    margin-bottom: 30px;
+    text-shadow:
+        -2px -1px 0 black,
+         2px -1px 0 black,
+        -2px  1px 0 black,
+         2px  1px 0 black;
+}
+
+#Anime_card_list_page {
+    background-color: rgb(40, 40, 40);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+#Anime_card_list_page:hover {
+    background-color: rgb(45, 45, 45);
+}
+
+#Anime_card_list_page > div:first-child {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 195px;
+    max-width: 195px;
+}
+
+#Anime_card_list_page .span_items_search {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    width: 100%;
+    word-wrap: break-word;
+    text-align: left;
+}
+
+#Anime_card_list_page .dropdown_images_search {
+    height: 280px;
+    width: 195px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+#Anime_card_list_page .dropdown_images_search:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(147, 78, 213, 0.4);
+}
+
+#Anime_card_list_page > div:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 15px;
+}
+
+#Anime_card_list_page p {
+    color: rgb(200, 200, 200);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    flex: 1;
+}
+
+.button_row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.edit_buttons,
+.delete_list_button,
+.cancel_list_button {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    width: 150px;
+}
+
+.edit_buttons {
+    background-color: rgb(147, 78, 213);
+    color: white;
+    border-color: rgb(147, 78, 213);
+    padding: 16px;
+}
+
+.edit_buttons:hover {
+    background-color: rgb(167, 98, 233);
+    box-shadow: 0 4px 8px rgba(147, 78, 213, 0.3);
+}
+
+.delete_list_button {
+    background-color: transparent;
+    color: rgb(220, 80, 80);
+    border-color: rgb(220, 80, 80);
+}
+
+.delete_list_button:hover {
+    background-color: rgb(220, 80, 80);
+    color: white;
+    box-shadow: 0 4px 8px rgba(220, 80, 80, 0.3);
+}
+
+.cancel_list_button {
+    background-color: transparent;
+    color: rgb(150, 150, 150);
+    border-color: rgb(80, 80, 80);
+}
+
+.cancel_list_button:hover {
+    background-color: rgb(60, 60, 60);
+    color: white;
+    border-color: rgb(100, 100, 100);
+}
+
+#add_new_list_button {
+    background-color: rgb(147, 78, 213);
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#add_new_list_button:hover {
+    background-color: rgb(167, 98, 233);
+    box-shadow: 0 6px 12px rgba(147, 78, 213, 0.4);
+    transform: translateY(-2px);
+}
+
+#add_new_list_button:active {
+    transform: translateY(0);
+}
+
+#really_delete_button {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgb(40, 40, 40);
+    padding: 30px;
+    border-radius: 6px;
+    text-align: center;
+    z-index: 2000;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+#really_delete_button::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(40, 40, 40);
+    backdrop-filter: blur(8px);
+    z-index: -1;
+}
+
+#really_delete_button h3 {
+    color: white;
+    margin-bottom: 25px;
+    font-size: 1.2rem;
+}
+
+#really_delete_button button {
+    margin: 0 10px;
+}

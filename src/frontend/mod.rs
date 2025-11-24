@@ -83,6 +83,8 @@ pub fn App() -> Element{
         document::Link{rel: "stylesheet", href: SEARCH_CSS}
         document::Link{rel: "stylesheet", href: LOGIN_CSS}
         document::Link{rel: "stylesheet", href: DETAILS_CSS}
+        document::Link{rel: "stylesheet", href: LIST_CSS}
+
         Router::<routes> { }    
     }
 }
