@@ -56,6 +56,10 @@ pub fn HomePage() -> Element{
     let window = use_window();
     let page_size = use_signal(|| 1 as usize);
 
+    let mut trending_anim = use_signal(|| String::new());
+    let mut trending_anim_new = use_signal(|| String::new());
+
+
     use_future(move || {
         let window = window.clone();
         let mut page_size = page_size.clone();
@@ -200,6 +204,7 @@ pub fn HomePage() -> Element{
             h2 { "Top Trending" },
             div { 
                 id: "Top_trending_row",
+                class: "{trending_anim}",
                 for trending_anime in current_anime{
                     div {
                         class: "Top_trending_div",
@@ -219,7 +224,9 @@ pub fn HomePage() -> Element{
         div {
                 id: "Top_trending_buttons",
                 button {
+                    
                     onclick: move |_| {
+                        trending_anim.set("trending-slide-left".into());
                         let mut index = *top_index.read();
                         if index >= *page_size.read() {
                             index -= *page_size.read();
@@ -227,11 +234,17 @@ pub fn HomePage() -> Element{
                             index = length - 1; // wrap to last page
                         }
                         top_index.set(index);
+                        spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                        trending_anim.set("".into());
+                    });
                     },
                     "Prev"
                 }
                 button {
                     onclick: move |_| {
+                        trending_anim.set("trending-slide-right".into());
+
                         let mut index = *top_index.read();
                         if index + *page_size.read() < length{
                             index += *page_size.read();
@@ -239,6 +252,10 @@ pub fn HomePage() -> Element{
                             index = 0;
                         }
                         top_index.set(index);
+                        spawn(async move {
+                            tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                            trending_anim.set("".into());
+                        });
                     },
                     "Next"
                 }
@@ -249,6 +266,7 @@ pub fn HomePage() -> Element{
             h2 { "New & Trending" },
             div { 
                 id: "Top_trending_row",
+                class: "{trending_anim_new}",
                 for trending_anime in current_anime_new{
                     div {
                         class: "Top_trending_div",
@@ -269,6 +287,8 @@ pub fn HomePage() -> Element{
                 id: "Top_trending_buttons",
                 button {
                     onclick: move |_| {
+                        trending_anim_new.set("trending-slide-left".into());
+
                         let mut index = *top_index_new.read();
                         if index >= *page_size.read() {
                             index -= *page_size.read();
@@ -276,11 +296,17 @@ pub fn HomePage() -> Element{
                             index = length - 1; // wrap to last page
                         }
                         top_index_new.set(index);
+                        spawn(async move {
+                            tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                            trending_anim_new.set("".into());
+                        });
                     },
                     "Prev"
                 }
                 button {
                     onclick: move |_| {
+                        trending_anim_new.set("trending-slide-right".into());
+
                         let mut index = *top_index_new.read();
                         if index + *page_size.read() < length{
                             index += *page_size.read();
@@ -288,6 +314,10 @@ pub fn HomePage() -> Element{
                             index = 0;
                         }
                         top_index_new.set(index);
+                        spawn(async move {
+                            tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                            trending_anim_new.set("".into());
+                        });
                     },
                     "Next"
                 }

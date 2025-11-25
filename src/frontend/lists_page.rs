@@ -1,5 +1,5 @@
 use reqwest::{Client, StatusCode};
-use crate::frontend::popup_edit_list::EditList;
+use crate::frontend::{manage_user_profile::choose_image, popup_edit_list::{EditList, WatchListType}};
 pub use crate::frontend::*;
 
 #[derive(Serialize)]
@@ -32,6 +32,18 @@ struct ACompleteList{
     description: String
 }
 
+#[derive(Serialize)]
+pub struct AddListToUser{
+
+    user_id: i64,
+    name: String,
+    privacy_type: String,
+    is_ranked: i32,
+    image: String,
+    is_user_image: i32,
+    description: String,
+}
+
 #[derive(Serialize, Debug)]
 pub struct EditListPerUser{
     user_id: i64,
@@ -55,6 +67,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
     let mut show_edit_list = use_signal(|| false);
     let mut edit_which_list:Signal<i64> = use_signal(|| -1);
     let mut show_delete_popup: Signal<(bool, i64)> = use_signal(|| (false, -1));
+    let mut show_add_new_list_popup: Signal<bool> = use_signal(|| false);
     use_future(move || async move {
         let client = Client::new();
         if let Ok(res) = client.get("http://localhost:3000/fetch-all-lists")
@@ -143,11 +156,34 @@ pub fn ListsPgFn(user_id: i64) -> Element{
             button { 
                 id:"add_new_list_button",
                 onclick: move |_| {
-
-                }
-             }
+                    show_add_new_list_popup.set(true);
+                },
+                "Details"
+            }
         }
+        if *show_add_new_list_popup.read() {
+            div {
+                id: "edit_list_modal_overlay",
+                onclick: move |_| {
+                    show_edit_list.set(false);
+                },
 
+                // Stop clicks inside the popup from closing it
+                div {
+                    id: "edit_list_modal_content",
+                    onclick: move |event| {
+                        event.stop_propagation();
+                    },
+
+                    show_add_new_list { 
+                        onClose: move |_| {
+                        show_add_new_list_popup.set(false);
+                        }
+                    }
+                }
+            }
+            
+        }
         if *show_edit_list.read() && *edit_which_list.read() != -1 {
             div {
                 id: "edit_list_modal_overlay",
@@ -225,5 +261,168 @@ pub fn list_delete_pop_up(onClose: EventHandler, list_id: i64)-> Element {
                 "Cancel"
             }
         }
+    )
+}
+
+#[component]
+pub fn show_add_new_list(onClose: EventHandler) -> Element {
+    let mut name = use_signal(|| "".to_string());
+    let mut description = use_signal(|| "".to_string());
+    let mut image = use_signal(|| "".to_string());
+    let mut is_ranked = use_signal(|| 0);
+    let mut privacy = use_signal(|| WatchListType::Public);
+    let mut is_user_image = use_signal(|| 0);
+    rsx!(
+        div {
+            id: "edit_list_details",
+            h2 { "Create new list" }
+            div {
+                id:"edit_details_div",  
+                div { 
+                    id: "edit_list_image", 
+                    img { 
+                        id:"list_image_edit",
+                        src: image.read().to_string(),
+                        alt:"list image",
+                        onclick: move |_| {
+                            spawn(async move {
+                                if let Some(link) = choose_image().await {
+                                    image.set(link.clone());
+                                    is_user_image.set(1);
+                                }
+                            });
+                        }
+                    },
+                    
+                }
+
+                div { 
+                    id:"edit_other_details",
+                    input { 
+                        id: "edit_list_name",
+                        r#type: "text",
+                        value: name,
+                        placeholder: "Enter name here:",
+                        oninput: move |event| {
+                            name.set(event.value());
+
+                        },
+                        onkeydown: move |event| {
+                            if event.code().to_string() == "ENTER".to_string() {
+                                // name is set move focus to the next field
+
+                            }
+                        }
+                    }
+
+                    input { 
+                        id: "edit_list_description",
+                        r#type: "text",
+                        placeholder:"Enter description here",
+                        value: description,
+                        oninput: move |event| {
+                            description.set(event.value());
+                        },
+                        onkeydown: move |event| {
+                            if event.code().to_string() == "ENTER".to_string() {
+                                // name is set move focus to the next field
+                            }
+                        } 
+                    }
+                    // TODO: needs to do a readjusting of the watch list, if ranked it should rank based on date added, else the ranks should be set to null and sorted by date
+                    label{"Sorting:"}
+                    div { 
+                        id:"Ranked_choices_button",
+                        button { 
+                            id:"Change_to_ranked",
+                            onclick: move |_| {
+                                if *is_ranked.read() != 1 {
+                                    is_ranked.set(1);
+                                }
+                            },
+                            "Ranked"
+                        }
+
+                        button { 
+                            id:"Change_to_unranked",
+                            onclick: move |_| {
+                                if *is_ranked.read() == 1{
+                                    is_ranked.set(0);
+                                }
+
+                            },
+                            "Unranked"
+                        }
+                    }
+
+                    label{"Privacy:"}
+                    div { 
+                        id:"privacy_choices",
+                        button { 
+                            id:"set_to_public",
+                            onclick: move |_| {
+                                privacy.set(WatchListType::Public);  
+                                
+                            },
+                            "Public"
+                        }
+
+                        button { 
+                            id:"Change_to_private",
+                            onclick: move |_| {
+                                privacy.set(WatchListType::Private); 
+
+                            },
+                            "Private"
+                        }
+
+                        button { 
+                            id:"Change_to_friendsonly",
+                            onclick: move |_| {
+                                privacy.set(WatchListType::FriendsOnly); 
+
+                            },
+                            "Friends Only"
+                        }
+                    }
+                    // TODO submit button and integration with the back end
+
+                    div { 
+                        id:"Submit_close_buttons",
+                        button { 
+                            id: "close_button_edit_list",
+                            onclick: move |_| {
+                                onClose.call(());
+                            },
+                            "Cancel"
+                        }
+
+                        button { 
+                            id:"Submit_button_edit_list",
+                            onclick: move |_| {
+                                let client = Client::new();
+                                spawn(async move {
+                                    if let Ok(req) = client.post("http://localhost:3000/add-list-to-user")
+                                    .bearer_auth(TOKEN.read()).json(&AddListToUser{
+                                        user_id: *USERID.read(),
+                                        is_user_image: *is_user_image.read(),
+                                        name: name.read().to_string(),
+                                        description: description.read().to_string(),
+                                        privacy_type: privacy.read().string(),
+                                        image: image.read().to_string(),
+                                        is_ranked: *is_ranked.read()
+                                    }).send().await {
+                                        // do some actual error handeling here 
+                                        onClose.call(());
+                                    }
+                                });
+                            },
+                            "Submit"
+                        }
+                    }
+                }
+            }
+        }
+
     )
 }

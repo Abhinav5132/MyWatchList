@@ -244,16 +244,17 @@ pub fn TitleBar() -> Element {
                             onclick: move |_| {
                                 navigator.push(crate::frontend::router::routes::Details { id: anime.id.clone() });
                             },
-                        img {
-                            class: "dropdown_images_search",
-                            loading: "eager",
-                            src: anime.largeImage.clone().unwrap_or("{SEARCH_ICON}".to_string()),
-                            alt: "thumbanil"
+                            img {
+                                class: "dropdown_images_search",
+                                loading: "eager",
+                                src: anime.largeImage.clone().unwrap_or("{SEARCH_ICON}".to_string()),
+                                alt: "thumbanil"
+                            }
+                            span {
+                                class: "span_items_search",
+                                "{anime.title}"
+                            } 
                         }
-                        span {
-                            class: "span_items_search",
-                            "{anime.title}"
-                        } }
                     }
             }
             div {

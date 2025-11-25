@@ -50,28 +50,38 @@ body{
     padding-left: 15px;
     padding-right: 15px;
 }
-#Search_Bar_search{
-    width:400px;
-    height: 30px;
+#Search_Bar_search {
+    background-color: azure;
+    width: 400px;
+    height: 36px;
     box-sizing: border-box;
     border: 2px solid #ccc;
     border-radius: 4px;
-    background-image: url('../assets/search-icon.png');
-    background-position: 10px 10px; 
+
+    background-image: url('/assets/search-icon.png'); /* TODO this is not visible*/
+    background-position: 10px center;
     background-repeat: no-repeat;
+
+    padding-left: 36px; /* stays consistent */
     margin-right: 16px;
     cursor: pointer;
-    transition: padding 0.10s, box-shadow 0.10s;
+
+    color: white;
+
+    transition: box-shadow 0.20s ease-in-out, border-color 0.20s ease-in-out;
 }
 
-#Search_Bar_search:hover{
-    padding: 6px;
-    box-shadow: 6px 6px 6px rgb(32, 32, 32);
+#Search_Bar_search:hover {
+    box-shadow: 0 0 8px rgba(147, 78, 213, 0.6);
+    border-color: rgb(147, 78, 213);
 }
 
-#Search_bar_search:active{
-
+#Search_Bar_search:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(147, 78, 213, 0.8);
+    border-color: rgb(147, 78, 213);
 }
+
 /*This is unchanged from before*/
 #h1_search {
     color: rgb(147, 78, 213);
@@ -107,11 +117,14 @@ body{
 
 .dropdown_search {
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 2px;
-    grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
-    padding-top: 10px;
     justify-items: center;
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
 }
+
 
 .dropdown_search::-webkit-scrollbar {
     margin-left: 4%;
@@ -143,14 +156,14 @@ body{
     align-items: center;
     padding: 12px;
     text-align: center;
-    transition: background 0.2s ease-in-out;
+    transition: transform 0.2s ease;
     cursor: pointer;
     border-radius: 8px;
     background-color: transparent;
 }
 
 .dropdown_items_search:hover {
-    background-color: rgba(147, 78, 213, 0.1);
+    transform: translateY(-4px);
 }
 
 .span_items_search {
@@ -193,7 +206,7 @@ body{
 #Scrolling_description_search{
     position: absolute;
     left: 16px;
-    right: 70%;
+    right: 56%;
     height: 315px;
     background: rgba(0,0,0,0.4);
     color: white;
@@ -224,7 +237,6 @@ body{
          1px -1px 0 black,
         -1px  1px 0 black,
          1px  1px 0 black;
-    margin: 12px;
     
 }
 #Scrolling_buttons_div{
@@ -252,6 +264,7 @@ body{
 #Top_trending_div_container {
     display: flex;
     flex-direction: column;
+    text-overflow: ellipsis;
 }
 
 #Top_trending_div_container h2 {
@@ -268,15 +281,52 @@ body{
 .Top_trending_div {
     flex: 0 0 195px;
     max-width: 195px;
+    height: 340px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 195px;
+
+    border-radius: 10px;
+    background-color: transparent;
+    transition: transform .2s ease;
+    cursor: pointer;
     color: white;
+    
 }
+
+.Top_trending_div h5{
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.Top_trending_div:hover {
+    transform: translateY(-4px);
+}
+
 
 .trending_thumbnail {
     height: 280px;
     width: 195px;
     border-radius: 12px;
+}
+
+.trending-slide-right {
+    animation: trendingSlideRight .35s ease forwards;
+}
+
+.trending-slide-left {
+    animation: trendingSlideLeft .35s ease forwards;
+}
+
+@keyframes trendingSlideRight {
+    from { transform: translateX(30%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes trendingSlideLeft {
+    from { transform: translateX(-30%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
 }
