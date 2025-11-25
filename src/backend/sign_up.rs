@@ -59,12 +59,20 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
             return HttpResponse::InternalServerError().into();
         }
     };
+
+    let no_pfp = match encode_to_base64(no_pfp_blob).await{
+        Some(pfp) => pfp,
+        None => {
+            dbg!("fucking failed for some reason");
+            return HttpResponse::InternalServerError().into();
+        }
+    };
     
     let user_id = match sqlx::query("INSERT INTO user (user_name, user_email, user_password, user_pfp) VALUES (?,?,?,?);")
     .bind(&credentials.user_name)
     .bind(&credentials.user_email)
     .bind(hashed_pwd)
-    .bind(no_pfp_blob)
+    .bind(no_pfp)
     .execute(db.as_ref()).await
     {
         Ok(rows) => rows.last_insert_rowid(),

@@ -8,7 +8,7 @@ pub struct FetchLists{
     pub page_no: i32,
     pub per_page: i32
 }
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default)]
 pub struct AList{
     pub name: String,
     pub id: i64,
@@ -16,20 +16,10 @@ pub struct AList{
     pub description: String,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Default)]
 pub struct AllListSimple{
     pub list: Vec<AList>
 
-}
-
-#[derive(Deserialize, Default)]
-struct ACompleteList{
-    name: String,
-    image: String,
-    is_ranked: i32,
-    is_user_image: i32,
-    privacy_type: String,
-    description: String
 }
 
 #[derive(Serialize)]
@@ -115,7 +105,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                                 src: li.image,
                                 alt: "thumbanil",
                                 onclick: move |_| {
-                                    navigator.push(crate::frontend::router::routes::ListPgFn { list_name: li.name.clone(), user_id: user_id });
+                                    navigator.push(crate::frontend::router::routes::ListPgFn { list_id: li.id, user_id: user_id });
                                 },
                             }, 
                         }
@@ -158,7 +148,7 @@ pub fn ListsPgFn(user_id: i64) -> Element{
                 onclick: move |_| {
                     show_add_new_list_popup.set(true);
                 },
-                "Details"
+                "Add new list"
             }
         }
         if *show_add_new_list_popup.read() {

@@ -1,6 +1,6 @@
 pub use crate::frontend::*;
 use crate::frontend::{
-    lists_page::{AllListSimple, FetchLists},
+    lists_page::{AList, AllListSimple, FetchLists},
     popup_add_anime::{PopupAddAnime, PopupError},
 };
 use reqwest::Client;
@@ -57,7 +57,7 @@ pub struct ExistsInList {
 
 #[derive(Serialize)]
 pub struct IfRanked {
-    list_name: String,
+    list_id: i64,
     user_id: i64,
 }
 
@@ -91,16 +91,13 @@ pub async fn check_if_in_list(id: i64, list_name: String, list_id: i64) -> bool 
     }
 }
 
-pub async fn check_if_list_is_ranked(list_name: String, user_id: i64) -> IsRanked {
-    let client = Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("Failed to build client");
+pub async fn check_if_list_is_ranked(list_id: i64, user_id: i64) -> IsRanked {
+    let client = Client::new();
 
     if let Ok(resp) = client
         .get("http://localhost:3000/get-if-ranked")
         .json(&IfRanked {
-            list_name: list_name,
+            list_id: list_id,
             user_id: user_id,
         })
         .bearer_auth(TOKEN.read())
@@ -154,7 +151,7 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>, li
     }
 }
 
-pub async fn get_all_lists() -> Option<AllListSimple> {
+pub async fn get_all_lists() -> Option<(AllListSimple, i64, i64)> {
     let client = Client::new();
 
     if let Ok(res) = client
@@ -171,13 +168,15 @@ pub async fn get_all_lists() -> Option<AllListSimple> {
         let alllist = res.json::<AllListSimple>().await;
         match alllist {
             Ok(mut lists) => {
+                let recommend_id = lists.list.iter().find(|l| l.name == "Recommended").unwrap_or(&AList::default()).id;
+                let watch_id = lists.list.iter().find(|l| l.name == "Watch_List").unwrap_or(&AList::default()).id;
                 lists.list = lists
                     .list
                     .into_iter()
                     .filter(|l| l.name != "Recommended" && l.name != "Watch_List")
                     .collect();
 
-                Some(lists)
+                Some((lists, recommend_id, watch_id))
             }
             Err(e) => {
                 dbg!(e);
@@ -198,10 +197,13 @@ pub fn Details(id: i64) -> Element {
     let mut is_ranked = use_signal(|| false);
     let mut last_rank = use_signal(|| 0);
     let mut list_name = use_signal(|| "".to_string());
-    let mut all_lists: Signal<Option<AllListSimple>> = use_signal(|| None);
+    let mut all_lists: Signal<AllListSimple> = use_signal(|| AllListSimple::default());
     let mut show_list = use_signal(|| false);
     let mut list_id = use_signal(|| 0i64);
     let navigator = use_navigator();
+    let mut recommend_id = use_signal(|| 0i64);
+    let mut watch_id = use_signal(|| 0i64);
+
     use_effect(move || {
         let mut details = anime_details.clone();
         spawn(async move {
@@ -229,8 +231,12 @@ pub fn Details(id: i64) -> Element {
                     }
                 }
             }
-            let option_lists = get_all_lists().await;
-            all_lists.set(option_lists);
+            if let Some(lists) = get_all_lists().await{
+                all_lists.set(lists.0);
+                recommend_id.set(lists.1);
+                watch_id.set(lists.2);
+            }
+
         });
         ()
     });
@@ -304,17 +310,11 @@ pub fn Details(id: i64) -> Element {
                             button {
                                 id:"Recommend_button",
                                 onclick: move |_| {
-                                    list_name.set("Recommended".to_string());
-
-                                    // getting the id for the recommened list
-                                    if let Some(all_list) = all_lists.read().as_ref(){
-                                        if let Some(list) = all_list.list.iter().find(|l| l.name =="Recommended") {
-                                            list_id.set(list.id);
-                                        }
-                                    }
+                                    list_id.set(*recommend_id.read());
 
                                     spawn(async move {
-                                        let rank_status = check_if_list_is_ranked("Recommended".to_string(), *USERID.read()).await;
+                                        dbg!(list_id);
+                                        let rank_status = check_if_list_is_ranked(*list_id.read(), *USERID.read()).await;
                                         if rank_status.is_ranked == 0 {
                                             // not ranked
                                             is_ranked.set(false);
@@ -361,35 +361,34 @@ pub fn Details(id: i64) -> Element {
                                     if *show_list.read() {
                                     div {
                                     id:"dropdown_of_lists",
-                                    if let Some(all_list) = all_lists.read().as_ref(){
-                                        for alist in all_list.list.clone() { // on)ly prints out watch_list for some reaon
-                                            div {
-                                                class: "a_list_div",
-                                                onclick: move |_| {
-                                                    let current_list_name = alist.name.clone();
-                                                    list_name.set(alist.name.clone());
-                                                    list_id.set(alist.id);
-                                                    spawn(async move {
-                                                        dbg!("this code ran");
-                                                        let is_rank = check_if_list_is_ranked(current_list_name, *USERID.read()).await;
-                                                        if is_rank.is_ranked == 0{
-                                                            is_ranked.set(false);
-                                                            last_rank.set(0);
-                                                            show_popup.set(true);
-                                                        }
-                                                        else if is_rank.is_ranked == 1 {
-                                                            is_ranked.set(false);
-                                                            last_rank.set(is_rank.last_rank);
-                                                            show_popup.set(true);
-                                                        } else {
-                                                            dbg!("Unexpected is_ranked value: {}", is_rank.is_ranked);
-                                                        }
-                                                    });
-                                                },
-                                                p { { alist.name.clone()} }
-                                            }
+                                    
+                                    for alist in all_lists.read().list.clone() { // only prints out watch_list for some reaon
+                                        div {
+                                            class: "a_list_div",
+                                            onclick: move |_| {
+                                                list_name.set(alist.name.clone());
+                                                list_id.set(alist.id);
+                                                spawn(async move {
+                                                    dbg!("this code ran");
+                                                    let is_rank = check_if_list_is_ranked(*list_id.read(), *USERID.read()).await;
+                                                    if is_rank.is_ranked == 0{
+                                                        is_ranked.set(false);
+                                                        last_rank.set(0);
+                                                        show_popup.set(true);
+                                                    }
+                                                    else if is_rank.is_ranked == 1 {
+                                                        is_ranked.set(false);
+                                                        last_rank.set(is_rank.last_rank);
+                                                        show_popup.set(true);
+                                                    } else {
+                                                        dbg!("Unexpected is_ranked value: {}", is_rank.is_ranked);
+                                                    }
+                                                });
+                                            },
+                                            p { { alist.name.clone()} }
                                         }
                                     }
+
 
                                 }
                                 }

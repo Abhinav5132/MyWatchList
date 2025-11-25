@@ -1,9 +1,11 @@
+/* ---------- MAIN CONTAINER ---------- */
 #main_div_list_page {
     padding: 20px;
     width: 100%;
     box-sizing: border-box;
 }
 
+/* ---------- HEADINGS ---------- */
 #main_div_list_page h2 {
     color: rgb(147, 78, 213);
     font-size: 2rem;
@@ -15,20 +17,25 @@
          2px  1px 0 black;
 }
 
+/* ---------- ANIME CARD ---------- */
 #Anime_card_list_page {
     background-color: rgb(40, 40, 40);
-    border-radius: 6px;
-    padding: 20px;
+    border-radius: 8px;
+    padding: 16px;
     margin-bottom: 20px;
     display: flex;
     gap: 20px;
-    transition: background-color 0.2s ease-in-out;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    cursor: pointer;
 }
 
 #Anime_card_list_page:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 16px rgba(147, 78, 213, 0.3);
     background-color: rgb(45, 45, 45);
 }
 
+/* ---------- THUMBNAIL IMAGE ---------- */
 #Anime_card_list_page > div:first-child {
     display: flex;
     flex-direction: column;
@@ -37,6 +44,20 @@
     max-width: 195px;
 }
 
+#Anime_card_list_page .dropdown_images_search {
+    height: 280px;
+    width: 195px;
+    object-fit: cover;
+    border-radius: 10px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#Anime_card_list_page .dropdown_images_search:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 12px rgba(147, 78, 213, 0.4);
+}
+
+/* ---------- TITLE ---------- */
 #Anime_card_list_page .span_items_search {
     color: white;
     font-size: 1.1rem;
@@ -45,28 +66,18 @@
     width: 100%;
     word-wrap: break-word;
     text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-#Anime_card_list_page .dropdown_images_search {
-    height: 280px;
-    width: 195px;
-    object-fit: cover;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-#Anime_card_list_page .dropdown_images_search:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 12px rgba(147, 78, 213, 0.4);
-}
-
+/* ---------- DESCRIPTION ---------- */
 #Anime_card_list_page > div:last-child {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 15px;
+    gap: 12px;
 }
 
 #Anime_card_list_page p {
@@ -78,41 +89,43 @@
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
-    flex: 1;
 }
 
+/* ---------- BUTTON ROW ---------- */
 .button_row {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: flex-end;
     align-items: center;
 }
 
 .edit_buttons,
 .delete_list_button,
-.cancel_list_button {
-    padding: 10px 20px;
-    border-radius: 6px;
+.cancel_list_button,
+#add_new_list_button {
+    padding: 12px 24px;
+    border-radius: 8px;
     border: 2px solid transparent;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    width: 150px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
+/* ---------- EDIT BUTTON ---------- */
 .edit_buttons {
     background-color: rgb(147, 78, 213);
     color: white;
     border-color: rgb(147, 78, 213);
-    padding: 16px;
 }
 
 .edit_buttons:hover {
+    transform: scale(1.03);
     background-color: rgb(167, 98, 233);
-    box-shadow: 0 4px 8px rgba(147, 78, 213, 0.3);
+    box-shadow: 0 6px 12px rgba(147, 78, 213, 0.3);
 }
 
+/* ---------- DELETE BUTTON ---------- */
 .delete_list_button {
     background-color: transparent;
     color: rgb(220, 80, 80);
@@ -120,11 +133,13 @@
 }
 
 .delete_list_button:hover {
+    transform: scale(1.03);
     background-color: rgb(220, 80, 80);
     color: white;
-    box-shadow: 0 4px 8px rgba(220, 80, 80, 0.3);
+    box-shadow: 0 6px 12px rgba(220, 80, 80, 0.3);
 }
 
+/* ---------- CANCEL BUTTON ---------- */
 .cancel_list_button {
     background-color: transparent;
     color: rgb(150, 150, 150);
@@ -132,35 +147,38 @@
 }
 
 .cancel_list_button:hover {
+    transform: scale(1.03);
     background-color: rgb(60, 60, 60);
     color: white;
     border-color: rgb(100, 100, 100);
 }
 
+/* ---------- ADD NEW LIST BUTTON ---------- */
 #add_new_list_button {
     background-color: rgb(147, 78, 213);
     color: white;
-    padding: 15px 30px;
+    padding: 16px 32px;
     border: none;
     border-radius: 8px;
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
     margin-top: 20px;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 #add_new_list_button:hover {
+    transform: scale(1.03) translateY(-2px);
     background-color: rgb(167, 98, 233);
-    box-shadow: 0 6px 12px rgba(147, 78, 213, 0.4);
-    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(147, 78, 213, 0.4);
 }
 
 #add_new_list_button:active {
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
 }
 
+/* ---------- CONFIRM DELETE MODAL ---------- */
 #really_delete_button {
     position: fixed;
     top: 50%;
@@ -168,7 +186,7 @@
     transform: translate(-50%, -50%);
     background-color: rgb(40, 40, 40);
     padding: 30px;
-    border-radius: 6px;
+    border-radius: 8px;
     text-align: center;
     z-index: 2000;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
@@ -181,7 +199,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(40, 40, 40);
+    background-color: rgba(40, 40, 40, 0.7);
     backdrop-filter: blur(8px);
     z-index: -1;
 }

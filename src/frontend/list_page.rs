@@ -9,14 +9,14 @@ pub struct AllAnimeSimple{
 
 #[derive(Serialize)]
 struct FetchAnimes{
-    watch_list_name: String,
+    list_id: i64,
     user_id: i64,
     page_no: i64,
 }
 
 #[component]
-pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
-    let name = use_signal(|| list_name);
+pub fn ListPgFn(list_id: i64 ,user_id: i64) -> Element{
+    let id = use_signal(|| list_id);
     let navigator = navigator();
     let page = use_signal(|| 1); // page starts at 1
     let mut anime = use_signal(|| vec![]);
@@ -26,7 +26,7 @@ pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
             let client = ClientBuilder::new().danger_accept_invalid_certs(true).build().expect("failed to create client.");
             if let Ok(res) = client.get("http://localhost:3000/get-animes-from-list")
             .json(&FetchAnimes{
-                watch_list_name: name.read().clone(),
+                list_id: *id.read(),
                 user_id: user_id.clone(),
                 page_no: *page.read()
             }).send().await{
@@ -45,7 +45,6 @@ pub fn ListPgFn( list_name: String, user_id: i64) -> Element{
     rsx!(
         div{
             id: "main_div_list_page",
-            h2 { "{name}" },
             div { 
                 id:"list_in_list_page",
                 for entry in anime.read().clone(){

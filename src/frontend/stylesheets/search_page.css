@@ -2,6 +2,7 @@ body{
     background-color: rgb(25, 25, 25);
     font-family: Arial, Helvetica, sans-serif;
     padding-top: 40px;
+    
 }
 
 #header_div_search{
@@ -17,6 +18,8 @@ body{
     display: flex;
     align-items: center;
     justify-content: left;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 
     z-index: 1000;
 }
@@ -40,15 +43,16 @@ body{
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: transform .15s ease-in-out;
 }
 
 .Icon_button_search:hover{
     cursor: pointer;
+    transform: scale(1.05);
 }
 
 #Menu_button_search{
-    padding-left: 15px;
-    padding-right: 15px;
+    padding: 0 15px;
 }
 #Search_Bar_search {
     background-color: azure;
@@ -68,12 +72,13 @@ body{
 
     color: white;
 
-    transition: box-shadow 0.20s ease-in-out, border-color 0.20s ease-in-out;
+    transition: box-shadow 0.20s ease-in-out, border-color 0.20s ease-in-out, transform .2s ease;
 }
 
 #Search_Bar_search:hover {
     box-shadow: 0 0 8px rgba(147, 78, 213, 0.6);
     border-color: rgb(147, 78, 213);
+    transform: scale(1.03);
 }
 
 #Search_Bar_search:focus {
@@ -96,10 +101,7 @@ body{
     transition: padding 0.10s;
 }
 
-#h1_search:hover{
-    padding-left: 6px;
-    padding-right: 6px; 
-}
+
 #Result_list_search {
     background-color: rgb(35, 35, 35);
     text-align: left;
@@ -303,7 +305,7 @@ body{
 }
 
 .Top_trending_div:hover {
-    transform: translateY(-4px);
+    transform: scale(1.05);
 }
 
 

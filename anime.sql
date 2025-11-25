@@ -132,12 +132,11 @@ Create Table IF NOT EXISTS watch_list( --unordered watch-list
 
 CREATE TABLE IF NOT EXISTS watch_list_anime (
     user_id INTEGER NOT NULL,
-    watch_name TEXT NOT NULL,
     list_id INTEGER NOT NULL,
     anime_id INTEGER NOT NULL,
     rank INTEGER, -- add date added to allow sorting through date
     PRIMARY KEY (user_id, list_id, anime_id),
     FOREIGN KEY (list_id) REFERENCES watch_list(id) ON DELETE CASCADE,
     FOREIGN KEY (anime_id) REFERENCES anime(id),
-    UNIQUE(user_id, watch_name, rank)
+    UNIQUE(user_id, list_id, rank)
 );

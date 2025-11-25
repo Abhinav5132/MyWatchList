@@ -74,7 +74,7 @@ struct FetchLists{
 
 #[derive(Deserialize)]
 struct FetchAnimes{
-    watch_list_name: String,
+    list_id: i64,
     user_id: i64,
     page_no: i64,
 }
@@ -110,7 +110,7 @@ pub struct ExistsInList{
 
 #[derive(Deserialize)]
 pub struct IfRanked{
-    list_name: String,
+    list_id: i64,
     user_id: i64,
 }
 
@@ -148,15 +148,15 @@ pub async fn file_to_blob_with_link(path: &str) -> Result<Vec<u8>, reqwest::Erro
     }
 }
 
-pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_name: String, user_id:i64) -> Result<(), sqlx::Error> {
+pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_id: i64, user_id:i64) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
     sqlx::query("
     UPDATE watch_list_anime
     SET rank = rank + 1000
-    WHERE user_id = ? AND watch_name = ? AND rank >= ?;
+    WHERE user_id = ? AND list_id = ? AND rank >= ?;
     ")
         .bind(user_id)
-        .bind(&list_name)
+        .bind(&list_id)
         .bind(rank)
         .execute(&mut *tx)
         .await?;
@@ -164,10 +164,10 @@ pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_n
     sqlx::query("
             UPDATE watch_list_anime
             SET rank = rank - 999
-            WHERE user_id = ? AND watch_name = ? AND rank >= (? + 1000);
+            WHERE user_id = ? AND list_id = ? AND rank >= (? + 1000);
         ")
         .bind(user_id)
-        .bind(&list_name)
+        .bind(&list_id)
         .bind(rank)
         .execute(&mut *tx)
         .await?;
@@ -178,13 +178,13 @@ pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_n
 
 }
 
-pub async fn re_order_list_on_remove(db: Data<Pool<Sqlite>>, rank: i64, list_name: String, user_id:i64) -> Result<(), sqlx::Error> {
+pub async fn re_order_list_on_remove(db: Data<Pool<Sqlite>>, rank: i64, list_id: i64, user_id:i64) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
     sqlx::query("
     UPDATE watch_list_anime 
     SET rank = rank - 1 
-    WHERE user_id = ? AND watch_name = ? AND rank > ?") .bind(user_id)
-        .bind(&list_name)
+    WHERE user_id = ? AND list_id = ? AND rank > ?") .bind(user_id)
+        .bind(&list_id)
         .bind(rank)
         .execute(&mut *tx)
         .await?; 
@@ -236,9 +236,9 @@ pub fn combine_images_in_a_grid(blobs: Vec<Vec<u8>>) -> Result<Vec<u8>, ImageErr
     Ok(buffer.into_inner())
 } 
 
-pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:i64, is_ranked: bool) -> Result<Vec<u8>>{ // change this to vec u8{
+pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, is_ranked: bool) -> Result<String>{ // change this to vec u8{
     dbg!("Generate grid ran");
-    let count:u64 = match sqlx::query_scalar("SELECT COUNT(*) as cnt FROM watch_list_anime WHERE watch_name = ? AND user_id = ?").bind(list_name) 
+    let count:u64 = match sqlx::query_scalar("SELECT COUNT(*) as cnt FROM watch_list_anime WHERE list_id = ? AND user_id = ?").bind(list_id) 
     .bind(user_id).fetch_one(db.as_ref()).await {
         Ok(c) => c,
         Err(e) => {
@@ -247,20 +247,19 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
         }
     };
     dbg!(count);
-    let mut image_bytes:Result<Vec<u8>> = Ok(vec![]); 
+    let mut image_bytes:Vec<u8> = vec![]; 
     match count {
         0 => {
-            image_bytes = file_to_blob_with_path("assets/images.png");
+            image_bytes = file_to_blob_with_path("assets/images.png")?;
         },
         1 => {
-            let watch_name = list_name.clone();
             let top_images = sqlx::query("SELECT a.mediumImage 
             FROM watch_list_anime wla 
             JOIN anime a ON a.id = wla.anime_id
             WHERE wla.user_id = ? 
-            AND wla.watch_name = ?
+            AND wla.list_id = ?
             LIMIT 1;   
-            ").bind(user_id).bind(watch_name).fetch_all(db.as_ref()).await?;
+            ").bind(user_id).bind(list_id).fetch_all(db.as_ref()).await?;
             for top_image in top_images {
                 let image:String = top_image.try_get("mediumImage")?;
                 let bytes = match file_to_blob_with_link(&image).await {
@@ -272,8 +271,8 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
                 };
 
                 image_bytes = match bytes {
-                    Some(b) => Ok(b),
-                    None => Err(sqlx::Error::RowNotFound),
+                    Some(b) => b,
+                    None => return Err(sqlx::Error::RowNotFound),
                 };
             }
 
@@ -284,9 +283,9 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
             FROM watch_list_anime wla 
             JOIN anime a ON a.id = wla.anime_id
             WHERE wla.user_id = ? 
-            AND wla.watch_name = ?
+            AND wla.list_id = ?
             LIMIT 2;   
-            ").bind(user_id).bind(list_name).fetch_all(db.as_ref()).await?;
+            ").bind(user_id).bind(list_id).fetch_all(db.as_ref()).await?;
             let mut images:Vec<Vec<u8>> = vec![];
             for top_image in vec_image {
                 let image:String = top_image.try_get("thumbnail")?;
@@ -299,11 +298,11 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
             }
 
             image_bytes = match combine_images_in_a_grid(images) {
-                Ok(new_image) => Ok(new_image),
+                Ok(new_image) => new_image,
                 Err(e) => {
                     dbg!(e);
                     dbg!("Failed to convert the images into a grid");
-                    Err(sqlx::Error::RowNotFound)
+                    return Err(sqlx::Error::RowNotFound);
                 }
             }
 
@@ -316,10 +315,10 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
                 FROM watch_list_anime wla 
                 JOIN anime a ON a.id = wla.anime_id
                 WHERE wla.user_id = ? 
-                AND wla.watch_name = ?
+                AND wla.list_id = ?
                 ORDER BY ?
                 LIMIT 4;   
-                ").bind(user_id).bind(list_name).bind(sort_by).fetch_all(db.as_ref()).await?;
+                ").bind(user_id).bind(list_id).bind(sort_by).fetch_all(db.as_ref()).await?;
             let mut images:Vec<Vec<u8>> = vec![];
             for top_image in vec_image {
                 let image:String = top_image.try_get("thumbnail")?;
@@ -332,18 +331,25 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_name: &String, user_id:
             }
 
             image_bytes = match combine_images_in_a_grid(images) {
-                Ok(new_image) => Ok(new_image),
+                Ok(new_image) => new_image,
                 Err(e) => {
                     dbg!(e);
                     dbg!("Failed to convert the images into a grid");
-                    Err(sqlx::Error::RowNotFound)
+                    return Err(sqlx::Error::RowNotFound);
                 }
             }
 
         }
 
     }
-    image_bytes
+
+    let image = match encode_to_base64(image_bytes).await {
+        Some(img) => img,
+        None => return Err(sqlx::Error::RowNotFound)
+    };
+
+    Ok(image)
+
 }
 
 #[get("/get-if-ranked")]
@@ -361,8 +367,8 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
         if get_userid_from_jwt(auth_header).await != details.user_id {
             return HttpResponse::Unauthorized().into();
         } else {
-        let result = sqlx::query("SELECT is_ranked FROM watch_list WHERE name = ? and user_id = ?;" )
-        .bind(&details.list_name)
+        let result = sqlx::query("SELECT is_ranked FROM watch_list WHERE id = ? and user_id = ?;" )
+        .bind(&details.list_id)
         .bind(details.user_id)
         .fetch_one(db.as_ref()).await;
         let is_ranked: i32 = match result {
@@ -374,10 +380,10 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
             };
             if is_ranked == 1 {
                 match sqlx::query("SELECT rank FROM watch_list_anime 
-                            WHERE user_id = ? AND watch_name = ? 
+                            WHERE user_id = ? AND list_id = ? 
                             ORDER BY rank DESC 
                             LIMIT 1;")
-                            .bind(details.user_id).bind(details.list_name.clone())
+                            .bind(details.user_id).bind(details.list_id)
                             .fetch_optional(db.as_ref()).await{
                 Ok(Some(rank)) => {
                     let last_rank = rank.try_get("rank").unwrap_or(1);
@@ -415,7 +421,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
 
 #[post("/add-anime-to-list")] // must verify the users identity before it adds 
 pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
-    
+    dbg!(to_add.list_id);
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -426,17 +432,13 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
     };
 
     if verify_token(db.clone(), &auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
-        let list_id = &to_add.anime_id;
+        let list_id = &to_add.list_id;
         let anime_id = &to_add.anime_id;
-        let list_name = &to_add.list_name;
         let user_id = &to_add.user_id;
         let rank = match to_add.rank {
             Some(rank) => rank,
             None => -1
         };
-        dbg!(&anime_id);
-        dbg!(&list_name);
-        dbg!(&user_id);
         let count:i64 = match sqlx::query_scalar(
             "SELECT COUNT(1) FROM watch_list_anime WHERE list_id = ? AND anime_id = ? AND user_id = ?"
         )
@@ -453,12 +455,11 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
 
         };
 
-        let reorder_result =re_order_list_on_addition(db.clone(), to_add.rank.unwrap_or(1), to_add.list_name.clone(), to_add.user_id).await;
+        let reorder_result =re_order_list_on_addition(db.clone(), to_add.rank.unwrap_or(1), to_add.list_id.clone(), to_add.user_id).await;
         if let Ok(_) = reorder_result{
                 //dbg!(&count);
             if count == 0 {
-                match sqlx::query("INSERT INTO watch_list_anime(watch_name, anime_id, user_id, rank, list_id) VALUES (?,?,?,?,?);")
-                .bind(list_name)
+                match sqlx::query("INSERT INTO watch_list_anime( anime_id, user_id, rank, list_id) VALUES (?,?,?,?);")
                 .bind(anime_id)
                 .bind(user_id)
                 .bind(rank)
@@ -467,12 +468,12 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
                 Ok(_) => {
                     dbg!("Excecuted properly");
 
-                    let image = genereate_grid(db.clone(), list_name, *user_id, true).await;
+                    let mut image = genereate_grid(db.clone(), *list_id, *user_id, true).await;
 
                     match image {
                         Ok(img) =>{
                             dbg!("Image inserted into the list");
-                        let _ = sqlx::query("UPDATE watch_list SET list_image = ?, is_user_image = ? WHERE name = ?;").bind(img).bind(false).bind(list_name).execute(db.as_ref()).await;
+                        let _ = sqlx::query("UPDATE watch_list SET list_image = ?, is_user_image = ? WHERE id = ?;").bind(img).bind(false).bind(list_id).execute(db.as_ref()).await;
                         }
                         Err(e) => {
                             dbg!(e);
@@ -522,7 +523,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
             if result.rows_affected() <= 0 {
                 return HttpResponse::InternalServerError().into();
                 }
-            match re_order_list_on_remove(db.clone(), to_add.rank.unwrap_or(1), to_add.list_name.clone(), to_add.user_id).await {
+            match re_order_list_on_remove(db.clone(), to_add.rank.unwrap_or(1), to_add.list_id.clone(), to_add.user_id).await {
                 Ok(_) => {
                     return HttpResponse::Ok().into();
                 }   
@@ -774,9 +775,9 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
     let animes = sqlx::query("
     SELECT anime_id
     FROM watch_list_anime
-    WHERE watch_name = ? and user_id = ?
+    WHERE list_id = ? and user_id = ?
     LIMIT ? OFFSET ?;
-    ").bind(&watchlist.watch_list_name)
+    ").bind(&watchlist.list_id)
     .bind(&watchlist.user_id)
     .bind(per_page)
     .bind(offset)

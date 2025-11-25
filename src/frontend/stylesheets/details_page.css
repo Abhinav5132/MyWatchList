@@ -92,11 +92,10 @@
     height: 30;
     width: auto;
     margin-right: 6px;
-    transition: padding 0.10s;
+    transition: transform 0.15s ease;
 }
 .Feeling_icon:hover{
-    padding-left: 6px;
-    padding-right: 6px;
+    transform: scale(1.05);
 }
 
 #show_more_friends_button{
