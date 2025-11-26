@@ -114,6 +114,7 @@
 
 /* ---------- EDIT BUTTON ---------- */
 .edit_buttons {
+    padding: 18px;
     background-color: rgb(147, 78, 213);
     color: white;
     border-color: rgb(147, 78, 213);

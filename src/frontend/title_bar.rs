@@ -195,6 +195,7 @@ pub fn TitleBar() -> Element {
                             loged_in_dropdown {
                                 username: username.read(), 
                                 user_email: user_email.read(),
+                                user_image: user_pfp.read(),
                                 onclose: move |_| {
                                     show_logedin_dropdown.set(false);
                                 }

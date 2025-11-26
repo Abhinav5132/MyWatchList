@@ -8,13 +8,17 @@ pub struct UserDetails{
 }
 
 #[component]
-pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHandler<()>)-> Element{
+pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHandler<()>, user_image: String)-> Element{
     let navigator = use_navigator();
     rsx!(
         div { 
             id: "user_logedin_dropdown",
             div {
                 class: "dropdown-item user-info",
+                img {
+                    id: "Dropdown_user_image",
+                    src:"{user_image}",
+                }
                 h2 { "{username}" }
                 h4 { "{user_email}" }
             }
@@ -30,7 +34,7 @@ pub fn loged_in_dropdown(username: String, user_email: String, onclose: EventHan
             div {
                 class: "dropdown-item",
                 onclick: move |_| {
-                    // TODO: route to lists page
+                    navigator.push(crate::frontend::router::routes::ListsPgFn { user_id: *USERID.read() });
                 },
                 "Manage your lists"
             }

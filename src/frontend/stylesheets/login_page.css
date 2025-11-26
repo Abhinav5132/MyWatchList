@@ -360,3 +360,119 @@
 #confirm_password_button {
     align-self: flex-start; /* keep button aligned with inputs */
 }
+
+#user_logedin_dropdown {
+    position: absolute;
+    top: 70px;
+    right: 20px;
+
+    width: 260px;
+
+    background: rgba(40,40,40,0.95);
+    backdrop-filter: blur(6px);
+
+    padding: 15px 0;
+    border-radius: 10px;
+
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    z-index: 2000;
+}
+
+#user_logedin_dropdown{
+    padding-top: 0;
+}
+
+/* Shared dropdown item style */
+#user_logedin_dropdown .dropdown-item {
+    padding: 12px 18px;
+    color: white;
+    cursor: pointer;
+
+    font-size: 0.95rem;
+
+    transition: background 0.15s ease, transform .15s ease;
+    border-radius: 6px;
+}
+
+#user_logedin_dropdown .dropdown-item:hover {
+    background: rgba(147, 78, 213, 0.15);
+    transform: scale(1.03);
+}
+
+/* User info header */
+#user_logedin_dropdown .user-info {
+
+    cursor: default;
+    background-color: rgb(35, 35, 35);
+    margin-bottom: 6px;
+
+    border-bottom: 1px solid rgba(147, 78, 213, 0.4);
+}
+
+#user_logedin_dropdown .user-info:hover {
+    background-color: rgb(35, 35, 35); /* no hover highlight */
+    transform: none;
+}
+
+/* Username */
+#user_logedin_dropdown .user-info h2 {
+    color: rgb(147, 78, 213);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    padding: 4px 18px 0 18px;
+    text-shadow:
+        -1px -1px 0 black,
+         1px -1px 0 black,
+        -1px  1px 0 black,
+         1px  1px 0 black;
+}
+
+/* Email */
+#user_logedin_dropdown .user-info h4 {
+    color: rgb(200, 200, 200);
+    font-size: 0.85rem;
+    font-weight: 400;
+    margin: 0;
+    padding: 0 18px 10px 18px;
+}
+
+/* Logout item (red accent) */
+#user_logedin_dropdown .dropdown-item.logout {
+    color: rgb(230, 90, 90);
+}
+
+#user_logedin_dropdown .dropdown-item.logout:hover {
+    background: rgba(230, 90, 90, 0.25);
+    transform: scale(1.03);
+}
+
+/* Close item */
+#user_logedin_dropdown .dropdown-item.close {
+    text-align: center;
+    color: rgb(180, 180, 180);
+}
+
+#user_logedin_dropdown .dropdown-item.close:hover {
+    background: rgba(255,255,255,0.07);
+}
+
+.dropdown-item.user-info {
+    gap: 10px;           /* spacing between img and text */
+    padding: 10px;       /* no top/bottom margin issues */
+}
+
+#Dropdown_user_image {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;       /* circular profile picture */
+    object-fit: cover;        /* keeps picture from stretching */
+    margin-right: 12px;       /* space between image and text */
+    flex-shrink: 0;           /* prevents shrinking on small screens */
+    border: 2px solid #444;   /* optional, looks nicer */
+}
