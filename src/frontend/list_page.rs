@@ -40,7 +40,7 @@ pub fn ListPgFn(list_id: i64 ,user_id: i64) -> Element{
                anime.set(animes);
             }
      });
-     ()
+    ()
     });
     rsx!(
         div{

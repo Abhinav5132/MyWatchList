@@ -15,6 +15,10 @@ Frontend:
     - on first install check initialization and if that process has started show a progrress bar or a spinny animation thingy.
     - fix task bar css by scaling the components instead of moving the things beside it
     -refresh pages when stuff happens 
+    -adding images for lists is broken 
+    -search bar white on white test 
+    -css for the login page 
+    - strip spaces when the user enters username, passwoers search queries ect
 
 prod:
     -https certificate
