@@ -19,6 +19,7 @@ pub mod sign_up;
 pub use sign_up::sign_up_fn;
 
 pub use search::trending_search;
+pub mod friends;
 
 pub mod authenticate;
 use crate::backend::add_to_list::{check_if_an_anime_in_list, edit_watch_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked, get_list_details, remove_watch_list};

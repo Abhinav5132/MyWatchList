@@ -117,6 +117,28 @@ Create TABLE IF NOT EXISTS user (
     user_pfp TEXT NOT NULL -- should be not null in production
 );
 
+CREATE TABLE IF NOT EXISTS friends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_1 INT NOT NULL,
+    user_2 INT NOT NULL,
+    CHECK (user_1 < user_2),
+    FOREIGN KEY (user_1) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_2) REFERENCES user(id) ON DELETE CASCADE,
+    UNIQUE(user_1, user_2)
+);
+
+CREATE TABLE IF NOT EXISTS friend_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- request id
+    status TEXT NOT NULL, 
+    sender_id INT NOT NULL,      
+    receiver_id INT NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE,
+    UNIQUE(sender_id, receiver_id)
+);
+
 Create Table IF NOT EXISTS watch_list( --unordered watch-list 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,

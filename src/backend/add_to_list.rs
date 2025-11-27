@@ -38,12 +38,12 @@ impl WatchListType {
     }
 }
 
-#[derive(Serialize)]
-struct AList{
-    name: String,
-    id: i64,
-    image: String,
-    description: String
+#[derive(Deserialize, Serialize)]
+pub struct AList{
+    pub name: String,
+    pub id: i64,
+    pub image: String,
+    pub description: String
 }
 
 #[derive(Serialize)]

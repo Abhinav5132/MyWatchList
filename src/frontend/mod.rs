@@ -21,6 +21,7 @@ pub mod title_bar;
 pub mod logedin_dropdown;
 pub mod manage_user_profile;
 pub mod popup_edit_list;
+pub mod friends_page;
 
 const LOGIN_CSS:Asset = asset!("/src/frontend/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/src/frontend/stylesheets/details_page.css");
