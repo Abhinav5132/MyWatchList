@@ -198,7 +198,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
 }
 
 #[get("/get_all_friends")]
-pub async fn list_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpResponse {
+pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap_or("")

@@ -8,7 +8,7 @@ pub struct FetchLists{
     pub page_no: i32,
     pub per_page: i32
 }
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct AList{
     pub name: String,
     pub id: i64,

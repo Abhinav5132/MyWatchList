@@ -137,7 +137,7 @@ pub fn TitleBar() -> Element {
                             src: "{FRIENDS}",
                             alt:"Playlists",
                             onclick: move |_| {
-                            //does nothing for now redirect later
+                                navigator.push(crate::frontend::router::routes::FriendPage {  });
                             },
                         }
                     }
