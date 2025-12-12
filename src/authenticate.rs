@@ -1,7 +1,7 @@
 use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};use rand_core::{OsRng};
-use crate::{backend::{login::LoginStruct, sign_up::AuthResponse, *}, try_or};
+use crate::{{login::LoginStruct, sign_up::AuthResponse, *}, try_or};
 #[derive(Serialize, Deserialize)]
 pub struct Claims{
     pub sub: i64,
@@ -93,7 +93,7 @@ pub async fn get_userid_from_jwt(token: &str) -> i64 {
     }
 }
 
-pub async fn verify_token(db: Data<Pool<Sqlite>>,token: &str) -> bool {
+pub async fn verify_token(db: Data<Pool<Postgres>>,token: &str) -> bool {
      
     let token = match token.strip_prefix("Bearer ") {
         Some(t) => t,
@@ -130,7 +130,7 @@ pub async fn verify_token(db: Data<Pool<Sqlite>>,token: &str) -> bool {
 }
 
 #[post("/issue_new_access")]
-pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<AuthResponse>) -> HttpResponse {
+pub async fn issue_new_access_token(db: Data<Pool<Postgres>>, refresh_token: Json<AuthResponse>) -> HttpResponse {
     dotenvy::dotenv().ok();
     match sqlx::query("SELECT id 
     FROM user 
@@ -174,7 +174,7 @@ pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<
 }   
 
 #[post("/verify_password")]
-pub async fn verify_entered_password(db: Data<Pool<Sqlite>>, req: HttpRequest, user: Json<LoginStruct>) -> HttpResponse {
+pub async fn verify_entered_password(db: Data<Pool<Postgres>>, req: HttpRequest, user: Json<LoginStruct>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()

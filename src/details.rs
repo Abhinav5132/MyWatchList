@@ -1,4 +1,4 @@
-pub use crate::backend::*;
+pub use crate::*;
 
 #[derive(Serialize, Default, Deserialize, PartialEq)]
 pub struct RelatedAnime{
@@ -18,7 +18,7 @@ pub struct ReccomendResult{
 
 
 #[get("/details")] 
-pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQuery>) -> impl Responder {
+pub async fn get_details(db: web::Data<Pool<Postgres>>, query: web::Query<SearchQuery>) -> impl Responder {
     let id = format!("{}", query.query);
     match sqlx::query("SELECT title_romanji, format, description, episodes, status, anime_season, anime_year,
      LargeImage, duration, averageScore FROM anime WHERE id = ?
@@ -70,7 +70,7 @@ pub async fn get_details(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
 
 }
 
-pub async fn get_synonyms(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
+pub async fn get_synonyms(db: &Pool<Postgres>, id: &String) -> Vec<String> {
     let r = match sqlx::query("SELECT s.synonym FROM synonyms s WHERE s.anime_id = ?")
     .bind(id).fetch_all(db).await {
         Ok(vecs) => vecs,
@@ -91,7 +91,7 @@ pub async fn get_synonyms(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
     return all_syn;
 }
 
-pub async fn get_studios(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
+pub async fn get_studios(db: &Pool<Postgres>, id: &String) -> Vec<String> {
     let r = match sqlx::query("SELECT s.name 
         FROM studios s
         JOIN anime_studio ast ON s.id = ast.studio_id
@@ -115,7 +115,7 @@ pub async fn get_studios(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
     return all_stud;
 }
 
-pub async fn get_tags(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
+pub async fn get_tags(db: &Pool<Postgres>, id: &String) -> Vec<String> {
     let r = match sqlx::query("SELECT t.tag
         FROM tags t
         JOIN anime_tags at ON t.id = at.tag_id
@@ -141,7 +141,7 @@ pub async fn get_tags(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
     return all_stud;
 }
 
-pub async fn get_recommendations(db: &Pool<Sqlite>, id: &String) -> Vec<ReccomendResult> {
+pub async fn get_recommendations(db: &Pool<Postgres>, id: &String) -> Vec<ReccomendResult> {
 
     let r = match sqlx::query("
     SELECT r.recommended_title ,a.id, a.mediumImage, a.averageScore
@@ -172,7 +172,7 @@ pub async fn get_recommendations(db: &Pool<Sqlite>, id: &String) -> Vec<Reccomen
     recommendations
 }
 
-pub async fn get_related(db: &Pool<Sqlite>, id: &String) -> Vec<RelatedAnime> {
+pub async fn get_related(db: &Pool<Postgres>, id: &String) -> Vec<RelatedAnime> {
     let r = match sqlx::query("
     SELECT r.related_name, r.relation_type, a.id, a.mediumImage
     FROM related_anime r

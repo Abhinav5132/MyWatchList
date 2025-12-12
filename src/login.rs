@@ -1,5 +1,5 @@
-use crate::backend::sign_up::AuthResponse;
-pub use crate::backend::*;
+use crate::sign_up::AuthResponse;
+pub use crate::*;
 use serde_json::json;
 use actix_web::HttpResponse;
 
@@ -10,7 +10,7 @@ pub struct LoginStruct {
 }
 
 #[post("/login")]
-pub async fn login_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<LoginStruct>)-> HttpResponse{
+pub async fn login_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<LoginStruct>)-> HttpResponse{
     let username:&String = &credentials.username;
     let password = &credentials.password;
     dbg!(&username);

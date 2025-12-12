@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde_json::json;
 use image::ImageReader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageError, RgbaImage};
-use crate::{backend::*, try_or};
+use crate::{*, try_or};
 
 
 // watch list is always 1
@@ -148,12 +148,12 @@ pub async fn file_to_blob_with_link(path: &str) -> Result<Vec<u8>, reqwest::Erro
     }
 }
 
-pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_id: i64, user_id:i64) -> Result<(), sqlx::Error> {
+pub async fn re_order_list_on_addition(db: Data<Pool<Postgres>>, rank: i64, list_id: i64, user_id:i64) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
     sqlx::query("
     UPDATE watch_list_anime
     SET rank = rank + 1000
-    WHERE user_id = ? AND list_id = ? AND rank >= ?;
+    WHERE user_id = $1 AND list_id = $2 AND rank >= $3;
     ")
         .bind(user_id)
         .bind(&list_id)
@@ -164,7 +164,7 @@ pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_i
     sqlx::query("
             UPDATE watch_list_anime
             SET rank = rank - 999
-            WHERE user_id = ? AND list_id = ? AND rank >= (? + 1000);
+            WHERE user_id = $1 AND list_id = $2 AND rank >= ($3 + 1000);
         ")
         .bind(user_id)
         .bind(&list_id)
@@ -178,12 +178,12 @@ pub async fn re_order_list_on_addition(db: Data<Pool<Sqlite>>, rank: i64, list_i
 
 }
 
-pub async fn re_order_list_on_remove(db: Data<Pool<Sqlite>>, rank: i64, list_id: i64, user_id:i64) -> Result<(), sqlx::Error> {
+pub async fn re_order_list_on_remove(db: Data<Pool<Postgres>>, rank: i64, list_id: i64, user_id:i64) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
     sqlx::query("
     UPDATE watch_list_anime 
     SET rank = rank - 1 
-    WHERE user_id = ? AND list_id = ? AND rank > ?") .bind(user_id)
+    WHERE user_id = $1 AND list_id = $2 AND rank > $3") .bind(user_id)
         .bind(&list_id)
         .bind(rank)
         .execute(&mut *tx)
@@ -236,9 +236,12 @@ pub fn combine_images_in_a_grid(blobs: Vec<Vec<u8>>) -> Result<Vec<u8>, ImageErr
     Ok(buffer.into_inner())
 } 
 
-pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, is_ranked: bool) -> Result<String>{ // change this to vec u8{
+pub async fn genereate_grid(db: Data<Pool<Postgres>>, list_id: i64, user_id:i64, is_ranked: bool) -> Result<String>{ // change this to vec u8{
     dbg!("Generate grid ran");
-    let count:u64 = match sqlx::query_scalar("SELECT COUNT(*) as cnt FROM watch_list_anime WHERE list_id = ? AND user_id = ?").bind(list_id) 
+    let count:i64 = match sqlx::query_scalar(
+        "SELECT COUNT(*) as cnt FROM watch_list_anime WHERE list_id = $1 AND user_id = $2"
+    )
+    .bind(list_id) 
     .bind(user_id).fetch_one(db.as_ref()).await {
         Ok(c) => c,
         Err(e) => {
@@ -249,6 +252,9 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, i
     dbg!(count);
     let mut image_bytes:Vec<u8> = vec![]; 
     match count {
+        i64::MIN..=-1_i64 => {
+            image_bytes = file_to_blob_with_path("assets/images.png")?;
+        }
         0 => {
             image_bytes = file_to_blob_with_path("assets/images.png")?;
         },
@@ -256,8 +262,8 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, i
             let top_images = sqlx::query("SELECT a.mediumImage 
             FROM watch_list_anime wla 
             JOIN anime a ON a.id = wla.anime_id
-            WHERE wla.user_id = ? 
-            AND wla.list_id = ?
+            WHERE wla.user_id = $1 
+            AND wla.list_id = $2
             LIMIT 1;   
             ").bind(user_id).bind(list_id).fetch_all(db.as_ref()).await?;
             for top_image in top_images {
@@ -282,8 +288,8 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, i
             let vec_image = sqlx::query("SELECT a.thumbnail 
             FROM watch_list_anime wla 
             JOIN anime a ON a.id = wla.anime_id
-            WHERE wla.user_id = ? 
-            AND wla.list_id = ?
+            WHERE wla.user_id = $1 
+            AND wla.list_id = $2
             LIMIT 2;   
             ").bind(user_id).bind(list_id).fetch_all(db.as_ref()).await?;
             let mut images:Vec<Vec<u8>> = vec![];
@@ -314,9 +320,9 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, i
             let vec_image = sqlx::query("SELECT a.thumbnail 
                 FROM watch_list_anime wla 
                 JOIN anime a ON a.id = wla.anime_id
-                WHERE wla.user_id = ? 
-                AND wla.list_id = ?
-                ORDER BY ?
+                WHERE wla.user_id = $1
+                AND wla.list_id = $2
+                ORDER BY $3
                 LIMIT 4;   
                 ").bind(user_id).bind(list_id).bind(sort_by).fetch_all(db.as_ref()).await?;
             let mut images:Vec<Vec<u8>> = vec![];
@@ -353,7 +359,7 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, i
 }
 
 #[get("/get-if-ranked")]
-pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req: HttpRequest ) -> HttpResponse {
+pub async fn get_if_ranked(db: Data<Pool<Postgres>>, details: Json<IfRanked>, req: HttpRequest ) -> HttpResponse {
     let auth_header = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")
@@ -367,7 +373,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
         if get_userid_from_jwt(auth_header).await != details.user_id {
             return HttpResponse::Unauthorized().into();
         } else {
-        let result = sqlx::query("SELECT is_ranked FROM watch_list WHERE id = ? and user_id = ?;" )
+        let result = sqlx::query("SELECT is_ranked FROM watch_list WHERE id = $1 and user_id = $2;" )
         .bind(&details.list_id)
         .bind(details.user_id)
         .fetch_one(db.as_ref()).await;
@@ -380,7 +386,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
             };
             if is_ranked == 1 {
                 match sqlx::query("SELECT rank FROM watch_list_anime 
-                            WHERE user_id = ? AND list_id = ? 
+                            WHERE user_id = $1 AND list_id = $2 
                             ORDER BY rank DESC 
                             LIMIT 1;")
                             .bind(details.user_id).bind(details.list_id)
@@ -420,7 +426,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
 }
 
 #[post("/add-anime-to-list")] // must verify the users identity before it adds 
-pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
+pub async fn add_anime_to_list(db: web::Data<Pool<Postgres>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
     dbg!(to_add.list_id);
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -440,7 +446,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
             None => -1
         };
         let count:i64 = match sqlx::query_scalar(
-            "SELECT COUNT(1) FROM watch_list_anime WHERE list_id = ? AND anime_id = ? AND user_id = ?"
+            "SELECT COUNT(1) FROM watch_list_anime WHERE list_id = $1 AND anime_id = $2 AND user_id = $3"
         )
         .bind(list_id)
         .bind(anime_id).bind(user_id)
@@ -459,7 +465,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
         if let Ok(_) = reorder_result{
                 //dbg!(&count);
             if count == 0 {
-                match sqlx::query("INSERT INTO watch_list_anime( anime_id, user_id, rank, list_id) VALUES (?,?,?,?);")
+                match sqlx::query("INSERT INTO watch_list_anime( anime_id, user_id, rank, list_id) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING;")
                 .bind(anime_id)
                 .bind(user_id)
                 .bind(rank)
@@ -468,12 +474,12 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
                 Ok(_) => {
                     dbg!("Excecuted properly");
 
-                    let mut image = genereate_grid(db.clone(), *list_id, *user_id, true).await;
+                    let image = genereate_grid(db.clone(), *list_id, *user_id, true).await;
 
                     match image {
                         Ok(img) =>{
                             dbg!("Image inserted into the list");
-                        let _ = sqlx::query("UPDATE watch_list SET list_image = ?, is_user_image = ? WHERE id = ?;").bind(img).bind(false).bind(list_id).execute(db.as_ref()).await;
+                        let _ = sqlx::query("UPDATE watch_list SET list_image = $1 AND is_user_image = $2 WHERE id = 3;").bind(img).bind(false).bind(list_id).execute(db.as_ref()).await;
                         }
                         Err(e) => {
                             dbg!(e);
@@ -502,7 +508,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
 }
 
 #[post("/remove-form-list")]
-pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
+pub async fn remove_from_list(db: web::Data<Pool<Postgres>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
     
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -516,7 +522,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
     if !verify_token(db.clone(),&auth_header).await || get_userid_from_jwt(&auth_header).await != to_add.user_id {
         return HttpResponse::Unauthorized().into();
     }
-    match sqlx::query("DELETE FROM watch_list_anime WHERE anime_id = ?, user_id = ?, list_id = ?") 
+    match sqlx::query("DELETE FROM watch_list_anime WHERE anime_id = $1 AND user_id = $2 AND list_id = $3") 
         .bind(to_add.anime_id).bind(to_add.user_id).bind(&to_add.list_id).execute(db.as_ref()).await
     {
         Ok(result) => {
@@ -541,7 +547,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
 }
 
 #[post("/add-list-to-user")] // needs verification
-pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>, req: HttpRequest)-> HttpResponse{
+pub async fn create_watch_list(db: Data<Pool<Postgres>>, to_add: Json<AddListToUser>, req: HttpRequest)-> HttpResponse{
     let auth_header =  match req.headers().get("Authorization") {
             Some(token) => {
                 token.to_str().unwrap()
@@ -565,9 +571,10 @@ pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
     }
 }
 
-pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy_type: &String, is_ranked: i32, image: &String, is_user_image: i32, description: &String)->Result<(), sqlx::Error>{
+pub async fn create_list(db: &Pool<Postgres>, name: &String, user_id:&i64, privacy_type: &String, is_ranked: i32, image: &String, is_user_image: i32, description: &String)->Result<(), sqlx::Error>{
 
-    sqlx::query("INSERT INTO watch_list(name, description, user_id, privacy_type, is_ranked, list_image, is_user_image) VALUES (?,?,?,?,?,?,?);")
+    sqlx::query("INSERT INTO watch_list(name, description, user_id, privacy_type, is_ranked, list_image, is_user_image) 
+    VALUES ($1,$2,$3,$4,$5,$6,$7);")
     .bind(name)
     .bind(description)
     .bind(user_id)
@@ -582,7 +589,7 @@ pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy
 }
 
 #[post("/delete_list")]
-pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req: HttpRequest) -> HttpResponse{
+pub async fn remove_watch_list(db: Data<Pool<Postgres>>, query: Query<ListId>, req: HttpRequest) -> HttpResponse{
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -592,7 +599,7 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
         }
     };
     if verify_token(db.clone(), &auth_header).await {
-        let user_id = match sqlx::query("Select user_id from watch_list WHERE id = ?").bind(&query.list_id).fetch_one(db.as_ref()).await {
+        let user_id = match sqlx::query("Select user_id from watch_list WHERE id = $1").bind(&query.list_id).fetch_one(db.as_ref()).await {
             Ok(row) => {
                 let user_id = try_or!(row.try_get("user_id"), HttpResponse::InternalServerError().finish());
                 user_id
@@ -606,7 +613,7 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
         if user_id != get_userid_from_jwt(auth_header).await {
             return HttpResponse::Unauthorized().into();
         }
-        match sqlx::query("DELETE FROM watch_list WHERE id = ?;")
+        match sqlx::query("DELETE FROM watch_list WHERE id = $1;")
         .bind(query.list_id)
         .execute(db.as_ref()).await {
         Ok(_) => {
@@ -623,7 +630,7 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
     
 
 #[post("/edit-watch-list-from-user")]
-pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUser>, req: HttpRequest) -> HttpResponse {
+pub async fn edit_watch_list(db: Data<Pool<Postgres>>, to_add: Json<EditListPerUser>, req: HttpRequest) -> HttpResponse {
 
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -645,15 +652,15 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
         };
 
         match sqlx::query("UPDATE watch_list 
-            SET name = COALESCE(?, name),
-            description = COALESCE(?, description),
-            privacy_type = COALESCE(?, privacy_type),
-            is_ranked = COALESCE(?, is_ranked) , list_image = COALESCE(?, list_image), 
-            is_user_image = COALESCE (?, is_user_image) WHERE user_id = ? AND id = ? ")
+            SET name = COALESCE($1, name),
+            description = COALESCE($2, description),
+            privacy_type = COALESCE($3, privacy_type),
+            is_ranked = COALESCE($4, is_ranked), list_image = COALESCE($5, list_image), 
+            is_user_image = COALESCE($6, is_user_image) WHERE user_id = $7 AND id = $8 ")
             .bind(&to_add.new_name).bind(&to_add.description).bind(&to_add.new_privacy_type).bind(to_add.new_is_ranked).bind(&to_add.new_image)
             .bind(to_add.is_user_image).bind(to_add.user_id).bind(&to_add.list_id).execute(&mut *tx).await {
                 Ok(_) => {
-                    match sqlx::query("UPDATE OR IGNORE watch_list_anime SET watch_name = ? WHERE list_id = ? AND user_id = ?")
+                    match sqlx::query("UPDATE watch_list_anime SET watch_name = $1 WHERE list_id = $2 AND user_id = $3")
                     .bind(&to_add.new_name).bind(&to_add.list_id).bind(to_add.user_id).execute(&mut *tx).await
                      {
                         Ok(_) => {
@@ -683,7 +690,7 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
 }
 
 #[get("/fetch-all-lists")] //TODO add a function to get all lists that you have the privilages to view for another person
-pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req: HttpRequest) -> HttpResponse {
+pub async fn fetch_all_lists(db: Data<Pool<Postgres>>, user: Json<FetchLists>, req: HttpRequest) -> HttpResponse {
     let per_page = user.per_page;
     let offset = (user.page_no - 1) * per_page;
     let auth_header = match req.headers().get("Authorization") {
@@ -702,8 +709,8 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
 
         let lists = match sqlx::query("Select name, id, privacy_type, list_image, description
         FROM watch_list 
-        WHERE user_id = ?
-        LIMIT ? OFFSET ?;")
+        WHERE user_id = $1
+        LIMIT $2 OFFSET $3;")
         .bind(&user.user_id)
         .bind(per_page)
         .bind(offset)
@@ -769,14 +776,14 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
 // used to display all anime in a list_page
 //maybe change this to include description
 #[get("/get-animes-from-list")]
-pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<FetchAnimes>) -> HttpResponse {
+pub async fn fetch_all_anime_from_list(db: Data<Pool<Postgres>>, watchlist: Json<FetchAnimes>) -> HttpResponse {
     let per_page = 10;
     let offset = (watchlist.page_no - 1) * per_page;
     let animes = sqlx::query("
     SELECT anime_id
     FROM watch_list_anime
-    WHERE list_id = ? and user_id = ?
-    LIMIT ? OFFSET ?;
+    WHERE list_id = $1 and user_id = $2
+    LIMIT $3 OFFSET $4;
     ").bind(&watchlist.list_id)
     .bind(&watchlist.user_id)
     .bind(per_page)
@@ -797,7 +804,7 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
             let mut animes:Vec<AnimeResult> = vec![];
             for id  in anime_ids{
                 let anime_details = match sqlx::query(
-                    "SELECT title_romanji, LargeImage FROM anime WHERE id = ?"
+                    "SELECT title_romanji, LargeImage FROM anime WHERE id = $1"
                 ).bind(&id).fetch_one(db.as_ref()).await{
                     Ok(id)=>id,
                     Err(e)=>{
@@ -837,14 +844,14 @@ pub async fn fetch_all_anime_from_list(db: Data<Pool<Sqlite>>, watchlist: Json<F
 }
 
 #[get("/check_if_already_in_list")]
-pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddToList>)->HttpResponse {
+pub async fn check_if_an_anime_in_list(db: Data<Pool<Postgres>>, to_add: Json<AddToList>)->HttpResponse {
 
     let anime_id = &to_add.anime_id;
     let list_name = &to_add.list_name;
     let user_id = &to_add.user_id;
 
     let count:i64 = sqlx::query_scalar(
-        "SELECT COUNT(1) FROM watch_anime_list WHERE watch_name = ? AND anime_id = ? AND user_id = ?"
+        "SELECT COUNT(1) FROM watch_anime_list WHERE watch_name = $1 AND anime_id = $2 AND user_id = $3"
     )
     .bind(list_name)
     .bind(anime_id).bind(user_id)
@@ -864,7 +871,7 @@ pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddT
 
 
 #[get("/get_list_details")]
-pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Query<ListId> ) -> HttpResponse {
+pub async fn get_list_details(db: Data<Pool<Postgres>>, req: HttpRequest, query: Query<ListId> ) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -878,7 +885,7 @@ pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Q
 
     let row = try_or!(
         sqlx::query("SELECT name, is_ranked, is_user_image, list_image, privacy_type, description
-         FROM watch_list WHERE user_id = ? AND id = ?;")
+         FROM watch_list WHERE user_id = $1 AND id = $2;")
         .bind(user_id)
         .bind(&query.list_id)
         .fetch_one(db.as_ref()).await, HttpResponse::InternalServerError().finish()

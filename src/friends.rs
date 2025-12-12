@@ -1,8 +1,8 @@
 use actix_web::{HttpRequest, HttpResponse, get, web::{self, Json}};
 use sqlx::Pool;
-use crate::{backend::add_to_list::AList, try_or};
+use crate::{add_to_list::AList, try_or};
 
-pub use crate::backend::*;
+pub use crate::*;
 
 #[derive(Deserialize)]
 pub struct FriendRequest {
@@ -57,7 +57,7 @@ impl WatchListType {
 }
 
 #[post("/send_firend_request")]
-pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<FriendRequest>, req: HttpRequest) -> HttpResponse {
+pub async fn send_firend_request(db: web::Data<Pool<Postgres>>,request: Json<FriendRequest>, req: HttpRequest) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -101,7 +101,7 @@ pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<Frien
 }   
 
 #[post("/accept_friend_request")]
-pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<RequestId> ,req: HttpRequest) -> HttpResponse {
+pub async fn accept_friend_request(db: web::Data<Pool<Postgres>>,request: Json<RequestId> ,req: HttpRequest) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -139,7 +139,7 @@ pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<Req
 }
 
 #[post("/decline_friend_request")]
-pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<RequestId> ,req: HttpRequest) -> HttpResponse {
+pub async fn decline_friend_request(db: web::Data<Pool<Postgres>>, request: Json<RequestId> ,req: HttpRequest) -> HttpResponse {
 
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -170,7 +170,7 @@ pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<R
 }
 
 #[post("/remove_friend")]
-pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> ,req: HttpRequest) -> HttpResponse {
+pub async fn remove_friend(db: web::Data<Pool<Postgres>>, request: Json<FriendId> ,req: HttpRequest) -> HttpResponse {
     // two ways to do this, return the friendship id and remove based on that or return the other persons id and remove based on that
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -198,7 +198,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
 }
 
 #[get("/get_all_friends")]
-pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpResponse {
+pub async fn get_all_friends(db: web::Data<Pool<Postgres>>, req: HttpRequest) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap_or("")
@@ -256,7 +256,7 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> H
 }
 
 #[post("/get_friend_profile")]
-pub async fn view_friend_profile(db: web::Data<Pool<Sqlite>>, req: HttpRequest, request: Json<FriendId> ) -> HttpResponse { // friend table id
+pub async fn view_friend_profile(db: web::Data<Pool<Postgres>>, req: HttpRequest, request: Json<FriendId> ) -> HttpResponse { // friend table id
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap_or("")

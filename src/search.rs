@@ -1,5 +1,5 @@
 use std::vec;
-use crate::backend::*;
+use crate::*;
 
 #[derive(Deserialize)]
 struct SearchQueryPage {
@@ -37,7 +37,7 @@ struct TrendingResponse {
 }
 
 #[get("/search")]
-pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQueryPage>) -> impl Responder {    
+pub async fn main_search(db: web::Data<Pool<Postgres>>, query: web::Query<SearchQueryPage>) -> impl Responder {    
     let title = format!("%{}%", query.query);
     let page = query.page.unwrap_or_default();
     let offset = (page - 1) * 28;
@@ -101,7 +101,7 @@ pub async fn main_search(db: web::Data<Pool<Sqlite>>, query: web::Query<SearchQu
 }
 
 #[get("/trending")]
-pub async fn trending_search(db: web::Data<Pool<Sqlite>>) -> impl Responder { 
+pub async fn trending_search(db: web::Data<Pool<Postgres>>) -> impl Responder { 
     //return new anime based on startdate 
     let mut new_popular: Vec<TrendingResults> = vec![];
     let mut most_popular: Vec<TrendingResults> = vec![];

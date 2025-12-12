@@ -1,5 +1,5 @@
 use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
-pub use crate::backend::*;
+pub use crate::*;
 use crate::try_or;
 
 #[derive(Serialize, Deserialize)]
@@ -35,7 +35,7 @@ pub struct ChangePfp{
 }
 
 #[post("/get_user_details")]
-pub async fn get_user_details(db: web::Data<Pool<Sqlite>>, user_id: Json<UserId>) -> HttpResponse{
+pub async fn get_user_details(db: web::Data<Pool<Postgres>>, user_id: Json<UserId>) -> HttpResponse{
     let row = try_or!(sqlx::query("SELECT user_name, user_email, user_pfp FROM user WHERE id = ?;")
     .bind(user_id.user_id).fetch_one(db.as_ref()).await, HttpResponse::InternalServerError().finish());
 
@@ -52,7 +52,7 @@ pub async fn get_user_details(db: web::Data<Pool<Sqlite>>, user_id: Json<UserId>
 }
 
 #[post("/logout")]
-pub async fn logout(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpResponse {
+pub async fn logout(db: web::Data<Pool<Postgres>>, req: HttpRequest) -> HttpResponse {
     dbg!("Loging out - backend");
     let auth_header = match req.headers().get("Authorization") {
         Some(a) => {
@@ -72,7 +72,7 @@ pub async fn logout(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpRespon
     return HttpResponse::Ok().into();
 }
 #[post("/change_username")]
-pub async fn change_username(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangeUsername>) ->HttpResponse {
+pub async fn change_username(db: web::Data<Pool<Postgres>>, req: HttpRequest, username: Json<ChangeUsername>) ->HttpResponse {
     let token = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")
@@ -95,7 +95,7 @@ pub async fn change_username(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
 }
 
 #[post("/change_password")]
-pub async fn change_password(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangePassword>) -> HttpResponse{
+pub async fn change_password(db: web::Data<Pool<Postgres>>, req: HttpRequest, username: Json<ChangePassword>) -> HttpResponse{
     dbg!("changing_password");
     let token = match req.headers().get("Authorization") {
         Some(a) => {
@@ -118,7 +118,7 @@ pub async fn change_password(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
 }
 
 #[post("/change_email")]
-pub async fn change_email(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangeEmail>) -> HttpResponse{ // add email verification later
+pub async fn change_email(db: web::Data<Pool<Postgres>>, req: HttpRequest, username: Json<ChangeEmail>) -> HttpResponse{ // add email verification later
     let token = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")
@@ -139,7 +139,7 @@ pub async fn change_email(db: web::Data<Pool<Sqlite>>, req: HttpRequest, usernam
 }
 
 #[post("/delete_user")]
-pub async fn delete_user(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpResponse {
+pub async fn delete_user(db: web::Data<Pool<Postgres>>, req: HttpRequest) -> HttpResponse {
     
     let token = match req.headers().get("Authorization") {
         Some(a) => {
@@ -161,7 +161,7 @@ pub async fn delete_user(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpR
 }
 
 #[post("/change_pfp")]
-pub async fn change_pfp(db: Data<Pool<Sqlite>>, req: HttpRequest, new_pfp: Json<ChangePfp>) -> HttpResponse {
+pub async fn change_pfp(db: Data<Pool<Postgres>>, req: HttpRequest, new_pfp: Json<ChangePfp>) -> HttpResponse {
     let token = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")

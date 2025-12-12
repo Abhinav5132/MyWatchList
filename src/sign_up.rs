@@ -1,7 +1,7 @@
 use actix_web::{web::{Data, Json}, HttpResponse};
 pub use std::fs;
-use crate::backend::add_to_list::{WatchListType, create_list, encode_to_base64, file_to_blob_with_path};
-pub use crate::backend::*;
+use crate::add_to_list::{WatchListType, create_list, encode_to_base64, file_to_blob_with_path};
+pub use crate::*;
 pub use authenticate::pwd_to_hash;
 pub use serde_json::json;
 //implement profile pic later
@@ -39,7 +39,7 @@ pub struct CheckEmailAvailabilityResponse{
     available: bool
 }
 #[post("/Signup")]
-pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<SignUpStruct>) -> HttpResponse{
+pub async fn sign_up_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<SignUpStruct>) -> HttpResponse{
     let entered_pwd  = &credentials.user_password;
     let hashed_pwd = match pwd_to_hash(entered_pwd){
         Ok(pwd)=> pwd,
@@ -176,7 +176,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Sqlite>>, credentials: web::Json<Sign
 }
 
 #[get("/check_username_availability")]
-pub async fn check_username_availability(db: Data<Pool<Sqlite>>, username: Json<CheckUserNameAvailability>) -> HttpResponse {
+pub async fn check_username_availability(db: Data<Pool<Postgres>>, username: Json<CheckUserNameAvailability>) -> HttpResponse {
     let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_name = ?;").bind(&username.username).fetch_one(db.as_ref()).await {
         Ok(c) => {
             c
@@ -199,7 +199,7 @@ pub async fn check_username_availability(db: Data<Pool<Sqlite>>, username: Json<
 }
 
 #[get("/check_email_availability")]
-pub async fn check_email_availability(db: Data<Pool<Sqlite>>, email: Json<CheckEmailAvailability>)-> HttpResponse{
+pub async fn check_email_availability(db: Data<Pool<Postgres>>, email: Json<CheckEmailAvailability>)-> HttpResponse{
     let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_email = ?").bind(&email.email).fetch_one(db.as_ref()).await {
         Ok(c) => c,
         Err(e) => {

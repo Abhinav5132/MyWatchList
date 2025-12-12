@@ -2,8 +2,8 @@ use actix_web::web::Data;
 use anyhow::Result;
 use reqwest::Client;
 use sqlx::{Pool, Sqlite};
-pub use crate::backend::*;
-pub use crate::backend::AnimeStructs::Anime;
+pub use crate::*;
+pub use crate::AnimeStructs::Anime;
 
 //TODO: This whole thing is shit
 
@@ -25,7 +25,7 @@ pub struct AnimeMedia {
 
 /*updates the anime that are already in the db and are finished can be run way more periodically than the rest */
 //TODO this needs to also update its reccommendations and related as those can change.
-pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<()> { 
+pub async fn update_already_in_db(db: web::Data<Pool<Postgres>>)->anyhow::Result<()> { 
     let updatedAt:i64 = sqlx::query("SELECT updatedAt 
     FROM anime 
     ORDER BY updatedAt ASC 
@@ -91,7 +91,7 @@ pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<(
 }
 
 /*updates anime that are releasing*/
-pub async fn update_ones_not_in_db(db: Data<Pool<Sqlite>>) -> Result<()> {
+pub async fn update_ones_not_in_db(db: Data<Pool<Postgres>>) -> Result<()> {
     let updatedAt:i64 = sqlx::query("SELECT updatedAt 
     FROM anime 
     ORDER BY updatedAt ASC 

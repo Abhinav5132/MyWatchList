@@ -4,12 +4,11 @@ use std::time::Duration;
 use actix_web::web::Data;
 use anyhow::Result;
 use reqwest::Client;
-use sqlx::Sqlite;
 use serde::Deserialize;
 use sqlx::Pool;
 
-use crate::backend::AnimeStructs::Anime;
-pub use crate::backend::*;
+use crate::AnimeStructs::Anime;
+pub use crate::*;
 
 
 #[derive(Deserialize)]
@@ -27,7 +26,7 @@ pub struct Page {
     pub media: Vec<Anime>,
 }
 
-pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
+pub async fn initialize_database(db: Data<Pool<Postgres>>) -> Result<()> {
     println!("INITIALIZING");    
     /*first lets update finished anime from the last updated date. */
     let anilist_query = "
@@ -214,22 +213,41 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
                 continue;
             }
 
-            let id = sqlx::query(" 
-            INSERT OR IGNORE INTO anime
-            (title_english, title_romanji, description, format, episodes, status, start_date, end_date, anime_season, 
-            anime_year, extraLargeImage, largeImage, mediumImage, duration, averageScore, popularity, banner_image, next_episode, next_episode_airing_at, updatedAt) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-            ").bind(title_english).bind(title_romaji).bind(description).bind(format)
-            .bind(episodes).bind(status).bind(start_date).bind(end_date)
-            .bind(anime_season).bind(anime_year).bind(extra_large).bind(large)
-            .bind(medium).bind(duration).bind(averageScore).bind(popularity)
-            .bind(banner_image).bind(next_episode).bind(next_episode_airing_at).bind(updated_at)
-            .execute(&mut *tx).await?.last_insert_rowid();
+            let id: i64 = sqlx::query(" 
+                INSERT OR IGNORE INTO anime
+                (title_english, title_romanji, description, format, episodes, status, start_date, end_date, anime_season, 
+                anime_year, extraLargeImage, largeImage, mediumImage, duration, averageScore, popularity, banner_image, next_episode, next_episode_airing_at, updatedAt) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) 
+                ON CONFLICT DO NOTHNG
+                RETURNING id 
+            ")
+            .bind(title_english)
+            .bind(title_romaji)
+            .bind(description)
+            .bind(format)
+            .bind(episodes)
+            .bind(status)
+            .bind(start_date)
+            .bind(end_date)
+            .bind(anime_season)
+            .bind(anime_year)
+            .bind(extra_large)
+            .bind(large)
+            .bind(medium)
+            .bind(duration)
+            .bind(averageScore)
+            .bind(popularity)
+            .bind(banner_image)
+            .bind(next_episode)
+            .bind(next_episode_airing_at)
+            .bind(updated_at)
+            .fetch_one(&mut *tx).await?
+            .get(0);
  
             // inserting synonyms
             let synonyms = entry.get_synonyms();
              for synonym in synonyms {
-                sqlx::query("INSERT INTO synonyms(anime_id, synonym) VALUES (?, ?)")
+                sqlx::query("INSERT INTO synonyms(anime_id, synonym) VALUES ($1, $2)")
                 .bind(id)
                 .bind(synonym)
                 .execute(&mut *tx).await?;
@@ -241,14 +259,21 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
                 let studio_id = if let Some(id) = studio_cache.get(&studio) {
                             *id
                         } else {
-                            let id = sqlx::query("INSERT OR IGNORE INTO studios (name) VALUES (?)")
+                            let id = sqlx::query(
+                                    "INSERT INTO studios (name) VALUES ($1) 
+                                    ON CONFLICT DO NOTHING 
+                                    RETURNING id"
+                                )
                                 .bind(&studio)
-                                .execute(&mut *tx)
-                                .await?.last_insert_rowid();
+                                .fetch_one(&mut *tx)
+                                .await?.get(0);
                             studio_cache.insert(studio.clone(), id);
                             id
                         };
-                sqlx::query("INSERT INTO anime_studio(anime_id, studio_id) VALUES (?, ?)")
+                sqlx::query("
+                        INSERT INTO anime_studio(anime_id, studio_id) VALUES ($1, $2)
+                        ON CONFLICT DO NOTHING"
+                        )
                     .bind(id)
                     .bind(studio_id)
                     .execute(&mut *tx)
@@ -257,7 +282,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
 
             let related = entry.get_related();
             for (name, relation) in related {
-                sqlx::query("INSERT INTO related_anime(anime_id, related_name, relation_type) VALUES (?, ?, ?)")
+                sqlx::query("INSERT INTO related_anime(anime_id, related_name, relation_type) VALUES ($1, $2, $3)")
                     .bind(id)
                     .bind(name)
                     .bind(relation)
@@ -271,17 +296,17 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
                 let tag_id = if let Some(id) = tag_cache.get(tag_name) {
                             *id
                     } else {
-                        let id = sqlx::query("INSERT OR IGNORE INTO tags (tag, rank, isAdult) VALUES (?, ? , ?)")
+                        let id = sqlx::query("INSERT INTO tags (tag, rank, isAdult) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING id")
                             .bind(tag_name)
                             .bind(tag.rank)
                             .bind(tag.isAdult)
-                            .execute(&mut *tx)
-                            .await?.last_insert_rowid();
+                            .fetch_one(&mut *tx)
+                            .await?.get(0);
                         tag_cache.insert(tag_name.to_string(), id);
                         id
                     };
 
-                sqlx::query("INSERT INTO anime_tags(anime_id, tag_id) VALUES (?, ?)")
+                sqlx::query("INSERT INTO anime_tags(anime_id, tag_id) VALUES ($1, $2)")
                     .bind(id)
                     .bind(tag_id)
                     .execute(&mut *tx)
@@ -294,15 +319,15 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
                 let character_id = if let Some(id) = character_cache.get(name) {
                         *id
                     } else {
-                        let id = sqlx::query("INSERT OR IGNORE INTO characters(name) VALUES (?)")
+                        let id = sqlx::query("INSERT INTO characters(name) VALUES ($1) ON CONFLICT DO NOTHING RETURNING id")
                             .bind(name)
-                            .execute(&mut *tx)
-                            .await?.last_insert_rowid();
+                            .fetch_one(&mut *tx)
+                            .await?.get(0);
                         character_cache.insert(name.to_string().clone(), id);
                         id
                     };
                 if inserted_characters.insert(character_id) {
-                sqlx::query("INSERT INTO anime_character(anime_id, character_id, role, image) VALUES (?,?,?,?)")
+                sqlx::query("INSERT INTO anime_character(anime_id, character_id, role, image) VALUES ($1,$2,$3,$4)")
                     .bind(id)
                     .bind(character_id)
                     .bind(role)
@@ -314,7 +339,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
 
             let recommendations = entry.get_recommended();
             for name in recommendations{
-                sqlx::query("INSERT INTO recommendations(anime_id, recommended_title) VALUES (?,?)")
+                sqlx::query("INSERT INTO recommendations(anime_id, recommended_title) VALUES ($1,$2)")
                 .bind(id)
                 .bind(name)
                 .execute(&mut *tx)
