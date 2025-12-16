@@ -4,7 +4,6 @@ use actix_web::web::Data;
 use actix_web::{get, post, App, HttpServer, Responder, web};
 use actix_cors::Cors;
 use dotenvy::dotenv;
-use reqwest::header;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, postgres,*};
 use env_logger::Env;

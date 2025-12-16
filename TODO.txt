@@ -29,3 +29,6 @@ Nice looking colours:
 
 -- typing is very blocky for  some reason plx fix 
 -- not to self: Signal sitrings dont need to be dereferenced
+
+
+NOTE TO SELF CHANGE TRENDING RESULTS TO RETURN I32 SCROLLING RESULTS DURATION TO AN I32

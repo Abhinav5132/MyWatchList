@@ -1,7 +1,7 @@
 use actix_web::web::Data;
 use anyhow::Result;
 use reqwest::Client;
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool};
 pub use crate::*;
 pub use crate::AnimeStructs::Anime;
 

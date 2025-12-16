@@ -68,7 +68,7 @@ pub async fn send_firend_request(db: web::Data<Pool<Postgres>>,request: Json<Fri
     };
 
     if verify_token(db.clone(), &auth_header).await {
-        let count = match sqlx::query("SELECT COUNT(1) FROM friend_requests WHERE sender_id = ? AND receiver_id = ?")
+        let count = match sqlx::query("SELECT COUNT(1) FROM friend_requests WHERE sender_id = $1 AND receiver_id = $2")
         .bind(request.user_id).bind(request.friend_id).fetch_one(db.as_ref()).await {
             Ok(row) => {
                 let cnt: i64 = try_or!(row.try_get(0), HttpResponse::InternalServerError().into());
@@ -81,7 +81,7 @@ pub async fn send_firend_request(db: web::Data<Pool<Postgres>>,request: Json<Fri
         };
 
         if count == 0 {
-            match sqlx::query("INSERT INTO friend_requests(sender_id, receiver_id) VALUES (?,?)")
+            match sqlx::query("INSERT INTO friend_requests(sender_id, receiver_id) VALUES ($1,$2)")
             .bind(request.user_id).bind(request.friend_id).execute(db.as_ref()).await {
                 Ok(_) => { 
                     return HttpResponse::Ok().body("Freind request sent");
@@ -113,14 +113,14 @@ pub async fn accept_friend_request(db: web::Data<Pool<Postgres>>,request: Json<R
 
     if verify_token(db.clone(), &auth_header).await {
         match sqlx::query(" 
-            WITH req as (SELECT sender_id, receiver_id FROM friend_requests WHERE id = ?)
+            WITH req as (SELECT sender_id, receiver_id FROM friend_requests WHERE id = $1)
             INSERT INTO friends (user_1, user_2)
             SELECT 
                 CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END,
                 CASE WHEN sender_id < receiver_id THEN receiver_id ELSE sender_id END
             FROM req;
 
-            DELETE FROM friend_requests WHERE id = ?;
+            DELETE FROM friend_requests WHERE id = $1;
 
         ")
         .bind(request.request_id).fetch_one(db.as_ref()).await {
@@ -152,7 +152,7 @@ pub async fn decline_friend_request(db: web::Data<Pool<Postgres>>, request: Json
 
     if verify_token(db.clone(), &auth_header).await {
         match sqlx::query(" 
-            DELETE FROM friend_requests WHERE id = ?;
+            DELETE FROM friend_requests WHERE id = $1;
         ")
         .bind(request.request_id).fetch_one(db.as_ref()).await {
             Ok(_) => {
@@ -182,7 +182,7 @@ pub async fn remove_friend(db: web::Data<Pool<Postgres>>, request: Json<FriendId
     };
 
     if verify_token(db.clone(), &auth_header).await {
-        match sqlx::query("DELETE FROM friends WHERE id = ?")
+        match sqlx::query("DELETE FROM friends WHERE id = $1")
         .bind(request.friend_id).execute(db.as_ref()).await {
             Ok(_) => {
                 return HttpResponse::Ok().finish();
@@ -213,11 +213,11 @@ pub async fn get_all_friends(db: web::Data<Pool<Postgres>>, req: HttpRequest) ->
         let result = match sqlx::query("
             WITH req as (
                 SELECT 
-                    CASE WHEN user_1 = ? THEN user_2 ELSE user_1 END AS friend_id
+                    CASE WHEN user_1 = $1 THEN user_2 ELSE user_1 END AS friend_id
                 FROM friends 
-                WHERE user_1 = ? OR user_2 = ?
+                WHERE user_1 = $2 OR user_2 = $3
             ) 
-            SELECT id, user_name, user_pfp FROM user WHERE id IN (SELECT friend_id FROM req); 
+            SELECT id, user_name, user_pfp FROM \"user\" WHERE id IN (SELECT friend_id FROM req); 
         ").bind(user_id).bind(user_id).bind(user_id).fetch_all(db.as_ref()).await {
             Ok(r) => r,
             Err(e) => {
@@ -273,9 +273,9 @@ pub async fn view_friend_profile(db: web::Data<Pool<Postgres>>, req: HttpRequest
     if verify_token(db.clone(), &auth_header).await {
         let result = match sqlx::query("
             SELECT 
-                CASE WHEN user_1 = ? THEN user_2 ELSE user_1 END AS friend_id
+                CASE WHEN user_1 = $1 THEN user_2 ELSE user_1 END AS friend_id
             FROM friends 
-            WHERE  id = ? AND (user_1 = ? OR user_2 = ?)").bind(user_id).bind(request.friend_id)
+            WHERE id = $2 AND (user_1 = $3 OR user_2 = $4)").bind(user_id).bind(request.friend_id)
             .bind(user_id).bind(user_id).fetch_one(db.as_ref()).await
             {
             Ok(r) => r,
@@ -290,7 +290,7 @@ pub async fn view_friend_profile(db: web::Data<Pool<Postgres>>, req: HttpRequest
         }
         let friend_id = result.try_get("friend_id").unwrap_or(-164);
         if friend_id != -1 {
-            let row = match sqlx::query("SELECT id, user_name, user_pfp FROM user WHERE id = ?")
+            let row = match sqlx::query("SELECT id, user_name, user_pfp FROM \"user\" WHERE id = $1")
             .bind(friend_id).fetch_one(db.as_ref()).await {
                 Ok(r) => r,
                 Err(e) => {
@@ -310,8 +310,8 @@ pub async fn view_friend_profile(db: web::Data<Pool<Postgres>>, req: HttpRequest
             let user_name: String = row.try_get("user_name").unwrap_or("UNKNOWN".to_string());
             let user_pfp: String = row.try_get("user_pfp").unwrap_or("UNKNWON".to_string());
 
-            let row = match sqlx::query("SELECT id, name, description, list_image FROM watch_list WHERE user_id = ? 
-                AND (privacy_type = ? OR privacy_type = ?)")
+            let row = match sqlx::query("SELECT id, name, description, list_image FROM watch_list WHERE user_id = $1 
+                AND (privacy_type = $2 OR privacy_type = $3)")
                 .bind(friend_id).bind(WatchListType::FriendsOnly.string())
                 .bind(WatchListType::Public.string()).fetch_all(db.as_ref()).await {
                 Ok(r) => {

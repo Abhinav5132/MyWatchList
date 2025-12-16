@@ -68,14 +68,25 @@ pub async fn sign_up_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<Si
         }
     };
     
-    let user_id = match sqlx::query("INSERT INTO user (user_name, user_email, user_password, user_pfp) VALUES (?,?,?,?);")
+    let user_id = match sqlx::query("INSERT INTO user (user_name, user_email, user_password, user_pfp) VALUES ($1,$2,$3,$4) 
+        ON CONFLICT DO NOTHING RETURNING id;")
     .bind(&credentials.user_name)
     .bind(&credentials.user_email)
     .bind(hashed_pwd)
     .bind(no_pfp)
-    .execute(db.as_ref()).await
+    .fetch_one(db.as_ref()).await
     {
-        Ok(rows) => rows.last_insert_rowid(),
+        Ok(rows) => match rows.try_get("id"){
+            Ok(id)=>{
+                id
+            },
+            Err(e)=>{
+                dbg!(e);
+                return HttpResponse::InternalServerError().json(json!({
+                        "status": "Internal error"
+                    }));    
+            }
+        },
         Err(e)=> {
             dbg!(e);
             return HttpResponse::InternalServerError().json(json!({
@@ -105,7 +116,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<Si
     };
 
     let query = sqlx::query("
-    UPDATE user SET (user_access_token, user_refresh_token) = (?, ?) WHERE id = ?;
+    UPDATE user SET (user_access_token, user_refresh_token) = ($1, $2) WHERE id = $3;
     ").bind(&access_token).bind(&refresh_token).bind(user_id).execute(db.as_ref()).await;
 
     let default_image = match file_to_blob_with_path("assets/images.png") {
@@ -177,7 +188,7 @@ pub async fn sign_up_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<Si
 
 #[get("/check_username_availability")]
 pub async fn check_username_availability(db: Data<Pool<Postgres>>, username: Json<CheckUserNameAvailability>) -> HttpResponse {
-    let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_name = ?;").bind(&username.username).fetch_one(db.as_ref()).await {
+    let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM \"user\" WHERE user_name = $1;").bind(&username.username).fetch_one(db.as_ref()).await {
         Ok(c) => {
             c
         }
@@ -200,7 +211,7 @@ pub async fn check_username_availability(db: Data<Pool<Postgres>>, username: Jso
 
 #[get("/check_email_availability")]
 pub async fn check_email_availability(db: Data<Pool<Postgres>>, email: Json<CheckEmailAvailability>)-> HttpResponse{
-    let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_email = ?").bind(&email.email).fetch_one(db.as_ref()).await {
+    let count: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM \"user\" WHERE user_email = $1").bind(&email.email).fetch_one(db.as_ref()).await {
         Ok(c) => c,
         Err(e) => {
             dbg!(e);

@@ -24,15 +24,7 @@ anyhow = "1.0.100"
 html-escape = "0.2.13"
 env_logger = "0.11.8"
 actix-cors = "0.7.1"
-[profile.wasm-dev]
-inherits = "dev"
-opt-level = 1
-
-[profile.server-dev]
-inherits = "dev"
-
-[profile.android-dev]
-inherits = "dev"
+regex = "1.12.2"
 
 [profile.dev]
 opt-level = 1

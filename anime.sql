@@ -1,40 +1,39 @@
-
 CREATE TABLE IF NOT EXISTS anime (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title_english TEXT,
     title_romanji TEXT NOT NULL,
     description TEXT,
     format TEXT,
-    episodes INT,
+    episodes INTEGER,
     status TEXT,
     start_date TEXT,
     end_date TEXT,
     anime_season TEXT,
-    anime_year INT,
+    anime_year INTEGER,
     extraLargeImage TEXT,
-    extraLargeImageLocal BLOB,
+    extraLargeImageLocal TEXT,
     LargeImage TEXT,
-    LargeImageLocal BLOB,
+    LargeImageLocal TEXT,
     mediumImage TEXT,
-    mediumImageLocal BLOB,
+    mediumImageLocal TEXT,
     banner_image TEXT,
-    duration INT,
-    popularity INT,
-    averageScore FLOAT,
+    duration INTEGER,
+    popularity INTEGER,
+    averageScore REAL,
     next_episode TEXT,
     next_episode_airing_at TEXT,
     updatedAt INTEGER
 );
 
 Create Table If not Exists synonyms(
-    id INTEGER PRIMARY Key AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY Key,
     anime_id INTEGER NOT NULL,
     synonym TEXT NOT NULL,
     FOREIGN KEY(anime_id) REFERENCES anime(id)
 );
 
 CREATE TABLE IF NOT EXISTS related_anime (
-    related_anime_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    related_anime_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     anime_id INTEGER NOT NULL,
     related_name TEXT NOT NULL,
     relation_type TEXT,
@@ -43,7 +42,7 @@ CREATE TABLE IF NOT EXISTS related_anime (
 );
 
 CREATE Table IF NOT EXISTS tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     tag Text,
     rank INTEGER,
     isAdult INTEGER
@@ -57,7 +56,7 @@ Create Table If Not EXISTS anime_tags(
 );
 
 CREATE Table IF NOT EXISTS genres (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY ,
     genre Text
 );
 
@@ -68,13 +67,13 @@ Create Table If Not EXISTS anime_genre(
     Foreign Key (genre_id) REFERENCES genres(id)
 );
 Create Table IF NOT EXISTS studios(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT UNIQUE
 );
 
 CREATE Table IF NOT EXISTS anime_studio(
-    anime_id INT,
-    studio_id INT,
+    anime_id INTEGER,
+    studio_id INTEGER,
     Foreign Key (anime_id) REFERENCES anime(id),
     Foreign Key (studio_id) REFERENCES studios(id)
 );
@@ -82,7 +81,7 @@ CREATE Table IF NOT EXISTS anime_studio(
 
 -- Characters
 CREATE TABLE IF NOT EXISTS characters (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL 
 );
 
@@ -100,55 +99,54 @@ CREATE TABLE IF NOT EXISTS anime_character (
 
 -- Recommendations
 CREATE TABLE IF NOT EXISTS recommendations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     anime_id INTEGER NOT NULL,
     recommended_title TEXT NOT NULL,
-    rating INT,
+    rating INTEGER,
     FOREIGN KEY(anime_id) REFERENCES anime(id)
 );
 
-Create TABLE IF NOT EXISTS user (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS "user" (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_name TEXT NOT NULL UNIQUE,
     user_email TEXT NOT NULL UNIQUE,
     user_password TEXT NOT NULL,
     user_access_token TEXT,
     user_refresh_token TEXT,
-    user_pfp TEXT NOT NULL -- should be not null in production
+    user_pfp TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS friends (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_1 INT NOT NULL,
-    user_2 INT NOT NULL,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_1 INTEGER NOT NULL,
+    user_2 INTEGER NOT NULL,
     CHECK (user_1 < user_2),
-    FOREIGN KEY (user_1) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_2) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_1) REFERENCES "user"(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_2) REFERENCES "user"(id) ON DELETE CASCADE,
     UNIQUE(user_1, user_2)
 );
 
 CREATE TABLE IF NOT EXISTS friend_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, -- request id
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- request id
     status TEXT NOT NULL, 
-    sender_id INT NOT NULL,      
-    receiver_id INT NOT NULL,
-
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES user(id) ON DELETE CASCADE,
+    sender_id INTEGER NOT NULL,      
+    receiver_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES "user"(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES "user"(id) ON DELETE CASCADE,
     UNIQUE(sender_id, receiver_id)
 );
 
 Create Table IF NOT EXISTS watch_list( --unordered watch-list 
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
     user_id INTEGER NOT NUll,
     privacy_type TEXT NOT Null,
-    is_ranked INT NOT NULL, -- 0 for not ranked and 1 for ranked.
+    is_ranked INTEGER NOT NULL, -- 0 for not ranked and 1 for ranked.
     list_image TEXT NOT NULL, --text instead of blob to directly store base 64 encoded image
-    is_user_image INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    is_user_image INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
     UNIQUE(user_id, name) -- no duplicate list names per user
 );
 

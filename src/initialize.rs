@@ -203,7 +203,7 @@ pub async fn initialize_database(db: Data<Pool<Postgres>>) -> Result<()> {
             let next_episode = next.0;
             let next_episode_airing_at = next.1;
 
-            let is_present: i64 = sqlx::query("SELECT COUNT(1) FROM anime WHERE title_romanji = ?")
+            let is_present: i64 = sqlx::query("SELECT COUNT(1) FROM anime WHERE title_romanji = $1")
             .bind(title_romaji)
             .fetch_one(&mut *tx)
             .await?
@@ -214,11 +214,11 @@ pub async fn initialize_database(db: Data<Pool<Postgres>>) -> Result<()> {
             }
 
             let id: i64 = sqlx::query(" 
-                INSERT OR IGNORE INTO anime
+                INSERT INTO anime
                 (title_english, title_romanji, description, format, episodes, status, start_date, end_date, anime_season, 
                 anime_year, extraLargeImage, largeImage, mediumImage, duration, averageScore, popularity, banner_image, next_episode, next_episode_airing_at, updatedAt) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) 
-                ON CONFLICT DO NOTHNG
+                ON CONFLICT DO NOTHING
                 RETURNING id 
             ")
             .bind(title_english)
@@ -242,7 +242,7 @@ pub async fn initialize_database(db: Data<Pool<Postgres>>) -> Result<()> {
             .bind(next_episode_airing_at)
             .bind(updated_at)
             .fetch_one(&mut *tx).await?
-            .get(0);
+            .try_get(0)?;
  
             // inserting synonyms
             let synonyms = entry.get_synonyms();
@@ -292,6 +292,17 @@ pub async fn initialize_database(db: Data<Pool<Postgres>>) -> Result<()> {
 
             let tags = entry.get_tags();
             for tag in tags {
+                let mut is_adult= match tag.isAdult{
+                    Some(a) => {
+                        if a {
+                            1
+                        } else {
+                            0
+                        }
+                    }
+
+                    None => 0
+                } ;
                 let tag_name = tag.name.as_deref().unwrap_or("UNKNOWN");
                 let tag_id = if let Some(id) = tag_cache.get(tag_name) {
                             *id
@@ -299,7 +310,7 @@ pub async fn initialize_database(db: Data<Pool<Postgres>>) -> Result<()> {
                         let id = sqlx::query("INSERT INTO tags (tag, rank, isAdult) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING id")
                             .bind(tag_name)
                             .bind(tag.rank)
-                            .bind(tag.isAdult)
+                            .bind(is_adult)
                             .fetch_one(&mut *tx)
                             .await?.get(0);
                         tag_cache.insert(tag_name.to_string(), id);

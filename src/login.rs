@@ -15,7 +15,7 @@ pub async fn login_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<Logi
     let password = &credentials.password;
     dbg!(&username);
     dbg!(&password);
-    let row =sqlx::query("SELECT user_password, id FROM user WHERE user_name = ?").bind(username).fetch_one(db.as_ref()).await; 
+    let row =sqlx::query("SELECT user_password, id FROM \"user\" WHERE user_name = $1").bind(username).fetch_one(db.as_ref()).await; 
 
     match row {
         Ok(row_exist) =>{
@@ -52,7 +52,7 @@ pub async fn login_fn(db: web::Data<Pool<Postgres>>, credentials: web::Json<Logi
                         };
 
                         let query = sqlx::query("
-                        UPDATE user SET (user_access_token, user_refresh_token) = (?, ?) WHERE id = ?;
+                        UPDATE user SET (user_access_token, user_refresh_token) = ($1, $2) WHERE id = $3;
                         ").bind(&access_token).bind(&refresh_token).bind(user_id).execute(db.as_ref()).await;
 
 

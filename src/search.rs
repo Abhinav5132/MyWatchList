@@ -15,7 +15,7 @@ struct ScrollingResults{
     banner_image: String,
     averageScore: f32,
     description: String,
-    duration: u32,
+    duration: i32,
     format: String
 }
 
@@ -25,7 +25,7 @@ struct TrendingResults{
     title_english: String,
     title_romanji: String,
     thumbnail: String,
-    averageScore: u32
+    averageScore: i32
 
 }
 
@@ -40,13 +40,13 @@ struct TrendingResponse {
 pub async fn main_search(db: web::Data<Pool<Postgres>>, query: web::Query<SearchQueryPage>) -> impl Responder {    
     let title = format!("%{}%", query.query);
     let page = query.page.unwrap_or_default();
-    let offset = (page - 1) * 28;
+    let offset = ((page - 1) * 28) as i32;
     match sqlx::query("
             SELECT anime.title_romanji, anime.mediumImage, anime.LargeImage, anime.id
             FROM anime
-            WHERE anime.title_romanji LIKE ? COLLATE NOCASE
+            WHERE anime.title_romanji LIKE $1 COLLATE NOCASE
             ORDER BY anime.popularity DESC 
-            LIMIT 28 OFFSET ?"
+            LIMIT 28 OFFSET $2"
         )
         .bind(&title)
         .bind(offset)

@@ -21,7 +21,7 @@ pub struct ReccomendResult{
 pub async fn get_details(db: web::Data<Pool<Postgres>>, query: web::Query<SearchQuery>) -> impl Responder {
     let id = format!("{}", query.query);
     match sqlx::query("SELECT title_romanji, format, description, episodes, status, anime_season, anime_year,
-     LargeImage, duration, averageScore FROM anime WHERE id = ?
+     LargeImage, duration, averageScore FROM anime WHERE id = $1;
     ").bind(&id).fetch_one(db.as_ref()).await {
         Ok(row) => {
         let title = row.try_get("title_romanji").unwrap_or("Unknown").to_string();
@@ -71,7 +71,7 @@ pub async fn get_details(db: web::Data<Pool<Postgres>>, query: web::Query<Search
 }
 
 pub async fn get_synonyms(db: &Pool<Postgres>, id: &String) -> Vec<String> {
-    let r = match sqlx::query("SELECT s.synonym FROM synonyms s WHERE s.anime_id = ?")
+    let r = match sqlx::query("SELECT s.synonym FROM synonyms s WHERE s.anime_id = $2")
     .bind(id).fetch_all(db).await {
         Ok(vecs) => vecs,
         Err(e)=>{
@@ -95,7 +95,7 @@ pub async fn get_studios(db: &Pool<Postgres>, id: &String) -> Vec<String> {
     let r = match sqlx::query("SELECT s.name 
         FROM studios s
         JOIN anime_studio ast ON s.id = ast.studio_id
-        WHERE ast.anime_id = ?").bind(id).fetch_all(db).await {
+        WHERE ast.anime_id = $1").bind(id).fetch_all(db).await {
             Ok(vecs) => vecs, 
             Err(e) => {
                 dbg!(e);
@@ -119,7 +119,7 @@ pub async fn get_tags(db: &Pool<Postgres>, id: &String) -> Vec<String> {
     let r = match sqlx::query("SELECT t.tag
         FROM tags t
         JOIN anime_tags at ON t.id = at.tag_id
-        WHERE at.anime_id = ?
+        WHERE at.anime_id = $1
         ").bind(id).fetch_all(db).await
         {
             Ok(vecs) => vecs, 
@@ -147,7 +147,7 @@ pub async fn get_recommendations(db: &Pool<Postgres>, id: &String) -> Vec<Reccom
     SELECT r.recommended_title ,a.id, a.mediumImage, a.averageScore
     FROM recommendations r
     JOIN anime a ON a.title_romanji = r.recommended_title
-    WHERE anime_id = ?")
+    WHERE anime_id = $1")
         .bind(id).fetch_all(db).await {
             Ok(recs) => recs,
             Err(e) => {
@@ -177,7 +177,7 @@ pub async fn get_related(db: &Pool<Postgres>, id: &String) -> Vec<RelatedAnime> 
     SELECT r.related_name, r.relation_type, a.id, a.mediumImage
     FROM related_anime r
     JOIN anime a ON a.title_romanji = r.related_name
-    WHERE anime_id = ?")
+    WHERE anime_id = $1")
         .bind(id).fetch_all(db).await {
         Ok(related) => related,
         Err(e)  => {

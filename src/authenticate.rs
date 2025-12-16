@@ -118,7 +118,7 @@ pub async fn verify_token(db: Data<Pool<Postgres>>,token: &str) -> bool {
         }
     };
 
-    if let Ok(row) = sqlx::query("SELECT user_access_token FROM user WHERE id = ?").bind(claims.sub)
+    if let Ok(row) = sqlx::query("SELECT user_access_token FROM \"user\" WHERE id = $1;").bind(claims.sub)
     .fetch_one(db.as_ref()).await {
         let db_tk:Result<String, sqlx::Error> = row.try_get("user_access_token");
         if let Ok(db_token) = db_tk{
@@ -133,8 +133,8 @@ pub async fn verify_token(db: Data<Pool<Postgres>>,token: &str) -> bool {
 pub async fn issue_new_access_token(db: Data<Pool<Postgres>>, refresh_token: Json<AuthResponse>) -> HttpResponse {
     dotenvy::dotenv().ok();
     match sqlx::query("SELECT id 
-    FROM user 
-    WHERE user_refresh_token = ?;
+    FROM \"user\" 
+    WHERE user_refresh_token = $1;
     ").bind(&refresh_token.refresh_token).fetch_one(db.as_ref()).await {
         Ok(row) => {
             let user_id:i64 = match row.try_get("id"){
@@ -146,7 +146,7 @@ pub async fn issue_new_access_token(db: Data<Pool<Postgres>>, refresh_token: Jso
             let access_token = match generate_access_token(user_id).await {
                 Ok(token) => {
                     let _ = match sqlx::query("
-                    UPDATE user SET user_access_token = ? WHERE id = ?;
+                    UPDATE user SET user_access_token = $1 WHERE id = $2;
                     ").bind(&token).bind(user_id).execute(db.as_ref()).await{
                         Ok(a) => a,
                         Err(e) => {
@@ -186,7 +186,7 @@ pub async fn verify_entered_password(db: Data<Pool<Postgres>>, req: HttpRequest,
 
     let user_id = get_userid_from_jwt(auth_header).await;
     let row = try_or!(
-        sqlx::query("SELECT user_password FROM user WHERE id = ?").bind(user_id).fetch_one(db.as_ref()).await,
+        sqlx::query("SELECT user_password FROM \"user\" WHERE id = $1;").bind(user_id).fetch_one(db.as_ref()).await,
         HttpResponse::InternalServerError().finish()
     );
 

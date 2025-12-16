@@ -36,7 +36,7 @@ pub struct ChangePfp{
 
 #[post("/get_user_details")]
 pub async fn get_user_details(db: web::Data<Pool<Postgres>>, user_id: Json<UserId>) -> HttpResponse{
-    let row = try_or!(sqlx::query("SELECT user_name, user_email, user_pfp FROM user WHERE id = ?;")
+    let row = try_or!(sqlx::query("SELECT user_name, user_email, user_pfp FROM \"user\" WHERE id = ?;")
     .bind(user_id.user_id).fetch_one(db.as_ref()).await, HttpResponse::InternalServerError().finish());
 
     let image:String = try_or!(row.try_get("user_pfp"), HttpResponse::InternalServerError().finish());
