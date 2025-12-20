@@ -1,6 +1,6 @@
 use actix_web::{HttpRequest, HttpResponse, get, web::{self, Json}};
 use sqlx::Pool;
-use crate::{backend::add_to_list::AList, try_or};
+use crate::{backend::{add_to_list::AList, verification_service::TokenVerifier}, try_or};
 
 pub use crate::backend::*;
 
@@ -57,7 +57,7 @@ impl WatchListType {
 }
 
 #[post("/send_firend_request")]
-pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<FriendRequest>, req: HttpRequest) -> HttpResponse {
+pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<FriendRequest>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -67,7 +67,7 @@ pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<Frien
         }
     };
 
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token( &auth_header).await {
         let count = match sqlx::query("SELECT COUNT(1) FROM friend_requests WHERE sender_id = ? AND receiver_id = ?")
         .bind(request.user_id).bind(request.friend_id).fetch_one(db.as_ref()).await {
             Ok(row) => {
@@ -101,7 +101,7 @@ pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<Frien
 }   
 
 #[post("/accept_friend_request")]
-pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<RequestId> ,req: HttpRequest) -> HttpResponse {
+pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<RequestId> ,req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -111,7 +111,7 @@ pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<Req
         }
     };
 
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token( &auth_header).await {
         match sqlx::query(" 
             WITH req as (SELECT sender_id, receiver_id FROM friend_requests WHERE id = ?)
             INSERT INTO friends (user_1, user_2)
@@ -139,7 +139,7 @@ pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<Req
 }
 
 #[post("/decline_friend_request")]
-pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<RequestId> ,req: HttpRequest) -> HttpResponse {
+pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<RequestId> ,req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
 
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -150,7 +150,7 @@ pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<R
         }
     };
 
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token( &auth_header).await {
         match sqlx::query(" 
             DELETE FROM friend_requests WHERE id = ?;
         ")
@@ -170,7 +170,7 @@ pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<R
 }
 
 #[post("/remove_friend")]
-pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> ,req: HttpRequest) -> HttpResponse {
+pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> ,req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     // two ways to do this, return the friendship id and remove based on that or return the other persons id and remove based on that
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -181,7 +181,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
         }
     };
 
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token( &auth_header).await {
         match sqlx::query("DELETE FROM friends WHERE id = ?")
         .bind(request.friend_id).execute(db.as_ref()).await {
             Ok(_) => {
@@ -198,7 +198,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
 }
 
 #[get("/get_all_friends")]
-pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> HttpResponse {
+pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap_or("")
@@ -209,7 +209,7 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> H
     };
     let user_id = get_userid_from_jwt(auth_header).await;
 
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token( &auth_header).await {
         let result = match sqlx::query("
             WITH req as (
                 SELECT 
@@ -256,7 +256,7 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest) -> H
 }
 
 #[post("/get_friend_profile")]
-pub async fn view_friend_profile(db: web::Data<Pool<Sqlite>>, req: HttpRequest, request: Json<FriendId> ) -> HttpResponse { // friend table id
+pub async fn view_friend_profile(db: web::Data<Pool<Sqlite>>, req: HttpRequest, request: Json<FriendId>, verifier: Data<dyn TokenVerifier>) -> HttpResponse { // friend table id
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap_or("")
@@ -270,7 +270,7 @@ pub async fn view_friend_profile(db: web::Data<Pool<Sqlite>>, req: HttpRequest, 
 
     // get the user id using their friend id and then use the user id to get user_details and then get their publicly available list 
 
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token(&auth_header).await {
         let result = match sqlx::query("
             SELECT 
                 CASE WHEN user_1 = ? THEN user_2 ELSE user_1 END AS friend_id

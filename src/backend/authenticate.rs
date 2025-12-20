@@ -12,8 +12,8 @@ pub struct Claims{
 
 #[derive(Serialize, Deserialize)]
 pub struct IssueNewAccess{
-    access_token: String,
-    expiry: u64
+    pub access_token: String,
+    pub expiry: u64
 }
 
 pub fn pwd_to_hash(pwd: &str)-> Result<String, argon2::password_hash::Error>{
@@ -91,42 +91,6 @@ pub async fn get_userid_from_jwt(token: &str) -> i64 {
             return -1;
         }
     }
-}
-
-pub async fn verify_token(db: Data<Pool<Sqlite>>,token: &str) -> bool {
-     
-    let token = match token.strip_prefix("Bearer ") {
-        Some(t) => t,
-        None => return false, 
-    };
-    dbg!("verifying",token);
-    dotenvy::dotenv().ok();
-    let secret = std::env::var("JWT_ACCESS_KEY").expect("Secret key must be set");
-    let validation = Validation::default();
-    let claims = match decode::<Claims>(
-        &token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &validation
-    ){
-        Ok(c)=> {
-            c.claims
-        }
-        Err(e) =>{
-            dbg!(e);
-            dbg!("Error decoding the key");
-            return false;
-        }
-    };
-
-    if let Ok(row) = sqlx::query("SELECT user_access_token FROM user WHERE id = ?").bind(claims.sub)
-    .fetch_one(db.as_ref()).await {
-        let db_tk:Result<String, sqlx::Error> = row.try_get("user_access_token");
-        if let Ok(db_token) = db_tk{
-            return db_token == token && claims.exp > chrono::Utc::now().timestamp() as usize;
-        }
-    }
-
-    false
 }
 
 #[post("/issue_new_access")]

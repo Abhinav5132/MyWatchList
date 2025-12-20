@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde_json::json;
 use image::ImageReader;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageError, RgbaImage};
-use crate::{backend::*, try_or};
+use crate::{backend::{verification_service::TokenVerifier, *}, try_or};
 
 
 // watch list is always 1
@@ -108,17 +108,17 @@ pub struct ExistsInList{
     exists: bool
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct IfRanked{
-    list_id: i64,
-    user_id: i64,
+    pub list_id: i64,
+    pub user_id: i64,
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct IsRanked{
-    is_ranked: i32,
-    last_rank: i32
+    pub is_ranked: i32,
+    pub last_rank: i32
 }
 
 #[derive(Deserialize)]
@@ -353,7 +353,7 @@ pub async fn genereate_grid(db: Data<Pool<Sqlite>>, list_id: i64, user_id:i64, i
 }
 
 #[get("/get-if-ranked")]
-pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req: HttpRequest ) -> HttpResponse {
+pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header = match req.headers().get("Authorization") {
         Some(a) => {
             a.to_str().unwrap_or("")
@@ -362,8 +362,8 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
             return HttpResponse::Unauthorized().into();
         }
     };
-
-    if verify_token(db.clone(), auth_header).await {
+    
+    if verifier.verify_token(auth_header).await {
         if get_userid_from_jwt(auth_header).await != details.user_id {
             return HttpResponse::Unauthorized().into();
         } else {
@@ -420,7 +420,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
 }
 
 #[post("/add-anime-to-list")] // must verify the users identity before it adds 
-pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
+pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) ->HttpResponse{
     dbg!(to_add.list_id);
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -431,7 +431,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
         }
     };
 
-    if verify_token(db.clone(), &auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+    if verifier.verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
         let list_id = &to_add.list_id;
         let anime_id = &to_add.anime_id;
         let user_id = &to_add.user_id;
@@ -502,7 +502,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
 }
 
 #[post("/remove-form-list")]
-pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest) ->HttpResponse{
+pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) ->HttpResponse{
     
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -513,7 +513,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
         }
     };
 
-    if !verify_token(db.clone(),&auth_header).await || get_userid_from_jwt(&auth_header).await != to_add.user_id {
+    if !verifier.verify_token(&auth_header).await || get_userid_from_jwt(&auth_header).await != to_add.user_id {
         return HttpResponse::Unauthorized().into();
     }
     match sqlx::query("DELETE FROM watch_list_anime WHERE anime_id = ?, user_id = ?, list_id = ?") 
@@ -541,7 +541,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
 }
 
 #[post("/add-list-to-user")] // needs verification
-pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>, req: HttpRequest)-> HttpResponse{
+pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUser>, req: HttpRequest, verifier: Data<dyn TokenVerifier>)-> HttpResponse{
     let auth_header =  match req.headers().get("Authorization") {
             Some(token) => {
                 token.to_str().unwrap()
@@ -551,7 +551,7 @@ pub async fn create_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<AddListToUse
             }
         };
 
-    if !verify_token(db.clone(),&auth_header).await{
+    if !verifier.verify_token(&auth_header).await{
         return HttpResponse::Unauthorized().into();
     }
     match create_list(&db, &to_add.name, &to_add.user_id, &to_add.privacy_type, to_add.is_ranked, &to_add.image, to_add.is_user_image, &to_add.description).await { // this was a shitty way to write this
@@ -582,7 +582,7 @@ pub async fn create_list(db: &Pool<Sqlite>, name: &String, user_id:&i64, privacy
 }
 
 #[post("/delete_list")]
-pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req: HttpRequest) -> HttpResponse{
+pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse{
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -591,7 +591,7 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
             return HttpResponse::Unauthorized().into();
         }
     };
-    if verify_token(db.clone(), &auth_header).await {
+    if verifier.verify_token(&auth_header).await {
         let user_id = match sqlx::query("Select user_id from watch_list WHERE id = ?").bind(&query.list_id).fetch_one(db.as_ref()).await {
             Ok(row) => {
                 let user_id = try_or!(row.try_get("user_id"), HttpResponse::InternalServerError().finish());
@@ -623,7 +623,7 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
     
 
 #[post("/edit-watch-list-from-user")]
-pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUser>, req: HttpRequest) -> HttpResponse {
+pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUser>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
 
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
@@ -634,7 +634,7 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
         }
     };
 
-    if verify_token(db.clone(), &auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+    if verifier.verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
 
         let mut tx = match db.begin().await {
             Ok(transaction) => transaction,
@@ -683,7 +683,7 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
 }
 
 #[get("/fetch-all-lists")] //TODO add a function to get all lists that you have the privilages to view for another person
-pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req: HttpRequest) -> HttpResponse {
+pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let per_page = user.per_page;
     let offset = (user.page_no - 1) * per_page;
     let auth_header = match req.headers().get("Authorization") {
@@ -695,7 +695,7 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
         }
     };
 
-    if verify_token(db.clone(), auth_header).await {
+    if verifier.verify_token(auth_header).await {
         if get_userid_from_jwt(auth_header).await != user.user_id{
             return HttpResponse::Unauthorized().into();
         }

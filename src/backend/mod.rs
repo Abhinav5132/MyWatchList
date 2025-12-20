@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use actix_cors::Cors;
-use actix_web::{get, post, App, HttpServer, Responder, web};
+use actix_web::web::{Data, Json};
+use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
 use env_logger::Env;
@@ -29,12 +32,60 @@ pub mod add_to_list;
 pub use crate::backend::add_to_list::add_anime_to_list;
 use crate::backend::details::{ReccomendResult, RelatedAnime};
 use crate::backend::friends::get_all_friends;
-use crate::backend::sign_up::check_username_availability;
+use crate::backend::sign_up::{AuthResponse, check_username_availability};
 use crate::backend::user_profile::{change_email, change_password, change_pfp, change_username, get_user_details, logout};
+use crate::backend::verification_service::{TokenVerifier, VerificationService};
 
 pub mod user_profile;
 pub mod AnimeStructs;
 pub mod update_database;
+pub mod verification_service;
+#[post("/issue_new_access")]
+pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<AuthResponse>) -> HttpResponse {
+    dotenvy::dotenv().ok();
+    match sqlx::query("SELECT id 
+    FROM user 
+    WHERE user_refresh_token = ?;
+    ").bind(&refresh_token.refresh_token).fetch_one(db.as_ref()).await {
+        Ok(row) => {
+            let user_id:i64 = match row.try_get("id"){
+                Ok(u) => u,
+                Err(e) => {
+                    dbg!(e);
+                    return HttpResponse::Unauthorized().into()}
+            };
+            let access_token = match generate_access_token(user_id).await {
+                Ok(token) => {
+                    let _ = match sqlx::query("
+                    UPDATE user SET user_access_token = ? WHERE id = ?;
+                    ").bind(&token).bind(user_id).execute(db.as_ref()).await{
+                        Ok(a) => a,
+                        Err(e) => {
+                            dbg!(e);
+                            return HttpResponse::Unauthorized().into();
+                        }
+                    };
+                    token
+                },
+                Err(e) => {
+                    dbg!(e);
+                    return HttpResponse::Unauthorized().into();
+                }
+            };
+            return HttpResponse::Ok().json(IssueNewAccess{
+                access_token: access_token,
+                expiry: (chrono::Utc::now() + chrono::Duration::minutes(3)).timestamp() as u64
+            });
+        }   
+        Err(e)=> {
+            dbg!(e);
+            return HttpResponse::Unauthorized().into();
+        }
+    }
+}   
+
+//tests
+pub mod add_to_list_test;
 
 // simple macro that takes a try get expression and a HttpResponse and 
 // unwraps the result and returns the HttpResponse if the result is an error
@@ -81,14 +132,11 @@ struct FullAnimeResult {
     related_anime: Vec<RelatedAnime>
 }
 
-#[actix_web::main]
-pub async fn setup_backend() -> std::io::Result<()> {
-    let timestamp = chrono::Utc::now().timestamp();
-    println!("{timestamp}");
+pub async fn setup_db() -> Data<Pool<Sqlite>>{
     //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
         .disable_statement_logging()
-        .filename("anime.db") // for final relase make sure this is present in the same location as the binary or set a env variable with the file path.
+        .filename("anime.db")
         .create_if_missing(true);
 
     let connection = match sqlite::SqlitePool::connect_with(opt).await {
@@ -111,12 +159,24 @@ pub async fn setup_backend() -> std::io::Result<()> {
         .execute(&connection)
         .await;
 
+    
+    let db = web::Data::new(connection.clone());
+
+    return db;
+
+}
+
+#[actix_web::main]
+pub async fn setup_backend() -> std::io::Result<()> {
+    let timestamp = chrono::Utc::now().timestamp();
+    println!("{timestamp}");
+    let db = setup_db().await;
+
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM anime")
-        .fetch_one(&connection)
+        .fetch_one(db.as_ref())
         .await
         .unwrap_or(0);
 
-    let db = web::Data::new(connection.clone());
     if count == 0 {
         match initialize_database(db.clone()).await {
             Ok(_) => println!("Database initialized successfully"),
@@ -124,11 +184,14 @@ pub async fn setup_backend() -> std::io::Result<()> {
         };
     }
     env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
+    let verifier: Arc<dyn TokenVerifier> =
+    Arc::new(VerificationService { db: db.clone() });
 
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
             .app_data(db.clone())
+            .app_data(Data::from(verifier.clone()))
             .service(main_search)
             .service(get_details)
             .service(trending_search)
@@ -155,21 +218,6 @@ pub async fn setup_backend() -> std::io::Result<()> {
     }).bind("127.0.0.1:3000")?
     .run()
     .await
-    /* 
-    use for production
-    HttpServer::new(move || {
-        App::new()
-            .wrap(Cors::default())
-            .allowed_methods(vec!["GET", "POST"])
-            .allowed_headers(vec![header::AUTHORIZATION])
-            .expose_headers(vec![header::AUTHORIZATION])
-            .app_data(web::Data::new(connection.clone()))
-            .service(main_search)
-            .service(get_details)
-            .service(trending_search)
-    }).bind_openssl("127.0.0.1:3000", builder)?
-    .run()
-    .await*/
 }
 
 
