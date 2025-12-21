@@ -207,7 +207,7 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest, veri
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(auth_header).await;
+    let user_id = verifier.get_userid_from_jwt(auth_header).await;
 
     if verifier.verify_token( &auth_header).await {
         let result = match sqlx::query("
@@ -266,7 +266,7 @@ pub async fn view_friend_profile(db: web::Data<Pool<Sqlite>>, req: HttpRequest, 
         }
     };
 
-    let user_id = get_userid_from_jwt(auth_header).await;
+    let user_id = verifier.get_userid_from_jwt(auth_header).await;
 
     // get the user id using their friend id and then use the user id to get user_details and then get their publicly available list 
 

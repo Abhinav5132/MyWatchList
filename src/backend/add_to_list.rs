@@ -364,7 +364,7 @@ pub async fn get_if_ranked(db: Data<Pool<Sqlite>>, details: Json<IfRanked>, req:
     };
     
     if verifier.verify_token(auth_header).await {
-        if get_userid_from_jwt(auth_header).await != details.user_id {
+        if verifier.get_userid_from_jwt(auth_header).await != details.user_id {
             return HttpResponse::Unauthorized().into();
         } else {
         let result = sqlx::query("SELECT is_ranked FROM watch_list WHERE id = ? and user_id = ?;" )
@@ -431,7 +431,7 @@ pub async fn add_anime_to_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToLis
         }
     };
 
-    if verifier.verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+    if verifier.verify_token(&auth_header).await && verifier.get_userid_from_jwt(&auth_header).await == to_add.user_id {
         let list_id = &to_add.list_id;
         let anime_id = &to_add.anime_id;
         let user_id = &to_add.user_id;
@@ -513,7 +513,7 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
         }
     };
 
-    if !verifier.verify_token(&auth_header).await || get_userid_from_jwt(&auth_header).await != to_add.user_id {
+    if !verifier.verify_token(&auth_header).await || verifier.get_userid_from_jwt(&auth_header).await != to_add.user_id {
         return HttpResponse::Unauthorized().into();
     }
     match sqlx::query("DELETE FROM watch_list_anime WHERE anime_id = ?, user_id = ?, list_id = ?") 
@@ -603,7 +603,7 @@ pub async fn remove_watch_list(db: Data<Pool<Sqlite>>, query: Query<ListId>, req
             }
         };
 
-        if user_id != get_userid_from_jwt(auth_header).await {
+        if user_id != verifier.get_userid_from_jwt(auth_header).await {
             return HttpResponse::Unauthorized().into();
         }
         match sqlx::query("DELETE FROM watch_list WHERE id = ?;")
@@ -634,7 +634,7 @@ pub async fn edit_watch_list(db: Data<Pool<Sqlite>>, to_add: Json<EditListPerUse
         }
     };
 
-    if verifier.verify_token(&auth_header).await && get_userid_from_jwt(&auth_header).await == to_add.user_id {
+    if verifier.verify_token(&auth_header).await && verifier.get_userid_from_jwt(&auth_header).await == to_add.user_id {
 
         let mut tx = match db.begin().await {
             Ok(transaction) => transaction,
@@ -696,7 +696,7 @@ pub async fn fetch_all_lists(db: Data<Pool<Sqlite>>, user: Json<FetchLists>, req
     };
 
     if verifier.verify_token(auth_header).await {
-        if get_userid_from_jwt(auth_header).await != user.user_id{
+        if verifier.get_userid_from_jwt(auth_header).await != user.user_id{
             return HttpResponse::Unauthorized().into();
         }
 
@@ -864,7 +864,7 @@ pub async fn check_if_an_anime_in_list(db: Data<Pool<Sqlite>>, to_add: Json<AddT
 
 
 #[get("/get_list_details")]
-pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Query<ListId> ) -> HttpResponse {
+pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Query<ListId>, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -874,8 +874,11 @@ pub async fn get_list_details(db: Data<Pool<Sqlite>>, req: HttpRequest, query: Q
         }
     };
 
-    let user_id = get_userid_from_jwt(auth_header).await;
+    let user_id = verifier.get_userid_from_jwt(auth_header).await;
 
+    if !verifier.verify_token(auth_header).await{
+        return HttpResponse::Unauthorized().into();
+    }
     let row = try_or!(
         sqlx::query("SELECT name, is_ranked, is_user_image, list_image, privacy_type, description
          FROM watch_list WHERE user_id = ? AND id = ?;")

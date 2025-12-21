@@ -62,7 +62,7 @@ pub async fn logout(db: web::Data<Pool<Sqlite>>, req: HttpRequest, verifier: Dat
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(&auth_header).await;
+    let user_id = verifier.get_userid_from_jwt(&auth_header).await;
     if verifier.verify_token( auth_header).await {
        let _ = try_or!(sqlx::query("UPDATE user SET (user_refresh_token, user_access_token) = (?, ?) WHERE id = ?")
         .bind::<Option<String>>(None).bind::<Option<String>>(None)
@@ -81,7 +81,7 @@ pub async fn change_username(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(token).await;
+    let user_id = verifier.get_userid_from_jwt(token).await;
     
     if verifier.verify_token( token).await{
         let _row = try_or!(
@@ -105,7 +105,7 @@ pub async fn change_password(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(token).await;
+    let user_id = verifier.get_userid_from_jwt(token).await;
     let pwd_hash = try_or!(pwd_to_hash(&username.pwd), HttpResponse::Unauthorized().into());
     if verifier.verify_token( token).await{
         let _row =try_or!(
@@ -127,7 +127,7 @@ pub async fn change_email(db: web::Data<Pool<Sqlite>>, req: HttpRequest, usernam
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(token).await;
+    let user_id = verifier.get_userid_from_jwt(token).await;
     if verifier.verify_token( token).await{
         let _row =try_or!(
             sqlx::query("UPDATE user SET user_email = ? WHERE id = ?")
@@ -149,7 +149,7 @@ pub async fn delete_user(db: web::Data<Pool<Sqlite>>, req: HttpRequest, verifier
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(token).await;
+    let user_id = verifier.get_userid_from_jwt(token).await;
     if verifier.verify_token( token).await{ 
         let _row = try_or!(
             sqlx::query("DELETE user WHERE id = ?").bind(user_id).execute(db.as_ref()).await,
@@ -170,7 +170,7 @@ pub async fn change_pfp(db: Data<Pool<Sqlite>>, req: HttpRequest, new_pfp: Json<
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = get_userid_from_jwt(token).await;
+    let user_id = verifier.get_userid_from_jwt(token).await;
     if verifier.verify_token( token).await{
         let _ = try_or!(
             sqlx::query("UPDATE user SET user_pfp = ? WHERE id = ?")

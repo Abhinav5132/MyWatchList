@@ -69,30 +69,6 @@ pub async fn generate_refresh_token(user_id: i64) ->Result<String, jsonwebtoken:
 }
 
 
-pub async fn get_userid_from_jwt(token: &str) -> i64 {
-    dbg!("getting userid from jwt");
-    let token = match token.strip_prefix("Bearer ") {
-        Some(t) => t,
-        None => return -1, 
-    };
-    dotenvy::dotenv().ok();
-    let secret = std::env::var("JWT_ACCESS_KEY").expect("Secret key must be set");
-    let validation = Validation::default();
-    match decode::<Claims>(
-        &token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &validation
-    ){
-        Ok(c)=> {
-            c.claims.sub
-        }
-        Err(e) =>{
-            dbg!(e);
-            return -1;
-        }
-    }
-}
-
 #[post("/issue_new_access")]
 pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<AuthResponse>) -> HttpResponse {
     dotenvy::dotenv().ok();
@@ -138,7 +114,7 @@ pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<
 }   
 
 #[post("/verify_password")]
-pub async fn verify_entered_password(db: Data<Pool<Sqlite>>, req: HttpRequest, user: Json<LoginStruct>) -> HttpResponse {
+pub async fn verify_entered_password(db: Data<Pool<Sqlite>>, req: HttpRequest, user: Json<LoginStruct>, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -148,7 +124,7 @@ pub async fn verify_entered_password(db: Data<Pool<Sqlite>>, req: HttpRequest, u
         }
     };
 
-    let user_id = get_userid_from_jwt(auth_header).await;
+    let user_id = verifier.get_userid_from_jwt(auth_header).await;
     let row = try_or!(
         sqlx::query("SELECT user_password FROM user WHERE id = ?").bind(user_id).fetch_one(db.as_ref()).await,
         HttpResponse::InternalServerError().finish()
