@@ -32,7 +32,6 @@ pub fn verify_pwd(entered_pwd: &str, hash: &str) -> Result<bool, argon2::passwor
     Ok(if_valid.is_ok())
 
 }
-
 pub async fn generate_access_token(user_id: i64) ->Result<String, jsonwebtoken::errors::Error>{
     let expiery = (chrono::Utc::now() + chrono::Duration::minutes(15)).timestamp() as usize;
     let claims = Claims{

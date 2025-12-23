@@ -129,7 +129,6 @@ CREATE TABLE IF NOT EXISTS friends (
 
 CREATE TABLE IF NOT EXISTS friend_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT, -- request id
-    status TEXT NOT NULL, 
     sender_id INT NOT NULL,      
     receiver_id INT NOT NULL,
 

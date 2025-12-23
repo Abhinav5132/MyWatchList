@@ -25,6 +25,7 @@ pub use search::trending_search;
 pub mod friends;
 
 pub mod authenticate;
+pub mod friends_test;
 use crate::backend::add_to_list::{check_if_an_anime_in_list, edit_watch_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked, get_list_details, remove_watch_list};
 pub use crate::backend::authenticate::*;
 

@@ -38,7 +38,8 @@ pub const NEXT: Asset = asset!("assets/next-page.png");
 pub const MENU: Asset = asset!("assets/menu.png");
 pub const PLAYLIST: Asset = asset!("assets/playlist.png");
 pub const FRIENDS: Asset = asset!("assets/friends.png");
-
+pub const THREEDOTS: Asset = asset!("assets/three_dots.jpg");
+pub const XICON: Asset = asset!("assets/close.png");
 
 fn storage_file() -> PathBuf {
     let mut path = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));

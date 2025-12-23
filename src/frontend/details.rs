@@ -362,35 +362,35 @@ pub fn Details(id: i64) -> Element {
                                     div {
                                     id:"dropdown_of_lists",
                                     
-                                    for alist in all_lists.read().list.clone() { // only prints out watch_list for some reaon
-                                        div {
-                                            class: "a_list_div",
-                                            onclick: move |_| {
-                                                list_name.set(alist.name.clone());
-                                                list_id.set(alist.id);
-                                                spawn(async move {
-                                                    dbg!("this code ran");
-                                                    let is_rank = check_if_list_is_ranked(*list_id.read(), *USERID.read()).await;
-                                                    if is_rank.is_ranked == 0{
-                                                        is_ranked.set(false);
-                                                        last_rank.set(0);
-                                                        show_popup.set(true);
-                                                    }
-                                                    else if is_rank.is_ranked == 1 {
-                                                        is_ranked.set(false);
-                                                        last_rank.set(is_rank.last_rank);
-                                                        show_popup.set(true);
-                                                    } else {
-                                                        dbg!("Unexpected is_ranked value: {}", is_rank.is_ranked);
-                                                    }
-                                                });
-                                            },
-                                            p { { alist.name.clone()} }
+                                        for alist in all_lists.read().list.clone() { // only prints out watch_list for some reaon
+                                            div {
+                                                class: "a_list_div",
+                                                onclick: move |_| {
+                                                    list_name.set(alist.name.clone());
+                                                    list_id.set(alist.id);
+                                                    spawn(async move {
+                                                        dbg!("this code ran");
+                                                        let is_rank = check_if_list_is_ranked(*list_id.read(), *USERID.read()).await;
+                                                        if is_rank.is_ranked == 0{
+                                                            is_ranked.set(false);
+                                                            last_rank.set(0);
+                                                            show_popup.set(true);
+                                                        }
+                                                        else if is_rank.is_ranked == 1 {
+                                                            is_ranked.set(false);
+                                                            last_rank.set(is_rank.last_rank);
+                                                            show_popup.set(true);
+                                                        } else {
+                                                            dbg!("Unexpected is_ranked value: {}", is_rank.is_ranked);
+                                                        }
+                                                    });
+                                                },
+                                                p { { alist.name.clone()} }
+                                            }
                                         }
+
+
                                     }
-
-
-                                }
                                 }
                                 }
 

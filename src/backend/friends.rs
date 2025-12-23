@@ -4,10 +4,10 @@ use crate::{backend::{add_to_list::AList, verification_service::TokenVerifier}, 
 
 pub use crate::backend::*;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct FriendRequest {
-    user_id: i64,
-    friend_id: i64, 
+    pub user_id: i64,
+    pub friend_id: i64, 
 }
 
 #[derive(Deserialize)]
@@ -25,6 +25,26 @@ pub struct Friend {
     friend_id: i64,
     user_name: String,
     user_pfp: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum FriendRequestDirection {
+    INCOMING,
+    SENDING,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct FriendRequests {
+    friend_id: i64,
+    user_name: String,
+    user_pfp: String,
+    direction: FriendRequestDirection,
+    req_id: i64,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct AllFriendRequests {
+    friend_requests: Vec<FriendRequests>
 }
 
 #[derive(Deserialize, Serialize)]
@@ -56,8 +76,8 @@ impl WatchListType {
     }
 }
 
-#[post("/send_firend_request")]
-pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<FriendRequest>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
+#[post("/send_friend_request")]
+pub async fn send_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<FriendRequest>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
     let auth_header =  match req.headers().get("Authorization") {
         Some(token) => {
             token.to_str().unwrap()
@@ -67,7 +87,7 @@ pub async fn send_firend_request(db: web::Data<Pool<Sqlite>>,request: Json<Frien
         }
     };
 
-    if verifier.verify_token( &auth_header).await {
+    if verifier.verify_token(&auth_header).await {
         let count = match sqlx::query("SELECT COUNT(1) FROM friend_requests WHERE sender_id = ? AND receiver_id = ?")
         .bind(request.user_id).bind(request.friend_id).fetch_one(db.as_ref()).await {
             Ok(row) => {
@@ -249,6 +269,80 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest, veri
             };
 
             all_friends.friends.push(friend);
+        }
+        return HttpResponse::Ok().json(all_friends).into();
+    }
+    return HttpResponse::Unauthorized().into();
+}
+
+#[get("/get_all_friends_requests")]
+pub async fn get_all_friends_requests(db: web::Data<Pool<Sqlite>>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
+    let auth_header =  match req.headers().get("Authorization") {
+        Some(token) => {
+            token.to_str().unwrap_or("")
+        }
+        None=>{
+            return HttpResponse::Unauthorized().into();
+        }
+    };
+    let user_id = verifier.get_userid_from_jwt(auth_header).await;
+
+    if verifier.verify_token(&auth_header).await {
+        let result = match sqlx::query("
+            WITH req as (
+                SELECT id,
+                    CASE WHEN sender_id = ? THEN reciever_id ELSE sender_id END AS friend_id,
+                    CASE WHEN reciever_id = ? THEN 'INCOMING' ELSE 'SENT' END AS status
+                FROM friend_requests 
+                WHERE sender_id = ? OR reciever_id = ?
+            ) 
+            SELECT u.id, u.user_name, u.user_pfp, req.status, req.id as req_id
+            FROM user u 
+            JOIN req ON u.id = req.friend_id;
+        ").bind(user_id).bind(user_id).bind(user_id).bind(user_id).fetch_all(db.as_ref()).await {
+            Ok(r) => r,
+            Err(e) => {
+                dbg!(e);
+                return HttpResponse::InternalServerError().into();
+            }
+        };
+
+        let mut all_friends= AllFriendRequests{
+            friend_requests: vec![]
+        };
+
+        for row in result{
+            let id: i64 = match row.try_get("id") {
+                Ok(i) => i,
+                Err(e) => {
+                    dbg!(e);
+                    continue;
+                } 
+            };
+
+            let user_name: String = row.try_get("user_name").unwrap_or("UNKNOWN".to_string());
+            let user_pfp: String = row.try_get("user_pfp").unwrap_or("UNKNWON".to_string());
+            let req_id: i64 = row.try_get("req_id").unwrap_or(-1);
+            let status: FriendRequestDirection = match row.try_get::<&str,_>("status").unwrap_or("SENT"){
+                "INCOMING" => {
+                    FriendRequestDirection::INCOMING
+                },
+                "SENT" => {
+                    FriendRequestDirection::SENDING
+                },
+                _=>{
+                    return HttpResponse::InternalServerError().into();
+                }
+            };
+            let friend = FriendRequests {
+                friend_id: id,
+                user_name: user_name,
+                user_pfp: user_pfp,
+                direction: status,
+                req_id: req_id
+            };
+
+            all_friends.friend_requests.push(friend);
         }
         return HttpResponse::Ok().json(all_friends).into();
     }
