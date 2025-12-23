@@ -170,11 +170,11 @@ pub async fn decline_friend_request(db: web::Data<Pool<Sqlite>>, request: Json<R
         }
     };
 
-    if verifier.verify_token( &auth_header).await {
+    if verifier.verify_token(auth_header).await {
         match sqlx::query(" 
             DELETE FROM friend_requests WHERE id = ?;
         ")
-        .bind(request.request_id).fetch_one(db.as_ref()).await {
+        .bind(request.request_id).execute(db.as_ref()).await {
             Ok(_) => {
                 return HttpResponse::Ok().into(); 
             }
