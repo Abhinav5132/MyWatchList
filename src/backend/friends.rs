@@ -15,9 +15,9 @@ pub struct RequestId {
     pub request_id: i64
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct FriendId {
-    friend_id: i64
+    pub friendship_id: i64
 }
 
 #[derive(Deserialize, Serialize)]
@@ -204,7 +204,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
 
     if verifier.verify_token(auth_header).await {
         match sqlx::query("DELETE FROM friends WHERE id = ?")
-        .bind(request.friend_id).execute(db.as_ref()).await {
+        .bind(request.friendship_id).execute(db.as_ref()).await {
             Ok(_) => {
                 return HttpResponse::Ok().finish();
             }
@@ -215,7 +215,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
         }
     }
 
-   return HttpResponse::Unauthorized().finish();
+    HttpResponse::Unauthorized().finish()
 }
 
 #[get("/get_all_friends")]
@@ -380,7 +380,7 @@ pub async fn view_friend_profile(db: web::Data<Pool<Sqlite>>, req: HttpRequest, 
             SELECT 
                 CASE WHEN user_1 = ? THEN user_2 ELSE user_1 END AS friend_id
             FROM friends 
-            WHERE  id = ? AND (user_1 = ? OR user_2 = ?)").bind(user_id).bind(request.friend_id)
+            WHERE  id = ? AND (user_1 = ? OR user_2 = ?)").bind(user_id).bind(request.friendship_id)
             .bind(user_id).bind(user_id).fetch_one(db.as_ref()).await
             {
             Ok(r) => r,

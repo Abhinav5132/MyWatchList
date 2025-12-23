@@ -14,7 +14,7 @@ pub struct RequestId {
 
 #[derive(Deserialize, Serialize)]
 pub struct FriendId {
-    friend_id: i64
+    friendship_id: i64
 }
 
 #[derive(Deserialize, Serialize, Clone)]

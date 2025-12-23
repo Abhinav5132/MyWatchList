@@ -3,7 +3,7 @@ mod tests{
     use std::sync::Arc;
     use reqwest::StatusCode;
     use sqlx::{Pool, Sqlite, sqlite, *};
-    use crate::{backend::{friends::{AllFriendRequests, AllFriends, FriendRequest, FriendRequestDirection, RequestId, accept_friend_request, decline_friend_request, get_all_friends, get_all_friends_requests, send_friend_request}, setup_db, verification_service::{MockVerificationService, TokenVerifier}}, try_or};
+    use crate::{backend::{friends::{AllFriendRequests, AllFriends, FriendId, FriendRequest, FriendRequestDirection, RequestId, accept_friend_request, decline_friend_request, get_all_friends, get_all_friends_requests, remove_friend, send_friend_request}, setup_db, verification_service::{MockVerificationService, TokenVerifier}}, try_or};
 
     use actix_web::{App, test::{self, TestRequest}, web::Data};
 
@@ -341,5 +341,35 @@ mod tests{
         assert_eq!(r4.user_name, "test4");
         assert_eq!(r4.direction, FriendRequestDirection::INCOMING);
 
+    }
+
+    #[actix_web::test]
+    async fn test_remove_friend(){
+        let pool = setup_db().await;
+        fresh_start(&pool).await;
+
+        let verifier: Arc<dyn TokenVerifier> = Arc::new(MockVerificationService { should_return: true });
+
+        let app = test::init_service(App::new()
+        .app_data(pool.clone())
+        .app_data(Data::from(verifier.clone()))
+        .service(remove_friend)).await;
+
+        let id = sqlx::query("
+            INSERT INTO friends(user_1, user_2) VALUES (1,2);
+        ").execute(pool.as_ref()).await.expect("Failed to insert friendship").last_insert_rowid();
+
+        let req = TestRequest::post().uri("/remove_friend").insert_header(("Authorization", "69")).set_json(
+            &FriendId{
+                friendship_id: id,
+            }
+        ).to_request();
+
+        let res = test::call_service(&app, req).await;
+
+        assert!(res.status().is_success());
+
+        let a = sqlx::query("SELECT user_1, user_2 FROM friends").fetch_one(pool.as_ref()).await;
+        assert!(a.is_err());
     }
 }
