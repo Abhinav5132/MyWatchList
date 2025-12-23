@@ -28,7 +28,7 @@ pub struct Friend {
     user_pfp: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub enum FriendRequestDirection {
     INCOMING,
     SENDING,
@@ -36,16 +36,16 @@ pub enum FriendRequestDirection {
 
 #[derive(Deserialize, Serialize)]
 pub struct FriendRequests {
-    friend_id: i64,
-    user_name: String,
+    pub friend_id: i64,
+    pub user_name: String,
     user_pfp: String,
-    direction: FriendRequestDirection,
+    pub direction: FriendRequestDirection,
     req_id: i64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct AllFriendRequests {
-    friend_requests: Vec<FriendRequests>
+    pub friend_requests: Vec<FriendRequests>
 }
 
 #[derive(Deserialize, Serialize)]
@@ -302,10 +302,10 @@ pub async fn get_all_friends_requests(db: web::Data<Pool<Sqlite>>, req: HttpRequ
         let result = match sqlx::query("
             WITH req as (
                 SELECT id,
-                    CASE WHEN sender_id = ? THEN reciever_id ELSE sender_id END AS friend_id,
-                    CASE WHEN reciever_id = ? THEN 'INCOMING' ELSE 'SENT' END AS status
+                    CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END AS friend_id,
+                    CASE WHEN receiver_id = ? THEN 'INCOMING' ELSE 'SENT' END AS status
                 FROM friend_requests 
-                WHERE sender_id = ? OR reciever_id = ?
+                WHERE sender_id = ? OR receiver_id = ?
             ) 
             SELECT u.id, u.user_name, u.user_pfp, req.status, req.id as req_id
             FROM user u 

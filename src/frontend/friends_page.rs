@@ -19,6 +19,7 @@ pub struct FriendId {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Friend {
+    friendship_id: i64,
     friend_id: i64,
     user_name: String,
     user_pfp: String,
@@ -68,11 +69,10 @@ pub fn FriendPage() -> Element {
         let client = Client::new();
         async move {
             if let Ok(req) = client.get("http://localhost:3000/get_all_friends")
-            .bearer_auth(TOKEN.read()).send().await {
-                if let Ok(Afriends) = req.json::<AllFriends>().await{
+            .bearer_auth(TOKEN.read()).send().await
+                && let Ok(Afriends) = req.json::<AllFriends>().await{
                     all_friends.set(Afriends.friends);
                 }
-            }
     }});
 
     use_future(move ||{
@@ -80,11 +80,10 @@ pub fn FriendPage() -> Element {
         let client = Client::new();
         async move{
             if let Ok(req) = client.get("http://localhost:3000/get_all_friends_requests")
-            .bearer_auth(TOKEN.read()).send().await{
-                if let Ok(friend_requests) = req.json::<AllFriendRequests>().await{
+            .bearer_auth(TOKEN.read()).send().await
+                && let Ok(friend_requests) = req.json::<AllFriendRequests>().await{
                     all_requests.set(friend_requests.friend_requests);
                 }
-            }
         }
         }
     );
@@ -238,6 +237,7 @@ pub fn show_dropdown(on_close: EventHandler)-> Element{
             class: "dropdown_button",
             id: "remove_friend",
             onclick: move |_| {
+                // should use friendship_id to remove.
                 on_close.call(());
             },
             "Remove Friend"

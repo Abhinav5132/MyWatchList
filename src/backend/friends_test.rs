@@ -3,7 +3,7 @@ mod tests{
     use std::sync::Arc;
     use reqwest::StatusCode;
     use sqlx::{Pool, Sqlite, sqlite, *};
-    use crate::{backend::{friends::{AllFriends, FriendRequest, RequestId, accept_friend_request, decline_friend_request, get_all_friends, send_friend_request}, setup_db, verification_service::{MockVerificationService, TokenVerifier}}, try_or};
+    use crate::{backend::{friends::{AllFriendRequests, AllFriends, FriendRequest, FriendRequestDirection, RequestId, accept_friend_request, decline_friend_request, get_all_friends, get_all_friends_requests, send_friend_request}, setup_db, verification_service::{MockVerificationService, TokenVerifier}}, try_or};
 
     use actix_web::{App, test::{self, TestRequest}, web::Data};
 
@@ -268,7 +268,8 @@ mod tests{
 
         let body:AllFriends = test::read_body_json(resp).await;
 
-        assert_eq!(body.friends.len(), 3);
+        assert_eq!(body.friends.len(), 3); // kinda round about but it also tests for other firendships not being returned. 
+        // since the length is 3 and we check that all three friends are returned are the right ones.
         
         assert_eq!(body.friends[0].friend_id, 2);
         assert_eq!(body.friends[0].user_name, "test2");
@@ -278,6 +279,67 @@ mod tests{
 
         assert_eq!(body.friends[2].friend_id, 4);
         assert_eq!(body.friends[2].user_name, "test4");
+
+    }
+
+    #[actix_web::test]
+    async fn test_get_all_friend_requests(){
+        let pool = setup_db().await;
+        fresh_start(&pool).await;
+
+        let verifier: Arc<dyn TokenVerifier> = Arc::new(MockVerificationService { should_return: true });
+
+        let app = test::init_service(App::new()
+        .app_data(pool.clone())
+        .app_data(Data::from(verifier.clone()))
+        .service(get_all_friends_requests)).await;
+
+        pool.execute("
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            VALUES ('test3','test3@test.com','pwd','pfp',
+            '71',
+            '71');
+
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            VALUES ('test4','test4@test.com','pwd','pfp',
+            '72',
+            '72');
+        ").await.expect("Failed to insert other test users");
+
+        let _ = sqlx::query("
+            INSERT INTO friend_requests(sender_id, receiver_id) VALUES (1,2);
+            INSERT INTO friend_requests(sender_id, receiver_id) VALUES (1,3);
+            INSERT INTO friend_requests(sender_id, receiver_id) VALUES (4,1);
+            INSERT INTO friend_requests(sender_id, receiver_id) VALUES (2,4);
+            INSERT INTO friend_requests(sender_id, receiver_id) VALUES (3,2);
+
+        ")//(4,1) is an incoming request and we much check for this
+        .execute(pool.as_ref()).await.expect("Failed to insert test friend into db");
+    
+        
+        let req = TestRequest::get().uri("/get_all_friends_requests")
+        .insert_header(("Authorization", "69"))
+        .to_request();
+
+        let resp = test::call_service(&app, req).await;
+        dbg!(resp.status());
+        assert!(resp.status().is_success());
+
+        let body:AllFriendRequests = test::read_body_json(resp).await;
+
+        assert_eq!(body.friend_requests.len(), 3);
+
+        let r2 = body.friend_requests.iter().find(|r| r.friend_id == 2).unwrap();
+        assert_eq!(r2.user_name, "test2");
+        assert_eq!(r2.direction, FriendRequestDirection::SENDING);
+
+        let r3 = body.friend_requests.iter().find(|r| r.friend_id == 3).unwrap();
+        assert_eq!(r3.user_name, "test3");
+        assert_eq!(r3.direction, FriendRequestDirection::SENDING);
+
+        let r4 = body.friend_requests.iter().find(|r| r.friend_id == 4).unwrap();
+        assert_eq!(r4.user_name, "test4");
+        assert_eq!(r4.direction, FriendRequestDirection::INCOMING);
 
     }
 }
