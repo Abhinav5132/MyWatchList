@@ -22,8 +22,9 @@ pub struct FriendId {
 
 #[derive(Deserialize, Serialize)]
 pub struct Friend {
-    friend_id: i64,
-    user_name: String,
+    friendship_id: i64,
+    pub friend_id: i64,
+    pub user_name: String,
     user_pfp: String,
 }
 
@@ -49,7 +50,7 @@ pub struct AllFriendRequests {
 
 #[derive(Deserialize, Serialize)]
 pub struct AllFriends {
-    friends: Vec<Friend>
+    pub friends: Vec<Friend>
 }
 
 #[derive(Deserialize, Serialize)]
@@ -201,7 +202,7 @@ pub async fn remove_friend(db: web::Data<Pool<Sqlite>>, request: Json<FriendId> 
         }
     };
 
-    if verifier.verify_token( &auth_header).await {
+    if verifier.verify_token(auth_header).await {
         match sqlx::query("DELETE FROM friends WHERE id = ?")
         .bind(request.friend_id).execute(db.as_ref()).await {
             Ok(_) => {
@@ -229,15 +230,17 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest, veri
     };
     let user_id = verifier.get_userid_from_jwt(auth_header).await;
 
-    if verifier.verify_token( &auth_header).await {
+    if verifier.verify_token(auth_header).await {
         let result = match sqlx::query("
             WITH req as (
-                SELECT 
+                SELECT id,
                     CASE WHEN user_1 = ? THEN user_2 ELSE user_1 END AS friend_id
                 FROM friends 
                 WHERE user_1 = ? OR user_2 = ?
             ) 
-            SELECT id, user_name, user_pfp FROM user WHERE id IN (SELECT friend_id FROM req); 
+            SELECT u.id, u.user_name, u.user_pfp, req.id as friendship_id
+            FROM user u 
+            JOIN req ON u.id = req.friend_id; 
         ").bind(user_id).bind(user_id).bind(user_id).fetch_all(db.as_ref()).await {
             Ok(r) => r,
             Err(e) => {
@@ -262,15 +265,23 @@ pub async fn get_all_friends(db: web::Data<Pool<Sqlite>>, req: HttpRequest, veri
             let user_name: String = row.try_get("user_name").unwrap_or("UNKNOWN".to_string());
             let user_pfp: String = row.try_get("user_pfp").unwrap_or("UNKNWON".to_string());
 
+            let friendship = match row.try_get("friendship_id"){
+                Ok(id)=>{id},
+                Err(e)=>{
+                    dbg!(e);
+                    continue;
+                }
+            };
             let friend = Friend {
                 friend_id: id,
                 user_name: user_name,
-                user_pfp: user_pfp
+                user_pfp: user_pfp,
+                friendship_id: friendship
             };
 
             all_friends.friends.push(friend);
         }
-        return HttpResponse::Ok().json(all_friends).into();
+        return HttpResponse::Ok().json(all_friends);
     }
     return HttpResponse::Unauthorized().into();
 }
@@ -287,7 +298,7 @@ pub async fn get_all_friends_requests(db: web::Data<Pool<Sqlite>>, req: HttpRequ
     };
     let user_id = verifier.get_userid_from_jwt(auth_header).await;
 
-    if verifier.verify_token(&auth_header).await {
+    if verifier.verify_token(auth_header).await {
         let result = match sqlx::query("
             WITH req as (
                 SELECT id,
@@ -344,9 +355,9 @@ pub async fn get_all_friends_requests(db: web::Data<Pool<Sqlite>>, req: HttpRequ
 
             all_friends.friend_requests.push(friend);
         }
-        return HttpResponse::Ok().json(all_friends).into();
+        return HttpResponse::Ok().json(all_friends);
     }
-    return HttpResponse::Unauthorized().into();
+    HttpResponse::Unauthorized().into()
 }
 
 #[post("/get_friend_profile")]

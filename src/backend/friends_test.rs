@@ -3,7 +3,7 @@ mod tests{
     use std::sync::Arc;
     use reqwest::StatusCode;
     use sqlx::{Pool, Sqlite, sqlite, *};
-    use crate::{backend::{friends::{FriendRequest, RequestId, accept_friend_request, decline_friend_request, send_friend_request}, setup_db, verification_service::{MockVerificationService, TokenVerifier}}, try_or};
+    use crate::{backend::{friends::{AllFriends, FriendRequest, RequestId, accept_friend_request, decline_friend_request, get_all_friends, send_friend_request}, setup_db, verification_service::{MockVerificationService, TokenVerifier}}, try_or};
 
     use actix_web::{App, test::{self, TestRequest}, web::Data};
 
@@ -19,10 +19,10 @@ mod tests{
             '70',
             '70');
         ").await {
-            Ok(a) => return Ok(true),
+            Ok(_) => Ok(true),
             Err(e) => {
                 dbg!(e);
-                return Ok(false);
+                Ok(false)
             }
         }
     }
@@ -222,5 +222,62 @@ mod tests{
         let resp = test::call_service(&app, req).await;
         assert!(resp.status().is_client_error());
         assert_eq!(resp.status().as_u16(), StatusCode::UNAUTHORIZED.as_u16());
+    }
+
+    #[actix_web::test]
+    async fn test_get_all_friends(){
+        let pool = setup_db().await;
+        fresh_start(&pool).await;
+
+        let verifier: Arc<dyn TokenVerifier> = Arc::new(MockVerificationService { should_return: true });
+
+        let app = test::init_service(App::new()
+        .app_data(pool.clone())
+        .app_data(Data::from(verifier.clone()))
+        .service(get_all_friends)).await;
+
+        pool.execute("
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            VALUES ('test3','test3@test.com','pwd','pfp',
+            '71',
+            '71');
+
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            VALUES ('test4','test4@test.com','pwd','pfp',
+            '72',
+            '72');
+        ").await.expect("Failed to insert other test users");
+
+        let _ = sqlx::query("
+            INSERT INTO friends(user_1, user_2) VALUES (1,2);
+            INSERT INTO friends(user_1, user_2) VALUES (1,3);
+            INSERT INTO friends(user_1, user_2) VALUES (1,4);
+            INSERT INTO friends(user_1, user_2) VALUES (2,4);
+            INSERT INTO friends(user_1, user_2) VALUES (2,3);
+        ")
+        .execute(pool.as_ref()).await.expect("Failed to insert test friend into db");
+    
+        
+        let req = TestRequest::get().uri("/get_all_friends")
+        .insert_header(("Authorization", "69"))
+        .to_request();
+
+        let resp = test::call_service(&app, req).await;
+        dbg!(resp.status());
+        assert!(resp.status().is_success());
+
+        let body:AllFriends = test::read_body_json(resp).await;
+
+        assert_eq!(body.friends.len(), 3);
+        
+        assert_eq!(body.friends[0].friend_id, 2);
+        assert_eq!(body.friends[0].user_name, "test2");
+
+        assert_eq!(body.friends[1].friend_id, 3);
+        assert_eq!(body.friends[1].user_name, "test3");
+
+        assert_eq!(body.friends[2].friend_id, 4);
+        assert_eq!(body.friends[2].user_name, "test4");
+
     }
 }

@@ -513,29 +513,29 @@ pub async fn remove_from_list(db: web::Data<Pool<Sqlite>>,to_add: Json<AddToList
         }
     };
 
-    if !verifier.verify_token(&auth_header).await || verifier.get_userid_from_jwt(&auth_header).await != to_add.user_id {
+    if !verifier.verify_token(auth_header).await || verifier.get_userid_from_jwt(auth_header).await != to_add.user_id {
         return HttpResponse::Unauthorized().into();
     }
     match sqlx::query("DELETE FROM watch_list_anime WHERE anime_id = ?, user_id = ?, list_id = ?") 
-        .bind(to_add.anime_id).bind(to_add.user_id).bind(&to_add.list_id).execute(db.as_ref()).await
+        .bind(to_add.anime_id).bind(to_add.user_id).bind(to_add.list_id).execute(db.as_ref()).await
     {
         Ok(result) => {
-            if result.rows_affected() <= 0 {
+            if result.rows_affected() == 0 {
                 return HttpResponse::InternalServerError().into();
                 }
-            match re_order_list_on_remove(db.clone(), to_add.rank.unwrap_or(1), to_add.list_id.clone(), to_add.user_id).await {
+            match re_order_list_on_remove(db.clone(), to_add.rank.unwrap_or(1), to_add.list_id, to_add.user_id).await {
                 Ok(_) => {
-                    return HttpResponse::Ok().into();
+                    HttpResponse::Ok().into()
                 }   
                 Err(e) => {
                     dbg!(e);
-                    return HttpResponse::Ok().into();
+                    HttpResponse::Ok().into()
                 }
             }
             }
         Err(e) => {
             dbg!(e);
-            return HttpResponse::InternalServerError().into();
+            HttpResponse::InternalServerError().into()
         }
     }
 }
