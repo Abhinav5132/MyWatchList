@@ -1,9 +1,9 @@
+pub use crate::backend::AnimeStructs::Anime;
+pub use crate::backend::*;
 use actix_web::web::Data;
 use anyhow::Result;
 use reqwest::Client;
 use sqlx::{Pool, Sqlite};
-pub use crate::backend::*;
-pub use crate::backend::AnimeStructs::Anime;
 
 //TODO: This whole thing is shit
 
@@ -25,16 +25,22 @@ pub struct AnimeMedia {
 
 /*updates the anime that are already in the db and are finished can be run way more periodically than the rest */
 //TODO this needs to also update its reccommendations and related as those can change.
-pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<()> { 
-    let updatedAt:i64 = sqlx::query("SELECT updatedAt 
+pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> {
+    let updatedAt: i64 = sqlx::query(
+        "SELECT updatedAt 
     FROM anime 
     ORDER BY updatedAt ASC 
-    LIMIT 1")
-    .fetch_one(db.as_ref()).await?
+    LIMIT 1",
+    )
+    .fetch_one(db.as_ref())
+    .await?
     .try_get("updatedAt")?;
 
-    let current_anime_list = sqlx::query("SELECT title_romanji FROM anime WHERE status = ? ORDER BY updatedAt DESC").bind("FINISHED")
-    .fetch_all(db.as_ref()).await?;
+    let current_anime_list =
+        sqlx::query("SELECT title_romanji FROM anime WHERE status = ? ORDER BY updatedAt DESC")
+            .bind("FINISHED")
+            .fetch_all(db.as_ref())
+            .await?;
 
     let anilist_query = "
     query ($search: String) {
@@ -48,7 +54,7 @@ pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<(
     let mut tx = db.begin().await?;
 
     for row in current_anime_list {
-        let current_title:String = row.try_get("title_romanji")?;
+        let current_title: String = row.try_get("title_romanji")?;
 
         let variables = serde_json::json!({
             "search":current_title
@@ -60,30 +66,37 @@ pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<(
             .send()
             .await?;
 
-        let response:UpdateCurrentResponse = res.json().await?;
+        let response: UpdateCurrentResponse = res.json().await?;
 
-        let updated_at_anilist = if let Some(ref data) = response.data{
-            if let Some(media) = &data.Media{
+        let updated_at_anilist = if let Some(ref data) = response.data {
+            if let Some(media) = &data.Media {
                 media.updatedAt.unwrap_or(-1)
-            } 
-            else {-1}
-        } else {-1};
+            } else {
+                -1
+            }
+        } else {
+            -1
+        };
 
-        let popularity_anilist = if let Some(ref data) = response.data{
-            if let Some(media) = &data.Media{
+        let popularity_anilist = if let Some(ref data) = response.data {
+            if let Some(media) = &data.Media {
                 media.popularity.unwrap_or(-1)
-            } 
-            else {-1}
-        } else {-1};
+            } else {
+                -1
+            }
+        } else {
+            -1
+        };
 
         if updatedAt >= updated_at_anilist {
             break; // we are up to date
         }
 
         sqlx::query("UPDATE anime SET popularity = ?, updatedAt = ?")
-        .bind(popularity_anilist)
-        .bind(updatedAt).execute(&mut *tx).await?;
-
+            .bind(popularity_anilist)
+            .bind(updatedAt)
+            .execute(&mut *tx)
+            .await?;
     }
 
     tx.commit().await?;
@@ -92,11 +105,14 @@ pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>)->anyhow::Result<(
 
 /*updates anime that are releasing*/
 pub async fn update_ones_not_in_db(db: Data<Pool<Sqlite>>) -> Result<()> {
-    let updatedAt:i64 = sqlx::query("SELECT updatedAt 
+    let updatedAt: i64 = sqlx::query(
+        "SELECT updatedAt 
     FROM anime 
     ORDER BY updatedAt ASC 
-    LIMIT 1")
-    .fetch_one(db.as_ref()).await?
+    LIMIT 1",
+    )
+    .fetch_one(db.as_ref())
+    .await?
     .try_get("updatedAt")?;
 
     let anilist_query = "
@@ -203,4 +219,3 @@ pub async fn update_ones_not_in_db(db: Data<Pool<Sqlite>>) -> Result<()> {
 
     Ok(())
 }
-

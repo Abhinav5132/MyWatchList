@@ -1,3 +1,4 @@
+#![allow(clippy::redundant_field_names)]
 pub use crate::frontend::*;
 use crate::frontend::{
     lists_page::{AList, AllListSimple, FetchLists},
@@ -12,7 +13,7 @@ struct FullAnimeResult {
     format: String,
     description: String,
     episodes: i32,
-    status:String,
+    status: String,
     anime_season: String,
     anime_year: i32,
     largeImage: String,
@@ -22,11 +23,11 @@ struct FullAnimeResult {
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     recommendations: Vec<ReccomendResult>,
-    related_anime: Vec<RelatedAnime>
+    related_anime: Vec<RelatedAnime>,
 }
 
 #[derive(Serialize, Default, Deserialize, PartialEq, Clone, Debug)]
-pub struct RelatedAnime{
+pub struct RelatedAnime {
     title_romanji: String,
     id: i64,
     picture: String,
@@ -34,7 +35,7 @@ pub struct RelatedAnime{
 }
 
 #[derive(Serialize, Default, Deserialize, PartialEq, Clone, Debug)]
-pub struct ReccomendResult{
+pub struct ReccomendResult {
     id: i32,
     title: String,
     picture: String,
@@ -69,20 +70,21 @@ pub struct IsRanked {
 
 pub async fn check_if_in_list(id: i64, list_name: String, list_id: i64) -> bool {
     let client = Client::new();
+    let user_id = *USERID.read();
     if let Ok(resp) = client
         .get("http://localhost:3000/check_if_already_in_list")
         .json(&AddToList {
-            list_id:list_id,
-            anime_id: id.clone(),
+            list_id: list_id,
+            anime_id: id,
             list_name: list_name,
-            user_id: *USERID.read(),
+            user_id: user_id,
             rank: None,
         })
         .send()
         .await
     {
         if let Ok(count) = resp.json::<ExistsInList>().await {
-            if count.exists { true } else { false }
+            count.exists
         } else {
             false
         }
@@ -120,8 +122,13 @@ pub async fn check_if_list_is_ranked(list_id: i64, user_id: i64) -> IsRanked {
     }
 }
 
-pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>, list_id: i64) -> bool {
-    if !check_if_in_list(id.clone(), list_name.clone(), list_id.clone()).await {
+pub async fn add_anime_to_list(
+    id: i64,
+    list_name: String,
+    rank: Option<i32>,
+    list_id: i64,
+) -> bool {
+    if !check_if_in_list(id, list_name.clone(), list_id).await {
         let client = Client::new();
         let userid = *USERID.read();
         if let Ok(resp) = client
@@ -138,11 +145,7 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>, li
             .await
         {
             let status = resp.status();
-            if status.is_server_error() {
-                false
-            } else {
-                true
-            }
+            !status.is_server_error()
         } else {
             false
         }
@@ -153,12 +156,12 @@ pub async fn add_anime_to_list(id: i64, list_name: String, rank: Option<i32>, li
 
 pub async fn get_all_lists() -> Option<(AllListSimple, i64, i64)> {
     let client = Client::new();
-
+    let user_id = *USERID.read();
     if let Ok(res) = client
         .get("http://localhost:3000/fetch-all-lists")
         .bearer_auth(TOKEN.read())
         .json(&FetchLists {
-            user_id: *USERID.read(),
+            user_id: user_id,
             page_no: 1,
             per_page: 5,
         })
@@ -168,13 +171,21 @@ pub async fn get_all_lists() -> Option<(AllListSimple, i64, i64)> {
         let alllist = res.json::<AllListSimple>().await;
         match alllist {
             Ok(mut lists) => {
-                let recommend_id = lists.list.iter().find(|l| l.name == "Recommended").unwrap_or(&AList::default()).id;
-                let watch_id = lists.list.iter().find(|l| l.name == "Watch_List").unwrap_or(&AList::default()).id;
-                lists.list = lists
+                let recommend_id = lists
                     .list
-                    .into_iter()
-                    .filter(|l| l.name != "Recommended" && l.name != "Watch_List")
-                    .collect();
+                    .iter()
+                    .find(|l| l.name == "Recommended")
+                    .unwrap_or(&AList::default())
+                    .id;
+                let watch_id = lists
+                    .list
+                    .iter()
+                    .find(|l| l.name == "Watch_List")
+                    .unwrap_or(&AList::default())
+                    .id;
+                lists
+                    .list
+                    .retain(|l| l.name != "Recommended" && l.name != "Watch_List");
 
                 Some((lists, recommend_id, watch_id))
             }
@@ -197,7 +208,7 @@ pub fn Details(id: i64) -> Element {
     let mut is_ranked = use_signal(|| false);
     let mut last_rank = use_signal(|| 0);
     let mut list_name = use_signal(|| "".to_string());
-    let mut all_lists: Signal<AllListSimple> = use_signal(|| AllListSimple::default());
+    let mut all_lists: Signal<AllListSimple> = use_signal(AllListSimple::default);
     let mut show_list = use_signal(|| false);
     let mut list_id = use_signal(|| 0i64);
     let navigator = use_navigator();
@@ -205,7 +216,7 @@ pub fn Details(id: i64) -> Element {
     let mut watch_id = use_signal(|| 0i64);
 
     use_effect(move || {
-        let mut details = anime_details.clone();
+        let mut details = anime_details;
         spawn(async move {
             let client = Client::new();
             if let Ok(res) = client
@@ -222,7 +233,7 @@ pub fn Details(id: i64) -> Element {
                     dbg!("Failed to decode into json");
                 }*/
 
-                match res.json::<FullAnimeResult>().await{
+                match res.json::<FullAnimeResult>().await {
                     Ok(detail) => {
                         details.set(Some(detail));
                     }
@@ -231,14 +242,12 @@ pub fn Details(id: i64) -> Element {
                     }
                 }
             }
-            if let Some(lists) = get_all_lists().await{
+            if let Some(lists) = get_all_lists().await {
                 all_lists.set(lists.0);
                 recommend_id.set(lists.1);
                 watch_id.set(lists.2);
             }
-
         });
-        ()
     });
 
     rsx! {
@@ -280,8 +289,10 @@ pub fn Details(id: i64) -> Element {
                                             show_popup.set(false);
                                         },
                                         on_submit: move |rank:i32| {
+                                            let list_name = list_name.read().clone();
+                                            let list_id = *list_id.read();
                                             spawn({async move {
-                                                let status = add_anime_to_list(id.clone(), list_name.read().clone(), Some(rank), *list_id.read()).await;
+                                                let status = add_anime_to_list(id, list_name, Some(rank), list_id).await;
                                                 pop_error.set(!status);
                                             }
                                         });
@@ -314,7 +325,9 @@ pub fn Details(id: i64) -> Element {
 
                                     spawn(async move {
                                         dbg!(list_id);
-                                        let rank_status = check_if_list_is_ranked(*list_id.read(), *USERID.read()).await;
+                                        let user_id = *USERID.read();
+                                        let list_id = *list_id.read();
+                                        let rank_status = check_if_list_is_ranked(list_id, user_id).await;
                                         if rank_status.is_ranked == 0 {
                                             // not ranked
                                             is_ranked.set(false);
@@ -322,7 +335,7 @@ pub fn Details(id: i64) -> Element {
                                         }
                                         else if rank_status.is_ranked == 1 {
                                             is_ranked.set(true);
-                                            last_rank.set(rank_status.last_rank);  
+                                            last_rank.set(rank_status.last_rank);
                                         }
                                         show_popup.set(true);
                                     });
@@ -361,7 +374,7 @@ pub fn Details(id: i64) -> Element {
                                     if *show_list.read() {
                                     div {
                                     id:"dropdown_of_lists",
-                                    
+
                                         for alist in all_lists.read().list.clone() { // only prints out watch_list for some reaon
                                             div {
                                                 class: "a_list_div",
@@ -370,7 +383,9 @@ pub fn Details(id: i64) -> Element {
                                                     list_id.set(alist.id);
                                                     spawn(async move {
                                                         dbg!("this code ran");
-                                                        let is_rank = check_if_list_is_ranked(*list_id.read(), *USERID.read()).await;
+                                                        let user_id = *USERID.read();
+                                                        let list_id = *list_id.read();
+                                                        let is_rank = check_if_list_is_ranked(list_id, user_id).await;
                                                         if is_rank.is_ranked == 0{
                                                             is_ranked.set(false);
                                                             last_rank.set(0);

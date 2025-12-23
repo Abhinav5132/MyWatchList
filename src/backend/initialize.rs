@@ -4,13 +4,12 @@ use std::time::Duration;
 use actix_web::web::Data;
 use anyhow::Result;
 use reqwest::Client;
-use sqlx::Sqlite;
 use serde::Deserialize;
 use sqlx::Pool;
+use sqlx::Sqlite;
 
 use crate::backend::AnimeStructs::Anime;
 pub use crate::backend::*;
-
 
 #[derive(Deserialize)]
 pub struct AnilistResponse {
@@ -28,7 +27,7 @@ pub struct Page {
 }
 
 pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
-    println!("INITIALIZING");    
+    println!("INITIALIZING");
     /*first lets update finished anime from the last updated date. */
     let anilist_query = "
         query ($page: Int, $perPage: Int) {
@@ -123,7 +122,6 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
 
     let client = Client::new();
 
-
     use std::collections::HashMap;
     let mut studio_cache: HashMap<String, i64> = HashMap::new();
     let mut tag_cache: HashMap<String, i64> = HashMap::new();
@@ -137,13 +135,13 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
         });
         let json: AnilistResponse = loop {
             let res = client
-            .post("https://graphql.anilist.co")
-            .json(&serde_json::json!({ "query": anilist_query, "variables": variables }))
-            .send()
-            .await?;
-            
+                .post("https://graphql.anilist.co")
+                .json(&serde_json::json!({ "query": anilist_query, "variables": variables }))
+                .send()
+                .await?;
+
             let status = res.status();
-            
+
             // Check if we got rate limited (429 Too Many Requests)
             if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                 println!("Rate limited! Waiting 72 seconds before retry...");
@@ -162,23 +160,24 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             match res.json::<AnilistResponse>().await {
                 Ok(data) => break data,
                 Err(e) => {
-                    println!("Failed to parse response: {}. Waiting 5 seconds before retry...", e);
+                    println!(
+                        "Failed to parse response: {}. Waiting 5 seconds before retry...",
+                        e
+                    );
                     tokio::time::sleep(Duration::from_secs(5)).await;
                     continue;
                 }
             }
-
         };
-        
-       
-        let media_list:Vec<Anime> = json.data.Page.media;
+
+        let media_list: Vec<Anime> = json.data.Page.media;
 
         if media_list.is_empty() {
             dbg!("No more anime to fetch. Database Initialization Complete!");
-           break; // No completed anime to update  
+            break; // No completed anime to update  
         }
 
-        for entry in media_list{
+        for entry in media_list {
             let updated_at = entry.get_updated_at();
 
             let title_romaji = entry.get_title_romaji();
@@ -205,10 +204,10 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             let next_episode_airing_at = next.1;
 
             let is_present: i64 = sqlx::query("SELECT COUNT(1) FROM anime WHERE title_romanji = ?")
-            .bind(title_romaji)
-            .fetch_one(&mut *tx)
-            .await?
-            .try_get(0)?;
+                .bind(title_romaji)
+                .fetch_one(&mut *tx)
+                .await?
+                .try_get(0)?;
 
             if is_present == 1 {
                 continue;
@@ -225,29 +224,31 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             .bind(medium).bind(duration).bind(averageScore).bind(popularity)
             .bind(banner_image).bind(next_episode).bind(next_episode_airing_at).bind(updated_at)
             .execute(&mut *tx).await?.last_insert_rowid();
- 
+
             // inserting synonyms
             let synonyms = entry.get_synonyms();
-             for synonym in synonyms {
+            for synonym in synonyms {
                 sqlx::query("INSERT INTO synonyms(anime_id, synonym) VALUES (?, ?)")
-                .bind(id)
-                .bind(synonym)
-                .execute(&mut *tx).await?;
+                    .bind(id)
+                    .bind(synonym)
+                    .execute(&mut *tx)
+                    .await?;
             }
 
-            //inserting studios 
-            let studios = entry.get_studios(); 
-            for studio in studios{
+            //inserting studios
+            let studios = entry.get_studios();
+            for studio in studios {
                 let studio_id = if let Some(id) = studio_cache.get(&studio) {
-                            *id
-                        } else {
-                            let id = sqlx::query("INSERT OR IGNORE INTO studios (name) VALUES (?)")
-                                .bind(&studio)
-                                .execute(&mut *tx)
-                                .await?.last_insert_rowid();
-                            studio_cache.insert(studio.clone(), id);
-                            id
-                        };
+                    *id
+                } else {
+                    let id = sqlx::query("INSERT OR IGNORE INTO studios (name) VALUES (?)")
+                        .bind(&studio)
+                        .execute(&mut *tx)
+                        .await?
+                        .last_insert_rowid();
+                    studio_cache.insert(studio.clone(), id);
+                    id
+                };
                 sqlx::query("INSERT INTO anime_studio(anime_id, studio_id) VALUES (?, ?)")
                     .bind(id)
                     .bind(studio_id)
@@ -269,17 +270,20 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             for tag in tags {
                 let tag_name = tag.name.as_deref().unwrap_or("UNKNOWN");
                 let tag_id = if let Some(id) = tag_cache.get(tag_name) {
-                            *id
-                    } else {
-                        let id = sqlx::query("INSERT OR IGNORE INTO tags (tag, rank, isAdult) VALUES (?, ? , ?)")
-                            .bind(tag_name)
-                            .bind(tag.rank)
-                            .bind(tag.isAdult)
-                            .execute(&mut *tx)
-                            .await?.last_insert_rowid();
-                        tag_cache.insert(tag_name.to_string(), id);
-                        id
-                    };
+                    *id
+                } else {
+                    let id = sqlx::query(
+                        "INSERT OR IGNORE INTO tags (tag, rank, isAdult) VALUES (?, ? , ?)",
+                    )
+                    .bind(tag_name)
+                    .bind(tag.rank)
+                    .bind(tag.isAdult)
+                    .execute(&mut *tx)
+                    .await?
+                    .last_insert_rowid();
+                    tag_cache.insert(tag_name.to_string(), id);
+                    id
+                };
 
                 sqlx::query("INSERT INTO anime_tags(anime_id, tag_id) VALUES (?, ?)")
                     .bind(id)
@@ -290,19 +294,20 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
 
             let mut inserted_characters = std::collections::HashSet::new();
             let characters = entry.get_characters();
-            for (name, role, image) in characters{
+            for (name, role, image) in characters {
                 let character_id = if let Some(id) = character_cache.get(name) {
-                        *id
-                    } else {
-                        let id = sqlx::query("INSERT OR IGNORE INTO characters(name) VALUES (?)")
-                            .bind(name)
-                            .execute(&mut *tx)
-                            .await?.last_insert_rowid();
-                        character_cache.insert(name.to_string().clone(), id);
-                        id
-                    };
+                    *id
+                } else {
+                    let id = sqlx::query("INSERT OR IGNORE INTO characters(name) VALUES (?)")
+                        .bind(name)
+                        .execute(&mut *tx)
+                        .await?
+                        .last_insert_rowid();
+                    character_cache.insert(name.to_string().clone(), id);
+                    id
+                };
                 if inserted_characters.insert(character_id) {
-                sqlx::query("INSERT INTO anime_character(anime_id, character_id, role, image) VALUES (?,?,?,?)")
+                    sqlx::query("INSERT INTO anime_character(anime_id, character_id, role, image) VALUES (?,?,?,?)")
                     .bind(id)
                     .bind(character_id)
                     .bind(role)
@@ -313,16 +318,18 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             }
 
             let recommendations = entry.get_recommended();
-            for name in recommendations{
-                sqlx::query("INSERT INTO recommendations(anime_id, recommended_title) VALUES (?,?)")
+            for name in recommendations {
+                sqlx::query(
+                    "INSERT INTO recommendations(anime_id, recommended_title) VALUES (?,?)",
+                )
                 .bind(id)
                 .bind(name)
                 .execute(&mut *tx)
                 .await?;
             }
-        }   
+        }
         page += 1;
-    }    
+    }
 
     tx.commit().await?;
     return Ok(());

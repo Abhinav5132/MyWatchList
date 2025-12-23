@@ -1,20 +1,19 @@
-
 use crate::frontend::lists_page::AList;
 pub use crate::frontend::*;
 #[derive(Deserialize)]
 pub struct FriendRequest {
     user_id: i64,
-    friend_id: i64, 
+    friend_id: i64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct RequestId {
-    request_id: i64
+    request_id: i64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct FriendId {
-    friendship_id: i64
+    friendship_id: i64,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -27,7 +26,7 @@ pub struct Friend {
 
 #[derive(Deserialize, Serialize)]
 pub struct AllFriends {
-    friends: Vec<Friend>
+    friends: Vec<Friend>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -35,7 +34,7 @@ pub struct FullFriend {
     friend_id: i64,
     user_name: String,
     user_pfp: String,
-    lists: Vec<AList>
+    lists: Vec<AList>,
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
@@ -55,53 +54,61 @@ pub struct FriendRequests {
 
 #[derive(Deserialize, Serialize)]
 pub struct AllFriendRequests {
-    friend_requests: Vec<FriendRequests>
+    friend_requests: Vec<FriendRequests>,
 }
 #[component]
 pub fn FriendPage() -> Element {
-    let mut all_friends = use_signal(|| vec![]);
-    let mut all_requests = use_signal(|| vec![]);
+    let mut all_friends = use_signal(std::vec::Vec::new);
+    let mut all_requests = use_signal(std::vec::Vec::new);
     let mut show_friends_dropdown = use_signal(|| false);
     let mut show_remove_friends_popup = use_signal(|| false);
     let mut refresh_page = use_signal(|| false);
-    use_future( move || {
+    use_future(move || {
         let _ = refresh_page.read();
         let client = Client::new();
         async move {
-            if let Ok(req) = client.get("http://localhost:3000/get_all_friends")
-            .bearer_auth(TOKEN.read()).send().await
-                && let Ok(Afriends) = req.json::<AllFriends>().await{
-                    all_friends.set(Afriends.friends);
-                }
-    }});
+            if let Ok(req) = client
+                .get("http://localhost:3000/get_all_friends")
+                .bearer_auth(TOKEN.read())
+                .send()
+                .await
+                && let Ok(Afriends) = req.json::<AllFriends>().await
+            {
+                all_friends.set(Afriends.friends);
+            }
+        }
+    });
 
-    use_future(move ||{
+    use_future(move || {
         let _ = refresh_page.read();
         let client = Client::new();
-        async move{
-            if let Ok(req) = client.get("http://localhost:3000/get_all_friends_requests")
-            .bearer_auth(TOKEN.read()).send().await
-                && let Ok(friend_requests) = req.json::<AllFriendRequests>().await{
-                    all_requests.set(friend_requests.friend_requests);
-                }
+        async move {
+            if let Ok(req) = client
+                .get("http://localhost:3000/get_all_friends_requests")
+                .bearer_auth(TOKEN.read())
+                .send()
+                .await
+                && let Ok(friend_requests) = req.json::<AllFriendRequests>().await
+            {
+                all_requests.set(friend_requests.friend_requests);
+            }
         }
-        }
-    );
+    });
 
     rsx!(
-        div { 
+        div {
             id: "Containing_div",
-            div { 
+            div {
                 id: "Friends_div",
                 h3 { "Friends" },
                 for friend in all_friends.read().clone(){
-                    div { 
+                    div {
                         class: "Friend_card_div",
                         onclick: move |_| {
                             // on click should redirect to that persons profile page that shows of their public lists and friends only lists.
                         },
                         h4 { "{friend.user_name}" }
-                        img { 
+                        img {
                             class: "Friend_profile_image",
                             src: friend.user_pfp,
                         }
@@ -111,45 +118,45 @@ pub fn FriendPage() -> Element {
                                 evt.stop_propagation();
                                 show_friends_dropdown.set(true);
                             },
-                            img { 
+                            img {
                                 class: "Feeling_icon",
                                 src:THREEDOTS,
                             }
-                            
+
                         }
 
                         if *show_friends_dropdown.read() {
                             div{
                                 class: "friends_dropdown",
-                                show_dropdown { 
+                                show_dropdown {
                                     on_close: move |_|{
                                         show_friends_dropdown.set(false);
                                     }
                                 }
                             }
-                        }   
-                        
+                        }
+
                     }
                 }
 
             }
 
-            div { 
+            div {
                 id:"Pending_friends_list",
                 h3 { "Pending Requests" }
-                div { 
+                div {
                     class: "request_type_div",
                     h4 { "Incoming" },
                     for req in all_requests.read().clone(){
                         if req.direction == FriendRequestDirection::INCOMING{
-                            div { 
+                            div {
                                 class: "Friend_card_div",
                                 h4 { "req.user_name" }
-                                img { 
+                                img {
                                     class:"Friend_profile_image",
                                     src: req.user_pfp
                                 }
-                                img { 
+                                img {
                                     class:"Feeling_icon",
                                     src: TICK,
                                     onclick: move |_| {
@@ -167,7 +174,7 @@ pub fn FriendPage() -> Element {
                                         });
                                     }
                                 }
-                                img { 
+                                img {
                                     class:"Feeling_icon",
                                     src: XICON,
                                     onclick: move |_| {
@@ -190,19 +197,19 @@ pub fn FriendPage() -> Element {
                         }
                     }
                 }
-                div { 
+                div {
                     class: "request_type_div",
                     h4 { "Sent" },
                     for req in all_requests.read().clone(){
                         if req.direction == FriendRequestDirection::SENDING{
-                            div { 
+                            div {
                                 class: "Friend_card_div",
                                 h4 { "req.user_name" }
-                                img { 
+                                img {
                                     class:"Friend_profile_image",
                                     src: req.user_pfp
                                 }
-                                img { 
+                                img {
                                     class:"Feeling_icon",
                                     src: XICON,
                                     onclick: move |_| {
@@ -231,9 +238,9 @@ pub fn FriendPage() -> Element {
 }
 
 #[component]
-pub fn show_dropdown(on_close: EventHandler)-> Element{
+pub fn show_dropdown(on_close: EventHandler) -> Element {
     rsx!(
-        button { 
+        button {
             class: "dropdown_button",
             id: "remove_friend",
             onclick: move |_| {
@@ -242,7 +249,7 @@ pub fn show_dropdown(on_close: EventHandler)-> Element{
             },
             "Remove Friend"
         }
-        button { 
+        button {
             class: "dropdown_button",
             onclick: move |_| {
                 // redirect to friends profile
@@ -251,7 +258,7 @@ pub fn show_dropdown(on_close: EventHandler)-> Element{
             },
             "Profile"
         }
-        button { 
+        button {
             class: "dropdown_button",
             onclick: move |_| {
                 // redirect to friends list page
@@ -260,7 +267,7 @@ pub fn show_dropdown(on_close: EventHandler)-> Element{
             },
             "Currently Watching"
         }
-        button { 
+        button {
             class: "dropdown_button",
             onclick: move |_| {
                 // redirect to friends profile

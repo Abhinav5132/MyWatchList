@@ -3,9 +3,9 @@ use std::sync::Arc;
 use actix_cors::Cors;
 use actix_web::web::{Data, Json};
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
+use env_logger::Env;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, sqlite, *};
-use env_logger::Env;
 pub mod initialize;
 pub use initialize::initialize_database;
 
@@ -26,7 +26,10 @@ pub mod friends;
 
 pub mod authenticate;
 pub mod friends_test;
-use crate::backend::add_to_list::{check_if_an_anime_in_list, edit_watch_list, fetch_all_anime_from_list, fetch_all_lists, get_if_ranked, get_list_details, remove_watch_list};
+use crate::backend::add_to_list::{
+    check_if_an_anime_in_list, edit_watch_list, fetch_all_anime_from_list, fetch_all_lists,
+    get_if_ranked, get_list_details, remove_watch_list,
+};
 pub use crate::backend::authenticate::*;
 
 pub mod add_to_list;
@@ -34,32 +37,51 @@ pub use crate::backend::add_to_list::add_anime_to_list;
 use crate::backend::details::{ReccomendResult, RelatedAnime};
 use crate::backend::friends::get_all_friends;
 use crate::backend::sign_up::{AuthResponse, check_username_availability};
-use crate::backend::user_profile::{change_email, change_password, change_pfp, change_username, get_user_details, logout};
+use crate::backend::user_profile::{
+    change_email, change_password, change_pfp, change_username, get_user_details, logout,
+};
 use crate::backend::verification_service::{TokenVerifier, VerificationService};
 
-pub mod user_profile;
 pub mod AnimeStructs;
 pub mod update_database;
+pub mod user_profile;
 pub mod verification_service;
 #[post("/issue_new_access")]
-pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<AuthResponse>) -> HttpResponse {
+pub async fn issue_new_access_token(
+    db: Data<Pool<Sqlite>>,
+    refresh_token: Json<AuthResponse>,
+) -> HttpResponse {
     dotenvy::dotenv().ok();
-    match sqlx::query("SELECT id 
+    match sqlx::query(
+        "SELECT id 
     FROM user 
     WHERE user_refresh_token = ?;
-    ").bind(&refresh_token.refresh_token).fetch_one(db.as_ref()).await {
+    ",
+    )
+    .bind(&refresh_token.refresh_token)
+    .fetch_one(db.as_ref())
+    .await
+    {
         Ok(row) => {
-            let user_id:i64 = match row.try_get("id"){
+            let user_id: i64 = match row.try_get("id") {
                 Ok(u) => u,
                 Err(e) => {
                     dbg!(e);
-                    return HttpResponse::Unauthorized().into()}
+                    return HttpResponse::Unauthorized().into();
+                }
             };
             let access_token = match generate_access_token(user_id).await {
                 Ok(token) => {
-                    let _ = match sqlx::query("
+                    let _ = match sqlx::query(
+                        "
                     UPDATE user SET user_access_token = ? WHERE id = ?;
-                    ").bind(&token).bind(user_id).execute(db.as_ref()).await{
+                    ",
+                    )
+                    .bind(&token)
+                    .bind(user_id)
+                    .execute(db.as_ref())
+                    .await
+                    {
                         Ok(a) => a,
                         Err(e) => {
                             dbg!(e);
@@ -67,28 +89,28 @@ pub async fn issue_new_access_token(db: Data<Pool<Sqlite>>, refresh_token: Json<
                         }
                     };
                     token
-                },
+                }
                 Err(e) => {
                     dbg!(e);
                     return HttpResponse::Unauthorized().into();
                 }
             };
-            return HttpResponse::Ok().json(IssueNewAccess{
+            return HttpResponse::Ok().json(IssueNewAccess {
                 access_token: access_token,
-                expiry: (chrono::Utc::now() + chrono::Duration::minutes(3)).timestamp() as u64
+                expiry: (chrono::Utc::now() + chrono::Duration::minutes(3)).timestamp() as u64,
             });
-        }   
-        Err(e)=> {
+        }
+        Err(e) => {
             dbg!(e);
             return HttpResponse::Unauthorized().into();
         }
     }
-}   
+}
 
 //tests
 pub mod add_to_list_test;
 
-// simple macro that takes a try get expression and a HttpResponse and 
+// simple macro that takes a try get expression and a HttpResponse and
 // unwraps the result and returns the HttpResponse if the result is an error
 #[macro_export]
 macro_rules! try_or {
@@ -120,7 +142,7 @@ struct FullAnimeResult {
     format: String,
     description: String,
     episodes: i32,
-    status:String,
+    status: String,
     anime_season: String,
     anime_year: i32,
     largeImage: String,
@@ -130,10 +152,10 @@ struct FullAnimeResult {
     synonyms: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     recommendations: Vec<ReccomendResult>,
-    related_anime: Vec<RelatedAnime>
+    related_anime: Vec<RelatedAnime>,
 }
 
-pub async fn setup_db() -> Data<Pool<Sqlite>>{
+pub async fn setup_db() -> Data<Pool<Sqlite>> {
     //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
         .disable_statement_logging()
@@ -151,20 +173,18 @@ pub async fn setup_db() -> Data<Pool<Sqlite>>{
     match connection.execute(&*schema).await {
         Ok(c) => c,
         Err(r) => {
-            dbg!(r); 
+            dbg!(r);
             panic!("Failed to execure schema.");
         }
     };
-    
+
     let _ = sqlx::query("PRAGMA journal_mode = WAL;")
         .execute(&connection)
         .await;
 
-    
     let db = web::Data::new(connection.clone());
 
     return db;
-
 }
 
 #[actix_web::main]
@@ -185,8 +205,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
         };
     }
     env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
-    let verifier: Arc<dyn TokenVerifier> =
-    Arc::new(VerificationService { db: db.clone() });
+    let verifier: Arc<dyn TokenVerifier> = Arc::new(VerificationService { db: db.clone() });
 
     HttpServer::new(move || {
         App::new()
@@ -216,9 +235,8 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(edit_watch_list)
             .service(remove_watch_list)
             .service(get_all_friends)
-    }).bind("127.0.0.1:3000")?
+    })
+    .bind("127.0.0.1:3000")?
     .run()
     .await
 }
-
-

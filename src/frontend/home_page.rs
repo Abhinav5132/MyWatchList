@@ -1,6 +1,5 @@
-
 use crate::frontend::*;
-use dioxus::desktop::{use_window};
+use dioxus::desktop::use_window;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -11,8 +10,8 @@ pub struct Anime {
     pub largeImage: Option<String>,
 }
 
-#[derive(Serialize,Deserialize, Clone)]
-struct ScrollingResults{
+#[derive(Serialize, Deserialize, Clone)]
+struct ScrollingResults {
     id: i64,
     title_english: String,
     title_romanji: String,
@@ -20,20 +19,19 @@ struct ScrollingResults{
     averageScore: f32,
     description: String,
     duration: u32,
-    format: String
+    format: String,
 }
 
-
-#[derive(Serialize,Deserialize,Clone)]
-struct TrendingResults{
+#[derive(Serialize, Deserialize, Clone)]
+struct TrendingResults {
     id: i64,
     title_english: String,
     title_romanji: String,
     thumbnail: String,
-    averageScore: u32
+    averageScore: u32,
 }
 
-#[derive(Serialize,Deserialize,Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 struct TrendingResponse {
     new_popular: Vec<TrendingResults>,
     most_popular: Vec<TrendingResults>,
@@ -41,54 +39,52 @@ struct TrendingResponse {
 }
 
 #[component]
-pub fn HomePage() -> Element{
-    let mut trending_results:Signal<TrendingResponse> = use_signal(|| TrendingResponse { new_popular: vec![], most_popular: vec![], scroll_popular: vec![] });
+pub fn HomePage() -> Element {
+    let mut trending_results: Signal<TrendingResponse> = use_signal(|| TrendingResponse {
+        new_popular: vec![],
+        most_popular: vec![],
+        scroll_popular: vec![],
+    });
     let navigator = use_navigator();
     let client = use_context::<Client>();
     let mut current_index = use_signal(|| 0);
 
-    // for trending 
+    // for trending
     let mut top_index = use_signal(|| 0);
-    
-    // for new_trending 
+
+    // for new_trending
     let mut top_index_new = use_signal(|| 0);
 
     let window = use_window();
-    let page_size = use_signal(|| 1 as usize);
+    let page_size = use_signal(|| 1_usize);
 
-    let mut trending_anim = use_signal(|| String::new());
-    let mut trending_anim_new = use_signal(|| String::new());
-
+    let mut trending_anim = use_signal(String::new);
+    let mut trending_anim_new = use_signal(String::new);
 
     use_future(move || {
         let window = window.clone();
         let mut page_size = page_size.clone();
         async move {
             loop {
-            
-            let width = (window.inner_size().width as usize / 205).max(1);
-            page_size.set(width);
+                let width = (window.inner_size().width as usize / 205).max(1);
+                page_size.set(width);
 
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
- 
-        }}});   
-
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+        }
+    });
 
     use_effect(move || {
         let client = client.clone();
-        
-        spawn(async move {
-            if let Ok(res) = client.get(
-                format!("http://localhost:3000/trending")
-            ).send().await {
-                if let Ok(names) = res.json::<TrendingResponse>().await{
-                    trending_results.set(names)
-                }
-            }
 
+        spawn(async move {
+            if let Ok(res) = client.get("http://localhost:3000/trending").send().await
+                && let Ok(names) = res.json::<TrendingResponse>().await
+            {
+                trending_results.set(names)
+            }
         });
-        }
-    );
+    });
 
     use_future(move || {
         let trending_results = trending_results.clone();
@@ -109,7 +105,7 @@ pub fn HomePage() -> Element{
     // scrolling results
     let len = trending.scroll_popular.len();
     let current = {
-        if len == 0{
+        if len == 0 {
             None
         } else {
             trending.scroll_popular.get(*current_index.read()).cloned()
@@ -117,7 +113,7 @@ pub fn HomePage() -> Element{
     };
 
     let most_popular = trending.most_popular.clone();
-    let length  = most_popular.len();
+    let length = most_popular.len();
     let start = *top_index.read();
     let end = (start + *page_size.read()).min(length);
     let current_anime = most_popular[start..end].to_vec();
@@ -129,7 +125,7 @@ pub fn HomePage() -> Element{
     let current_anime_new = new_popular[start_new_popular..end_new].to_vec();
 
     rsx!(
-        div { 
+        div {
             id:"Scrolling_suggestion_search",
             if let Some(current_anime) = current {
             div {
@@ -142,10 +138,10 @@ pub fn HomePage() -> Element{
 
                     src:format!("{}", current_anime.banner_image),
                     alt: "Trending anime",
-                    
+
                 },
-                
-                div { 
+
+                div {
                     id:"Scrolling_description_search",
                     onclick: move |_| {
                     let navigator = navigator.clone();
@@ -153,9 +149,9 @@ pub fn HomePage() -> Element{
                     h2 { "{current_anime.title_romanji} / {current_anime.title_english}" },
                     p {
                         id:"Scrolling_description",
-                        "{current_anime.description}"  
+                        "{current_anime.description}"
                     }
-                    div { 
+                    div {
                         id:"Scrolling_details_search",
                         h4 { "Score: {current_anime.averageScore}" },
                         h4 { "Duration: {current_anime.duration}" },
@@ -163,16 +159,16 @@ pub fn HomePage() -> Element{
                     }
                 }
 
-                
+
 
                 div {
                     id:"Scrolling_buttons_div",
-                    button { 
+                    button {
                         id:"Scrolling_button_prev",
                         onclick: move |_| {
                             let mut index = *current_index.read();
                             if index == 0 {
-                                index = len - 1; 
+                                index = len - 1;
                             } else {
                                 index -= 1;
                             }
@@ -182,7 +178,7 @@ pub fn HomePage() -> Element{
                             src:"{PREV}"
                         },
                     },
-                    button { 
+                    button {
                         id:"Scrolling_button_next",
                         onclick: move |_| {
                             let next = (*current_index.read() + 1) % len;
@@ -191,18 +187,18 @@ pub fn HomePage() -> Element{
                         img {
                             src:"{NEXT}"
                         },
-                    
-                    } 
-                    
+
+                    }
+
                 }
-            } 
-        }   
+            }
+        }
     }
 
         div {
             id: "Top_trending_div_container",
             h2 { "Top Trending" },
-            div { 
+            div {
                 id: "Top_trending_row",
                 class: "{trending_anim}",
                 for trending_anime in current_anime{
@@ -211,20 +207,20 @@ pub fn HomePage() -> Element{
                         onclick: move |_| {
                                 navigator.push(crate::frontend::router::routes::Details { id: trending_anime.id });
                             },
-                        img { 
+                        img {
                             class: "trending_thumbnail",
                             src:"{trending_anime.thumbnail}"
                         },
                         h5 { "{trending_anime.title_romanji}" }
                     }
-                } 
+                }
             }
         }
 
         div {
                 id: "Top_trending_buttons",
                 button {
-                    
+
                     onclick: move |_| {
                         trending_anim.set("trending-slide-left".into());
                         let mut index = *top_index.read();
@@ -260,11 +256,11 @@ pub fn HomePage() -> Element{
                     "Next"
                 }
             }
-        
+
         div {
             id: "Top_trending_div_container",
             h2 { "New & Trending" },
-            div { 
+            div {
                 id: "Top_trending_row",
                 class: "{trending_anim_new}",
                 for trending_anime in current_anime_new{
@@ -273,13 +269,13 @@ pub fn HomePage() -> Element{
                         onclick: move |_| {
                                 navigator.push(crate::frontend::router::routes::Details { id: trending_anime.id });
                         },
-                        img { 
+                        img {
                             class: "trending_thumbnail",
                             src:"{trending_anime.thumbnail}"
                         },
                         h5 { "{trending_anime.title_romanji}" }
                     }
-                } 
+                }
             }
         }
 
@@ -324,4 +320,3 @@ pub fn HomePage() -> Element{
             }
     )
 }
-

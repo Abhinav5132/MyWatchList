@@ -1,23 +1,22 @@
-use std::time;
+pub use crate::frontend::*;
 use keyring::Entry;
 use reqwest::Client;
 use serde::Serialize;
-pub use crate::frontend::*;
+use std::time;
 
 #[derive(Serialize)]
 pub struct LoginStruct {
     pub username: String,
-    pub password: String
+    pub password: String,
 }
 
 #[derive(Serialize)]
-pub struct SignUpStruct{
+pub struct SignUpStruct {
     user_name: String,
     user_password: String,
     user_email: String,
-
 }
-// everything here needs to be changed from user_id to user_token 
+// everything here needs to be changed from user_id to user_token
 #[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
     pub access_token: String,
@@ -26,27 +25,27 @@ pub struct AuthResponse {
 }
 
 #[derive(Serialize)]
-pub struct CheckUserNameAvailability{
+pub struct CheckUserNameAvailability {
     username: String,
 }
 
 #[derive(Deserialize)]
-pub struct CheckUserNameAvailabilityResponse{
-    available: bool
+pub struct CheckUserNameAvailabilityResponse {
+    available: bool,
 }
 
 #[derive(Serialize)]
-pub struct CheckEmailAvailability{
+pub struct CheckEmailAvailability {
     email: String,
 }
 
 #[derive(Deserialize)]
-pub struct CheckEmailAvailabilityResponse{
-    available: bool
+pub struct CheckEmailAvailabilityResponse {
+    available: bool,
 }
 
 #[component] // it states username and email unavailable when typing one character at a time and disappears change this behaviour and change it from a p to a icon.
-pub fn Login(on_close: EventHandler<()>)-> Element{
+pub fn Login(on_close: EventHandler<()>) -> Element {
     let mut username = use_signal(|| "".to_string());
     let mut password = use_signal(|| "".to_string());
     let mut password_again = use_signal(|| "".to_string());
@@ -58,17 +57,17 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
     let mut debounce_email = use_signal(|| None::<std::time::Instant>);
 
     rsx!(
-        div{ 
+        div{
             id: "Main_div",
-            div { 
+            div {
                 class:"Login_class", // i can use the multiple classes trick to make the scaling of the man div work
-                h3 { 
+                h3 {
                     id:"title_login",
-                    "MyWatchList" 
+                    "MyWatchList"
                 },
                 label { "Username:" },
-                input { 
-                    
+                input {
+
                     id:"Login_username",
                     r#type: "text",
                     oninput: move |event| {
@@ -82,36 +81,34 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                 .build()
                                 .expect("Failed to build client");
                             debounce.set(Some(time::Instant::now()));
+                            let usrname = username.read().to_string();
+                            let debounce = *debounce.read();
                             spawn(async move{
                                 tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                                if let Some(last) = *debounce.read(){
-                                    if last.elapsed().as_millis() >= 300 {
-                                        let usrname = username.read();
-                                        if let Ok(res) = client.get("http://localhost:3000/check_username_availability").json(
-                                            &CheckUserNameAvailability{
-                                                username: usrname.to_string()
-                                            }
-                                        )
-                                        .send().await {
-                                            let available = match res.json::<CheckUserNameAvailabilityResponse>().await {
-                                                Ok(avail) => avail,
-                                                Err(e) => {
-                                                    dbg!(e);
-                                                    CheckUserNameAvailabilityResponse{
-                                                        available:false
-                                                    } // sets user name as not available if unable to verify that username is available
-                                                }
-                                            };
-                                            username_available.set(available.available);
-                                            dbg!(available.available);
+                                if let Some(last) = debounce
+                                    && last.elapsed().as_millis() >= 300
+                                    && let Ok(res) = client.get("http://localhost:3000/check_username_availability").json(
+                                        &CheckUserNameAvailability{
+                                            username: usrname
                                         }
+                                    ).send().await {
+                                        let available = match res.json::<CheckUserNameAvailabilityResponse>().await {
+                                            Ok(avail) => avail,
+                                            Err(e) => {
+                                                dbg!(e);
+                                                CheckUserNameAvailabilityResponse{
+                                                    available:false
+                                                } // sets user name as not available if unable to verify that username is available
+                                            }
+                                        };
+                                        username_available.set(available.available);
+                                        dbg!(available.available);
                                     }
-                                }
-                            }); 
+                            });
                         }
                     },
-                    onkeydown: move |event| async move{ 
-                        if event.code().to_string() == "Enter".to_string(){
+                    onkeydown: move |event| async move{
+                        if event.code().to_string() == "Enter"{
                             if *trying_to_sign_up.read(){
                                 let _ = document::eval(r#"document.getElementById('Login_email').focus();"#).await;
                             } else{
@@ -121,20 +118,20 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     },
 
                 },
-                if *username.read() != "".to_string() {
+                if !(*username.read()).is_empty() {
                     if !*username_available.read() {
-                        p { 
+                        p {
                             "Username Unavailable. Please choose a different username."
                         }
                     } else{
                         p {  }
                     }
-                } 
+                }
 
                 if *trying_to_sign_up.read() {
                     label { "email:" },
-                    input { 
-                        
+                    input {
+
                         id:"Login_email",
                         type: "text",
                         oninput: move |event| {
@@ -146,43 +143,42 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                 .build()
                                 .expect("Failed to build client");
                             debounce_email.set(Some(time::Instant::now()));
+                            let email = email.read().to_string();
+                            let debounce = *debounce_email.read();
                             spawn(async move{
                                 tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                                if let Some(last) = *debounce_email.read(){
-                                    if last.elapsed().as_millis() >= 300 {
-                                        let email = email.read();
-                                        if let Ok(res) = client.get("http://localhost:3000/check_email_availability").json(
-                                            &CheckEmailAvailability{
-                                                email: email.to_string()
-                                            }
-                                        )
-                                        .send().await {
-                                            let available = match res.json::<CheckEmailAvailabilityResponse>().await {
-                                                Ok(avail) => avail,
-                                                Err(e) => {
-                                                    dbg!(e);
-                                                    CheckEmailAvailabilityResponse{
-                                                        available:false
-                                                    } // sets user name as not available if unable to verify that username is available
-                                                }
-                                            };
-                                            username_available.set(available.available);
-                                            dbg!(available.available);
+                                if let Some(last) = debounce
+                                    && last.elapsed().as_millis() >= 300
+                                    && let Ok(res) = client.get("http://localhost:3000/check_email_availability").json(
+                                        &CheckEmailAvailability{
+                                            email: email
                                         }
+                                    )
+                                    .send().await {
+                                        let available = match res.json::<CheckEmailAvailabilityResponse>().await {
+                                            Ok(avail) => avail,
+                                            Err(e) => {
+                                                dbg!(e);
+                                                CheckEmailAvailabilityResponse{
+                                                    available:false
+                                                } // sets user name as not available if unable to verify that username is available
+                                            }
+                                        };
+                                        username_available.set(available.available);
+                                        dbg!(available.available);
                                     }
-                                }
-                            }); 
+                            });
                         },
-                        onkeydown: move |event| async move{ 
-                            if event.code().to_string() == "Enter".to_string(){
+                        onkeydown: move |event| async move{
+                            if event.code().to_string() == "Enter"{
                                 let _ = document::eval(r#"document.getElementById('Login_password').focus();"#).await;
                             }
                         }
                     }
 
-                    if *email.read() != "".to_string() {
+                    if !(*email.read()).is_empty() {
                         if !*email_available.read() {
-                                p { 
+                                p {
                                     "Email already taken please choose another email."
                                 }
                             }
@@ -192,7 +188,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                     }
 
                 label { "Password:" },
-                input { 
+                input {
                     id:"Login_password",
                     r#type: "password",
                     oninput: move |event| {
@@ -200,7 +196,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                         password.set(event.value());
                     },
                     onkeydown: move |event| async move {
-                        if event.code().to_string() == "Enter".to_string(){
+                        if event.code().to_string() == "Enter"{
                             if *trying_to_sign_up.read() {
                                 let _ = document::eval(r#"document.getElementById('Login_password_again').click();"#).await;
                             }else{
@@ -212,51 +208,50 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
 
                 if *trying_to_sign_up.read() {
                     label { "re-enter password:" },
-                    input { 
-                        
+                    input {
+
                         id:"Login_password_again",
                         type: "text",
                         oninput: move |event| {
                             event.prevent_default();
                             email.set(event.value());
                         },
-                        onkeydown: move |event| async move{ 
-                            if event.code().to_string() == "Enter".to_string(){
+                        onkeydown: move |event| async move{
+                            if event.code().to_string() == "Enter"{
                                 let _ = document::eval(r#"document.getElementById('submit_button').focus();"#).await;
                             }
                         }
                     },
-    
+
                 }
 
-                button {  
+                button {
                     id: "submit_button",
                     r#type:"button",
                     onclick: move |_| {
                         if !*trying_to_sign_up.read(){
-                            let client = Client::builder()
-                            .danger_accept_invalid_certs(true)
-                            .build()
-                            .expect("Failed to build client");
+                            let client = Client::new();
+                            let pass = password.read().to_string();
+                            let user_name = username.read().to_string();
                             spawn(async move{
                                 // add actuall username and password checks
-
                                 if let Ok(res) = client.post("http://localhost:3000/login").json(&LoginStruct{
-                                    username: username.read().to_string(),
-                                    password: password.read().to_string()
-                                }).send().await{
-                                    if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                                    username: user_name,
+                                    password: pass
+                                }).send().await
+                                    && let Ok(auth_response) = res.json::<AuthResponse>().await {
+                                        let name = username.read().to_string();
                                         *TOKEN.write() = auth_response.access_token;
                                         *REFRESHIN.write() = auth_response.expires_in as i64;
-                                        *USERNAME.write() = username.read().to_string();
-                                        let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
-                                        // do something with this status later. 
+                                        *USERNAME.write() = name.clone();
+                                        let login_status = store_refresh_token(&name, auth_response.refresh_token.as_str());
+                                        // do something with this status later.
                                          let path = storage_file();
-                                        match fs::write(path, &username.read().to_string()){
+                                        match fs::write(path, username.read().to_string()){
                                             Ok(a)=> {
                                                 print!("Successfull wrote the token to");
                                                 a
-                                                
+
                                             }
                                             Err(e)=>{
                                                 dbg!("Failed to write token to the disk");
@@ -266,52 +261,52 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                                         get_userid_from_jwt();
                                         on_close.call(());
                                     }
-                                }
                             });
                         }
                         if *trying_to_sign_up.read(){
-                            
+
                                 let client = Client::builder()
                                 .danger_accept_invalid_certs(true)
                                 .build()
                                 .expect("Failed to build client");
                                 spawn(async move {
+                                    let user_name = username.read().to_string();
+                                    let user_email = email.read().to_string();
+                                    let user_password = password.read().to_string();
                                     if let Ok(res) = client.post("http://localhost:3000/Signup").json(&SignUpStruct{
-                                        user_name: username.read().to_string(),
-                                        user_email: email.read().to_string(),
-                                        user_password: password.read().to_string()
-                                    }).send().await {
-                                        if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                                        user_name: user_name,
+                                        user_email: user_email,
+                                        user_password: user_password
+                                    }).send().await && let Ok(auth_response) = res.json::<AuthResponse>().await {
                                         *TOKEN.write() = auth_response.access_token;
                                         *REFRESHIN.write() = auth_response.expires_in as i64;
-                                        let login_status = store_refresh_token(&*username.read().as_str(), &auth_response.refresh_token.as_str());
-                                        // do something with this status later. 
+                                        let login_status = store_refresh_token(username.read().as_str(), auth_response.refresh_token.as_str());
+                                        // do something with this status later.
                                         let path = storage_file();
-                                        match fs::write(path, &username.read().to_string()){
+                                        match fs::write(path, username.read().to_string()){
                                             Ok(a)=> {
                                                 print!("Successfull wrote the token to");
                                                 a
-                                                
+
                                             }
                                             Err(e)=>{
                                                 dbg!("Failed to write token to the disk");
                                                 dbg!(e);
                                             }
                                         }
-                                            
+
                                         get_userid_from_jwt();
                                         on_close.call(());
                                     }
-                                    }
                                 });
-                            
+
                         }
                     },
                     "Submit"
                 }
-                p { 
-                    "Not a member " 
-                    a { 
+                p {
+                    "Not a member "
+                    a {
                         class: "link_text",
                         onclick: move |_|{
                             trying_to_sign_up.set(true);
@@ -319,7 +314,7 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                         "sign up"
                     }
                     " or "
-                    a { 
+                    a {
                         class: "link_text",
                         onclick: move |_|{
                             on_close.call(());
@@ -327,15 +322,14 @@ pub fn Login(on_close: EventHandler<()>)-> Element{
                         "continue as guest."
                     }
                 }
-            }    
-        }    
+            }
+        }
     )
 }
 
-
 pub fn store_refresh_token(user_id: &str, refresh_token: &str) -> Result<(), keyring::Error> {
     let entry = Entry::new("MyWatchList", user_id)?;
-    entry.set_password(refresh_token);
+    let _ = entry.set_password(refresh_token);
     dbg!("Added refresh token to the store.");
     Ok(())
 }
@@ -343,7 +337,7 @@ pub fn store_refresh_token(user_id: &str, refresh_token: &str) -> Result<(), key
 pub fn get_refresh_token(user_id: &str) -> Option<String> {
     let entry = Entry::new("MyWatchList", user_id).ok()?;
     match entry.get_password() {
-        Ok(token) => Some(token), 
+        Ok(token) => Some(token),
         Err(e) => {
             dbg!("Failed to get refresh token", e);
             None

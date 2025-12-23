@@ -1,92 +1,124 @@
-use actix_web::{web::{Data, Json}, HttpRequest, HttpResponse};
 pub use crate::backend::*;
 use crate::{backend::verification_service::TokenVerifier, try_or};
+use actix_web::{
+    HttpRequest, HttpResponse,
+    web::{Data, Json},
+};
 
 #[derive(Serialize, Deserialize)]
-pub struct UserDetails{
+pub struct UserDetails {
     username: String,
     user_email: String,
     user_pfp: String,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct UserId{
+pub struct UserId {
     user_id: i64,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ChangeUsername{
+pub struct ChangeUsername {
     user_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ChangePassword{
+pub struct ChangePassword {
     pwd: String,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ChangeEmail{
+pub struct ChangeEmail {
     email: String,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ChangePfp{
+pub struct ChangePfp {
     pfp: String,
 }
 
 #[post("/get_user_details")]
-pub async fn get_user_details(db: web::Data<Pool<Sqlite>>, user_id: Json<UserId>) -> HttpResponse{
-    let row = try_or!(sqlx::query("SELECT user_name, user_email, user_pfp FROM user WHERE id = ?;")
-    .bind(user_id.user_id).fetch_one(db.as_ref()).await, HttpResponse::InternalServerError().finish());
+pub async fn get_user_details(db: web::Data<Pool<Sqlite>>, user_id: Json<UserId>) -> HttpResponse {
+    let row = try_or!(
+        sqlx::query("SELECT user_name, user_email, user_pfp FROM user WHERE id = ?;")
+            .bind(user_id.user_id)
+            .fetch_one(db.as_ref())
+            .await,
+        HttpResponse::InternalServerError().finish()
+    );
 
-    let image:String = try_or!(row.try_get("user_pfp"), HttpResponse::InternalServerError().finish());
-    let user_name:String = try_or!(row.try_get("user_name"), HttpResponse::InternalServerError().finish());
-    let user_email:String = try_or!(row.try_get("user_email"), HttpResponse::InternalServerError().finish());
+    let image: String = try_or!(
+        row.try_get("user_pfp"),
+        HttpResponse::InternalServerError().finish()
+    );
+    let user_name: String = try_or!(
+        row.try_get("user_name"),
+        HttpResponse::InternalServerError().finish()
+    );
+    let user_email: String = try_or!(
+        row.try_get("user_email"),
+        HttpResponse::InternalServerError().finish()
+    );
 
-
-    return HttpResponse::Ok().json( &UserDetails{
+    return HttpResponse::Ok().json(&UserDetails {
         username: user_name,
         user_email: user_email,
-        user_pfp: image
+        user_pfp: image,
     });
 }
 
 #[post("/logout")]
-pub async fn logout(db: web::Data<Pool<Sqlite>>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
+pub async fn logout(
+    db: web::Data<Pool<Sqlite>>,
+    req: HttpRequest,
+    verifier: Data<dyn TokenVerifier>,
+) -> HttpResponse {
     dbg!("Loging out - backend");
     let auth_header = match req.headers().get("Authorization") {
-        Some(a) => {
-            a.to_str().unwrap_or("")
-        }
-        None =>{
+        Some(a) => a.to_str().unwrap_or(""),
+        None => {
             return HttpResponse::Unauthorized().into();
         }
     };
     let user_id = verifier.get_userid_from_jwt(&auth_header).await;
-    if verifier.verify_token( auth_header).await {
-       let _ = try_or!(sqlx::query("UPDATE user SET (user_refresh_token, user_access_token) = (?, ?) WHERE id = ?")
-        .bind::<Option<String>>(None).bind::<Option<String>>(None)
-        .bind(user_id)
-        .execute(db.as_ref()).await, HttpResponse::InternalServerError().finish());
+    if verifier.verify_token(auth_header).await {
+        let _ = try_or!(
+            sqlx::query(
+                "UPDATE user SET (user_refresh_token, user_access_token) = (?, ?) WHERE id = ?"
+            )
+            .bind::<Option<String>>(None)
+            .bind::<Option<String>>(None)
+            .bind(user_id)
+            .execute(db.as_ref())
+            .await,
+            HttpResponse::InternalServerError().finish()
+        );
     }
     return HttpResponse::Ok().into();
 }
 #[post("/change_username")]
-pub async fn change_username(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangeUsername>, verifier: Data<dyn TokenVerifier>) ->HttpResponse {
+pub async fn change_username(
+    db: web::Data<Pool<Sqlite>>,
+    req: HttpRequest,
+    username: Json<ChangeUsername>,
+    verifier: Data<dyn TokenVerifier>,
+) -> HttpResponse {
     let token = match req.headers().get("Authorization") {
-        Some(a) => {
-            a.to_str().unwrap_or("")
-        }
-        None =>{
+        Some(a) => a.to_str().unwrap_or(""),
+        None => {
             return HttpResponse::Unauthorized().into();
         }
     };
     let user_id = verifier.get_userid_from_jwt(token).await;
-    
-    if verifier.verify_token( token).await{
+
+    if verifier.verify_token(token).await {
         let _row = try_or!(
             sqlx::query("UPDATE user SET user_name = ? WHERE id = ?")
-            .bind(&username.user_name).bind(user_id).execute(db.as_ref()).await, HttpResponse::InternalServerError().finish()
+                .bind(&username.user_name)
+                .bind(user_id)
+                .execute(db.as_ref())
+                .await,
+            HttpResponse::InternalServerError().finish()
         );
 
         return HttpResponse::Ok().into();
@@ -95,98 +127,126 @@ pub async fn change_username(db: web::Data<Pool<Sqlite>>, req: HttpRequest, user
 }
 
 #[post("/change_password")]
-pub async fn change_password(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangePassword>, verifier: Data<dyn TokenVerifier>) -> HttpResponse{
+pub async fn change_password(
+    db: web::Data<Pool<Sqlite>>,
+    req: HttpRequest,
+    username: Json<ChangePassword>,
+    verifier: Data<dyn TokenVerifier>,
+) -> HttpResponse {
     dbg!("changing_password");
     let token = match req.headers().get("Authorization") {
-        Some(a) => {
-            a.to_str().unwrap_or("")
-        }
-        None =>{
+        Some(a) => a.to_str().unwrap_or(""),
+        None => {
             return HttpResponse::Unauthorized().into();
         }
     };
     let user_id = verifier.get_userid_from_jwt(token).await;
-    let pwd_hash = try_or!(pwd_to_hash(&username.pwd), HttpResponse::Unauthorized().into());
-    if verifier.verify_token( token).await{
-        let _row =try_or!(
+    let pwd_hash = try_or!(
+        pwd_to_hash(&username.pwd),
+        HttpResponse::Unauthorized().into()
+    );
+    if verifier.verify_token(token).await {
+        let _row = try_or!(
             sqlx::query("UPDATE user SET user_password = ? WHERE id = ?")
-            .bind(pwd_hash).bind(user_id).execute(db.as_ref()).await, HttpResponse::InternalServerError().finish()
+                .bind(pwd_hash)
+                .bind(user_id)
+                .execute(db.as_ref())
+                .await,
+            HttpResponse::InternalServerError().finish()
         );
         return HttpResponse::Ok().into();
     }
-    return HttpResponse::Unauthorized().into()
+    return HttpResponse::Unauthorized().into();
 }
 
 #[post("/change_email")]
-pub async fn change_email(db: web::Data<Pool<Sqlite>>, req: HttpRequest, username: Json<ChangeEmail>, verifier: Data<dyn TokenVerifier>) -> HttpResponse{ // add email verification later
+pub async fn change_email(
+    db: web::Data<Pool<Sqlite>>,
+    req: HttpRequest,
+    username: Json<ChangeEmail>,
+    verifier: Data<dyn TokenVerifier>,
+) -> HttpResponse {
+    // add email verification later
     let token = match req.headers().get("Authorization") {
-        Some(a) => {
-            a.to_str().unwrap_or("")
-        }
-        None =>{
+        Some(a) => a.to_str().unwrap_or(""),
+        None => {
             return HttpResponse::Unauthorized().into();
         }
     };
     let user_id = verifier.get_userid_from_jwt(token).await;
-    if verifier.verify_token( token).await{
-        let _row =try_or!(
+    if verifier.verify_token(token).await {
+        let _row = try_or!(
             sqlx::query("UPDATE user SET user_email = ? WHERE id = ?")
-            .bind(&username.email).bind(user_id).execute(db.as_ref()).await, HttpResponse::InternalServerError().finish()
+                .bind(&username.email)
+                .bind(user_id)
+                .execute(db.as_ref())
+                .await,
+            HttpResponse::InternalServerError().finish()
         );
-        return HttpResponse::Ok().into()
+        return HttpResponse::Ok().into();
     }
-    return HttpResponse::Unauthorized().into()
+    return HttpResponse::Unauthorized().into();
 }
 
 #[post("/delete_user")]
-pub async fn delete_user(db: web::Data<Pool<Sqlite>>, req: HttpRequest, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
-    
+pub async fn delete_user(
+    db: web::Data<Pool<Sqlite>>,
+    req: HttpRequest,
+    verifier: Data<dyn TokenVerifier>,
+) -> HttpResponse {
     let token = match req.headers().get("Authorization") {
-        Some(a) => {
-            a.to_str().unwrap_or("")
-        }
-        None =>{
+        Some(a) => a.to_str().unwrap_or(""),
+        None => {
             return HttpResponse::Unauthorized().into();
         }
     };
     let user_id = verifier.get_userid_from_jwt(token).await;
-    if verifier.verify_token( token).await{ 
+    if verifier.verify_token(token).await {
         let _row = try_or!(
-            sqlx::query("DELETE user WHERE id = ?").bind(user_id).execute(db.as_ref()).await,
+            sqlx::query("DELETE user WHERE id = ?")
+                .bind(user_id)
+                .execute(db.as_ref())
+                .await,
             HttpResponse::InternalServerError().finish()
         );
-        return HttpResponse::Ok().into()
+        return HttpResponse::Ok().into();
     }
-    return HttpResponse::Ok().into()
+    return HttpResponse::Ok().into();
 }
 
 #[post("/change_pfp")]
-pub async fn change_pfp(db: Data<Pool<Sqlite>>, req: HttpRequest, new_pfp: Json<ChangePfp>, verifier: Data<dyn TokenVerifier>) -> HttpResponse {
+pub async fn change_pfp(
+    db: Data<Pool<Sqlite>>,
+    req: HttpRequest,
+    new_pfp: Json<ChangePfp>,
+    verifier: Data<dyn TokenVerifier>,
+) -> HttpResponse {
     let token = match req.headers().get("Authorization") {
-        Some(a) => {
-            a.to_str().unwrap_or("")
-        }
-        None =>{
+        Some(a) => a.to_str().unwrap_or(""),
+        None => {
             return HttpResponse::Unauthorized().into();
         }
     };
     let user_id = verifier.get_userid_from_jwt(token).await;
-    if verifier.verify_token( token).await{
+    if verifier.verify_token(token).await {
         let _ = try_or!(
             sqlx::query("UPDATE user SET user_pfp = ? WHERE id = ?")
-            .bind(&new_pfp.pfp).bind(user_id).execute(db.as_ref()).await, 
-            HttpResponse::InternalServerError().finish() 
+                .bind(&new_pfp.pfp)
+                .bind(user_id)
+                .execute(db.as_ref())
+                .await,
+            HttpResponse::InternalServerError().finish()
         );
 
         return HttpResponse::Ok().into();
-     }
+    }
     return HttpResponse::Unauthorized().into();
 }
-// these two are long term 
+// these two are long term
 pub async fn export_all_my_lists() {
-todo!()
+    todo!()
 }
 
 pub async fn export_one_list() {
-todo!()
+    todo!()
 }

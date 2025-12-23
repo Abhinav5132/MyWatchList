@@ -1,21 +1,21 @@
-
 pub use crate::frontend::*;
 #[component]
-pub fn PopupAddAnime( 
+pub fn PopupAddAnime(
     list_name: String,
-    anime_name: String, 
-    is_rank: bool, 
-    last_rank: i32, 
-    on_close: EventHandler<()>, 
-    on_submit: EventHandler<i32>) -> Element {
+    anime_name: String,
+    is_rank: bool,
+    last_rank: i32,
+    on_close: EventHandler<()>,
+    on_submit: EventHandler<i32>,
+) -> Element {
     let mut new_selected_rank = use_signal(|| last_rank + 1);
-    rsx!{
+    rsx! {
         if is_rank {
-            div { 
+            div {
                 id: "is_ranked_popup",
                 class: "is_ranked_popup",
                 p {"Please rank the entry: {anime_name}"},
-                input { 
+                input {
                     type:"number",
                     name:"Rank",
                     min:"1",
@@ -28,39 +28,39 @@ pub fn PopupAddAnime(
 
                 }
 
-                button { 
+                button {
                     id:"submit_ranked_popup",
                     onclick: move |_|{
                         on_close.call(());
                         on_submit.call(*new_selected_rank.read());
                         },
-                    "Submit"   
+                    "Submit"
                     }
-                button { 
+                button {
                     id:"close_ranked_popup",
                     onclick: move |_|{
                         on_close.call(());
                         },
                         "Cancel"
                     }
-                    
+
                 }
-                    
-            } 
+
+            }
         else {
-            div { 
+            div {
                 class: "is_ranked_popup",
                 id: "is_unranked_popup",
-                p { "{ anime_name } added successfully to { list_name}" } 
+                p { "{ anime_name } added successfully to { list_name}" }
 
-                button { 
+                button {
                     id:"close_ranked_popup",
                     onclick: move |_| {
                         on_close.call(());
                         on_submit.call(*new_selected_rank.read());
                     },
                     "Close"
-                }                      
+                }
             }
         }
 
@@ -68,29 +68,28 @@ pub fn PopupAddAnime(
 }
 
 #[component]
-pub fn PopupError(list_name: String,
-    anime_name: String,on_close: EventHandler<()>) -> Element{
+pub fn PopupError(list_name: String, anime_name: String, on_close: EventHandler<()>) -> Element {
     rsx!(
     div{
         id: "popup_anime_div",
             p { "Unable to add {anime_name} to {list_name}. Please Try again." },
-            div {  
+            div {
                 id:"popup_buttons_div",
-                button { 
+                button {
                     id:"Try_again_popup",
                     onclick: move |_| {
                         //does nothing for now
                     },
                     "Try Again"
                 },
-                button { 
+                button {
                     class:"close_popup_button",
                     onclick: move |_| {
                         on_close.call(());
                     },
                     "Close"
                 }
-            } 
-            } 
+            }
+            }
     )
 }

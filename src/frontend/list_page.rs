@@ -1,57 +1,64 @@
-use reqwest::ClientBuilder;
 use crate::frontend::home_page::Anime;
 pub use crate::frontend::*;
+use reqwest::ClientBuilder;
 
 #[derive(Deserialize)]
-pub struct AllAnimeSimple{
-   pub anime: Vec<Anime>
+pub struct AllAnimeSimple {
+    pub anime: Vec<Anime>,
 }
 
 #[derive(Serialize)]
-struct FetchAnimes{
+struct FetchAnimes {
     list_id: i64,
     user_id: i64,
     page_no: i64,
 }
 
 #[component]
-pub fn ListPgFn(list_id: i64 ,user_id: i64) -> Element{
+pub fn ListPgFn(list_id: i64, user_id: i64) -> Element {
     let id = use_signal(|| list_id);
     let navigator = navigator();
     let page = use_signal(|| 1); // page starts at 1
-    let mut anime = use_signal(|| vec![]);
+    let mut anime = use_signal(std::vec::Vec::new);
     use_effect(move || {
-        let page = page;
+        let page = *page.read();
+        let list_id = *id.read();
         spawn(async move {
-            let client = ClientBuilder::new().danger_accept_invalid_certs(true).build().expect("failed to create client.");
-            if let Ok(res) = client.get("http://localhost:3000/get-animes-from-list")
-            .json(&FetchAnimes{
-                list_id: *id.read(),
-                user_id: user_id.clone(),
-                page_no: *page.read()
-            }).send().await{
-               let animes=match res.json::<AllAnimeSimple>().await {
-                Ok(a) => a.anime,
-                Err(e)=>{
-                    dbg!(e);
-                    vec![]
-                }
-               };
-               anime.set(animes);
+            let client = ClientBuilder::new()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .expect("failed to create client.");
+            if let Ok(res) = client
+                .get("http://localhost:3000/get-animes-from-list")
+                .json(&FetchAnimes {
+                    list_id: list_id,
+                    user_id: user_id,
+                    page_no: page,
+                })
+                .send()
+                .await
+            {
+                let animes = match res.json::<AllAnimeSimple>().await {
+                    Ok(a) => a.anime,
+                    Err(e) => {
+                        dbg!(e);
+                        vec![]
+                    }
+                };
+                anime.set(animes);
             }
-     });
-    ()
+        });
     });
     rsx!(
         div{
             id: "main_div_list_page",
-            div { 
+            div {
                 id:"list_in_list_page",
                 for entry in anime.read().clone(){
-                    div { 
+                    div {
                         id:"Anime_card_list_page",
                         onclick: move |_| {
-                            navigator.push(crate::frontend::router::routes::Details { id: entry.id.clone() });
+                            navigator.push(crate::frontend::router::routes::Details { id: entry.id });
                         },
                         img {
                             class: "dropdown_images_search",
@@ -62,9 +69,9 @@ pub fn ListPgFn(list_id: i64 ,user_id: i64) -> Element{
                         span {
                             class: "span_items_search",
                             "{&entry.title}"
-                        } 
-                         
-                    }       
+                        }
+
+                    }
                 }
             }
         }

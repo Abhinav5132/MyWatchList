@@ -1,14 +1,17 @@
-
 #[cfg(test)]
-mod tests{
+mod tests {
     use std::sync::Arc;
 
-    use crate::backend::{add_to_list::{IfRanked, IsRanked, get_if_ranked}, setup_db, verification_service::{MockVerificationService, TokenVerifier}};
+    use crate::backend::{
+        add_to_list::{IfRanked, IsRanked, get_if_ranked},
+        setup_db,
+        verification_service::{MockVerificationService, TokenVerifier},
+    };
 
     use actix_web::{App, test, web::Data};
     use sqlx::{Executor, Pool, Sqlite};
 
-    async fn setup_user(pool: &Data<Pool<Sqlite>>) -> anyhow::Result<bool>{
+    async fn setup_user(pool: &Data<Pool<Sqlite>>) -> anyhow::Result<bool> {
         match pool.execute("
             Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
             VALUES ('test','test@test.com','pwd','pfp',
@@ -23,7 +26,7 @@ mod tests{
         }
     }
 
-    async fn clean_db(pool: &Data<Pool<Sqlite>>){
+    async fn clean_db(pool: &Data<Pool<Sqlite>>) {
         let _ = pool.execute("DELETE FROM watch_list_anime;").await;
         let _ = pool.execute("DELETE FROM watch_list;").await;
         let _ = pool.execute("DELETE FROM user;").await;
@@ -32,14 +35,13 @@ mod tests{
         let _ = pool.execute("DELETE FROM sqlite_sequence;").await;
     }
 
-
     #[actix_web::test]
-    async fn test_get_if_ranked(){
+    async fn test_get_if_ranked() {
         let pool = setup_db().await;
         clean_db(&pool).await;
-        match setup_user(&pool).await{
-            Ok(_)=>{},
-            Err(e)=>{
+        match setup_user(&pool).await {
+            Ok(_) => {}
+            Err(e) => {
                 panic!("{e}");
             }
         }
@@ -57,12 +59,16 @@ mod tests{
             }
         }
 
-        let verifier: Arc<dyn TokenVerifier> =
-            Arc::new(MockVerificationService { should_return: true });
-        let app = test::init_service(App::new()
-        .app_data(pool)
-        .app_data(Data::from(verifier.clone()))
-        .service(get_if_ranked)).await;
+        let verifier: Arc<dyn TokenVerifier> = Arc::new(MockVerificationService {
+            should_return: true,
+        });
+        let app = test::init_service(
+            App::new()
+                .app_data(pool)
+                .app_data(Data::from(verifier.clone()))
+                .service(get_if_ranked),
+        )
+        .await;
 
         let req = test::TestRequest::get()
             .uri("/get-if-ranked")
@@ -74,12 +80,11 @@ mod tests{
         let resp = test::call_service(&app, req).await;
         dbg!(resp.status());
         assert!(resp.status().is_success());
-        
+
         let body = test::read_body(resp).await;
 
         let result: IsRanked = serde_json::from_slice(&body).expect("Failed to convert to json");
         assert_eq!(result.is_ranked, 1);
         assert_eq!(result.last_rank, 10);
-    }   
-
+    }
 }
