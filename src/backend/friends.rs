@@ -10,9 +10,9 @@ pub struct FriendRequest {
     pub friend_id: i64, 
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct RequestId {
-    request_id: i64
+    pub request_id: i64
 }
 
 #[derive(Deserialize)]
@@ -131,19 +131,19 @@ pub async fn accept_friend_request(db: web::Data<Pool<Sqlite>>,request: Json<Req
         }
     };
 
-    if verifier.verify_token( &auth_header).await {
+    if verifier.verify_token(auth_header).await {
         match sqlx::query(" 
             WITH req as (SELECT sender_id, receiver_id FROM friend_requests WHERE id = ?)
             INSERT INTO friends (user_1, user_2)
             SELECT 
-                CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END,
-                CASE WHEN sender_id < receiver_id THEN receiver_id ELSE sender_id END
-            FROM req;
+                CASE WHEN r.sender_id < r.receiver_id THEN r.sender_id ELSE r.receiver_id END,
+                CASE WHEN r.sender_id < r.receiver_id THEN r.receiver_id ELSE r.sender_id END
+            FROM req as r;
 
             DELETE FROM friend_requests WHERE id = ?;
 
         ")
-        .bind(request.request_id).fetch_one(db.as_ref()).await {
+        .bind(request.request_id).execute(db.as_ref()).await {
             Ok(_) => {
                 return HttpResponse::Ok().into(); 
             }
