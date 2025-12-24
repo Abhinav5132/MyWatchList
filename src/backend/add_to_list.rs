@@ -137,7 +137,7 @@ pub fn file_to_blob_with_path(path: &str) -> Result<Vec<u8>> {
 pub async fn encode_to_base64(bytes: Vec<u8>) -> Option<String> {
     let base_64_img = base64::engine::general_purpose::STANDARD.encode(bytes);
     let data_url = format!("data:image/png;base64,{}", base_64_img);
-    return Some(data_url);
+    Some(data_url)
 }
 
 pub async fn file_to_blob_with_link(path: &str) -> Result<Vec<u8>, reqwest::Error> {
@@ -165,7 +165,7 @@ pub async fn re_order_list_on_addition(
     ",
     )
     .bind(user_id)
-    .bind(&list_id)
+    .bind(list_id)
     .bind(rank)
     .execute(&mut *tx)
     .await?;
@@ -178,7 +178,7 @@ pub async fn re_order_list_on_addition(
         ",
     )
     .bind(user_id)
-    .bind(&list_id)
+    .bind(list_id)
     .bind(rank)
     .execute(&mut *tx)
     .await?;
@@ -202,7 +202,7 @@ pub async fn re_order_list_on_remove(
     WHERE user_id = ? AND list_id = ? AND rank > ?",
     )
     .bind(user_id)
-    .bind(&list_id)
+    .bind(list_id)
     .bind(rank)
     .execute(&mut *tx)
     .await?;
@@ -410,11 +410,11 @@ pub async fn get_if_ranked(
 
     if verifier.verify_token(auth_header).await {
         if verifier.get_userid_from_jwt(auth_header).await != details.user_id {
-            return HttpResponse::Unauthorized().into();
+            HttpResponse::Unauthorized().into()
         } else {
             let result =
                 sqlx::query("SELECT is_ranked FROM watch_list WHERE id = ? and user_id = ?;")
-                    .bind(&details.list_id)
+                    .bind(details.list_id)
                     .bind(details.user_id)
                     .fetch_one(db.as_ref())
                     .await;
@@ -444,17 +444,16 @@ pub async fn get_if_ranked(
                                 is_ranked: is_ranked,
                                 last_rank: last_rank,
                             })
-                            .into()
                     }
 
                     Ok(None) => HttpResponse::Ok().json(IsRanked {
-                        is_ranked: is_ranked,
+                        is_ranked,
                         last_rank: 0,
                     }),
 
                     Err(r) => {
                         dbg!(r);
-                        return HttpResponse::InternalServerError().into();
+                        HttpResponse::InternalServerError().into()
                     }
                 }
             } else {
@@ -465,7 +464,7 @@ pub async fn get_if_ranked(
             }
         }
     } else {
-        return HttpResponse::Unauthorized().into();
+        HttpResponse::Unauthorized().into()
     }
 }
 
@@ -484,16 +483,13 @@ pub async fn add_anime_to_list(
         }
     };
 
-    if verifier.verify_token(&auth_header).await
-        && verifier.get_userid_from_jwt(&auth_header).await == to_add.user_id
+    if verifier.verify_token(auth_header).await
+        && verifier.get_userid_from_jwt(auth_header).await == to_add.user_id
     {
         let list_id = &to_add.list_id;
         let anime_id = &to_add.anime_id;
         let user_id = &to_add.user_id;
-        let rank = match to_add.rank {
-            Some(rank) => rank,
-            None => -1,
-        };
+        let rank = to_add.rank.unwrap_or(-1);
         let count:i64 = match sqlx::query_scalar(
             "SELECT COUNT(1) FROM watch_list_anime WHERE list_id = ? AND anime_id = ? AND user_id = ?"
         )
@@ -513,11 +509,11 @@ pub async fn add_anime_to_list(
         let reorder_result = re_order_list_on_addition(
             db.clone(),
             to_add.rank.unwrap_or(1),
-            to_add.list_id.clone(),
+            to_add.list_id,
             to_add.user_id,
         )
         .await;
-        if let Ok(_) = reorder_result {
+        if reorder_result.is_ok() {
             //dbg!(&count);
             if count == 0 {
                 match sqlx::query("INSERT INTO watch_list_anime( anime_id, user_id, rank, list_id) VALUES (?,?,?,?);")
@@ -529,7 +525,7 @@ pub async fn add_anime_to_list(
                 Ok(_) => {
                     dbg!("Excecuted properly");
 
-                    let mut image = genereate_grid(db.clone(), *list_id, *user_id, true).await;
+                    let image = genereate_grid(db.clone(), *list_id, *user_id, true).await;
 
                     match image {
                         Ok(img) =>{
@@ -540,24 +536,24 @@ pub async fn add_anime_to_list(
                             dbg!(e);
                         }
                     }
-                        return HttpResponse::Ok().into();
+                        HttpResponse::Ok().into()
                     }
 
                 Err(e) => {
                     dbg!(e);
-                    return HttpResponse::InternalServerError().into();
+                    HttpResponse::InternalServerError().into()
                     }
                 }
             } else {
                 dbg!("Anime is alreadt in the list");
-                return HttpResponse::Conflict().body("Anime is already in list");
+                HttpResponse::Conflict().body("Anime is already in list")
             }
         } else {
             dbg!("result is false from reorder list");
-            return HttpResponse::InternalServerError().into();
+            HttpResponse::InternalServerError().into()
         }
     } else {
-        return HttpResponse::Unauthorized().into();
+        HttpResponse::Unauthorized().into()
     }
 }
 
@@ -685,9 +681,9 @@ pub async fn remove_watch_list(
             return HttpResponse::Unauthorized().into();
         }
     };
-    if verifier.verify_token(&auth_header).await {
+    if verifier.verify_token(auth_header).await {
         let user_id = match sqlx::query("Select user_id from watch_list WHERE id = ?")
-            .bind(&query.list_id)
+            .bind(query.list_id)
             .fetch_one(db.as_ref())
             .await
         {
@@ -734,8 +730,8 @@ pub async fn edit_watch_list(
         }
     };
 
-    if verifier.verify_token(&auth_header).await
-        && verifier.get_userid_from_jwt(&auth_header).await == to_add.user_id
+    if verifier.verify_token(auth_header).await
+        && verifier.get_userid_from_jwt(auth_header).await == to_add.user_id
     {
         let mut tx = match db.begin().await {
             Ok(transaction) => transaction,
@@ -752,20 +748,20 @@ pub async fn edit_watch_list(
             is_ranked = COALESCE(?, is_ranked) , list_image = COALESCE(?, list_image), 
             is_user_image = COALESCE (?, is_user_image) WHERE user_id = ? AND id = ? ")
             .bind(&to_add.new_name).bind(&to_add.description).bind(&to_add.new_privacy_type).bind(to_add.new_is_ranked).bind(&to_add.new_image)
-            .bind(to_add.is_user_image).bind(to_add.user_id).bind(&to_add.list_id).execute(&mut *tx).await {
+            .bind(to_add.is_user_image).bind(to_add.user_id).bind(to_add.list_id).execute(&mut *tx).await {
                 Ok(_) => {
                     match sqlx::query("UPDATE OR IGNORE watch_list_anime SET watch_name = ? WHERE list_id = ? AND user_id = ?")
-                    .bind(&to_add.new_name).bind(&to_add.list_id).bind(to_add.user_id).execute(&mut *tx).await
+                    .bind(&to_add.new_name).bind(to_add.list_id).bind(to_add.user_id).execute(&mut *tx).await
                      {
                         Ok(_) => {
                             let _ = tx.commit().await;
-                           return HttpResponse::Ok().into();
+                           HttpResponse::Ok().into()
                         }
 
                         Err(e) => {
                             dbg!(e);
                             let _ = tx.rollback().await;
-                            return HttpResponse::InternalServerError().into();
+                            HttpResponse::InternalServerError().into()
 
                         }
                     }
@@ -773,12 +769,12 @@ pub async fn edit_watch_list(
                 Err(e) => {
                     dbg!(e);
                     let _ = tx.rollback().await;
-                    return HttpResponse::InternalServerError().into();
+                    HttpResponse::InternalServerError().into()
 
                 }
-            };
+            }
     } else {
-        return HttpResponse::Unauthorized().into();
+        HttpResponse::Unauthorized().into()
     }
 }
 
@@ -809,7 +805,7 @@ pub async fn fetch_all_lists(
         WHERE user_id = ?
         LIMIT ? OFFSET ?;",
         )
-        .bind(&user.user_id)
+        .bind(user.user_id)
         .bind(per_page)
         .bind(offset)
         .fetch_all(db.as_ref())
@@ -886,8 +882,8 @@ pub async fn fetch_all_anime_from_list(
     LIMIT ? OFFSET ?;
     ",
     )
-    .bind(&watchlist.list_id)
-    .bind(&watchlist.user_id)
+    .bind(watchlist.list_id)
+    .bind(watchlist.user_id)
     .bind(per_page)
     .bind(offset)
     .fetch_all(db.as_ref())
@@ -909,7 +905,7 @@ pub async fn fetch_all_anime_from_list(
             for id in anime_ids {
                 let anime_details =
                     match sqlx::query("SELECT title_romanji, LargeImage FROM anime WHERE id = ?")
-                        .bind(&id)
+                        .bind(id)
                         .fetch_one(db.as_ref())
                         .await
                     {
@@ -942,11 +938,11 @@ pub async fn fetch_all_anime_from_list(
                     largeImage: Some(picture),
                 });
             }
-            return HttpResponse::Ok().json(json!(AllAnimeSimple { anime: animes }));
+             HttpResponse::Ok().json(json!(AllAnimeSimple { anime: animes }))
         }
         Err(e) => {
             dbg!(e);
-            return HttpResponse::InternalServerError().into();
+            HttpResponse::InternalServerError().into()
         }
     }
 }
@@ -1000,7 +996,7 @@ pub async fn get_list_details(
          FROM watch_list WHERE user_id = ? AND id = ?;"
         )
         .bind(user_id)
-        .bind(&query.list_id)
+        .bind(query.list_id)
         .fetch_one(db.as_ref())
         .await,
         HttpResponse::InternalServerError().finish()

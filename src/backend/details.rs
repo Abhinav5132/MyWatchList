@@ -21,7 +21,7 @@ pub async fn get_details(
     db: web::Data<Pool<Sqlite>>,
     query: web::Query<SearchQuery>,
 ) -> impl Responder {
-    let id = format!("{}", query.query);
+    let id = query.query.to_string();
     match sqlx::query(
         "SELECT title_romanji, format, description, episodes, status, anime_season, anime_year,
      LargeImage, duration, averageScore FROM anime WHERE id = ?
@@ -101,7 +101,7 @@ pub async fn get_synonyms(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
             }
         }
     }
-    return all_syn;
+    all_syn
 }
 
 pub async fn get_studios(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
@@ -131,7 +131,7 @@ pub async fn get_studios(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
             }
         }
     }
-    return all_stud;
+    all_stud
 }
 
 pub async fn get_tags(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
@@ -162,7 +162,7 @@ pub async fn get_tags(db: &Pool<Sqlite>, id: &String) -> Vec<String> {
             }
         }
     }
-    return all_stud;
+    all_stud
 }
 
 pub async fn get_recommendations(db: &Pool<Sqlite>, id: &String) -> Vec<ReccomendResult> {

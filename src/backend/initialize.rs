@@ -332,5 +332,5 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
     }
 
     tx.commit().await?;
-    return Ok(());
+    Ok(())
 }

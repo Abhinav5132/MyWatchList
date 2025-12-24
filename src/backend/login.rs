@@ -35,7 +35,7 @@ pub async fn login_fn(
                     }));
                 }
             };
-            match verify_pwd(&password, &hash_pwd) {
+            match verify_pwd(password, &hash_pwd) {
                 Ok(verify_result) => {
                     if verify_result {
                         let user_id = row_exist.try_get("id").unwrap_or(-1);
@@ -89,17 +89,17 @@ pub async fn login_fn(
                         }
                     }
                     dbg!("incorrect password");
-                    return HttpResponse::Unauthorized().json(serde_json::json!({
+                    HttpResponse::Unauthorized().json(serde_json::json!({
                         "Status": "Incorrect password",
-                    }));
+                    }))
                 }
 
                 Err(_) => {
                     //else no token and password is wrong
                     dbg!("incorrect password");
-                    return HttpResponse::Unauthorized().json(serde_json::json!({
+                    HttpResponse::Unauthorized().json(serde_json::json!({
                         "Status": "Incorrect password",
-                    }));
+                    }))
                 }
             }
         }
@@ -107,17 +107,17 @@ pub async fn login_fn(
         Err(sqlx::Error::RowNotFound) => {
             // return no token, return status message that username is invalid
             dbg!("Invalid username");
-            return HttpResponse::NotFound().json(serde_json::json!({
+            HttpResponse::NotFound().json(serde_json::json!({
                 "Status": "Invalid username",
-            }));
+            }))
         }
 
         Err(_) => {
             // return unable to login due to an internal error
             dbg!("Internal server error");
-            return HttpResponse::InternalServerError().json(serde_json::json!({
+            HttpResponse::InternalServerError().json(serde_json::json!({
                 "Status": "Unable to login"
-            }));
+            }))
         }
     }
 }

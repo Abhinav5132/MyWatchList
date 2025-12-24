@@ -5,6 +5,94 @@ pub use crate::backend::*;
 use html_escape::decode_html_entities;
 use regex::Regex;
 
+#[derive(Deserialize, Serialize, Default)]
+pub struct Studios {
+    pub nodes: Vec<StudioNode>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct StudioNode {
+    pub name: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Tag {
+    pub name: Option<String>,
+    pub rank: Option<i32>,
+    pub isAdult: Option<bool>,
+}
+
+#[derive(Deserialize, Serialize, Default)]
+pub struct CoverImage {
+    pub medium: Option<String>,
+    pub large: Option<String>,
+    pub extraLarge: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Relations {
+    pub edges: Vec<RelationEdge>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct RelationEdge {
+    pub relationType: Option<String>,
+    pub node: Option<RelatedAnime>,
+}
+
+#[derive(Deserialize, Serialize, Default)]
+pub struct RelatedAnime {
+    pub title: Title,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Characters {
+    pub edges: Vec<CharacterEdge>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CharacterEdge {
+    pub role: Option<String>,
+    pub node: CharacterNode,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CharacterNode {
+    pub name: CharacterName,
+    pub image: Option<CharacterImage>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CharacterName {
+    pub full: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Default)]
+pub struct CharacterImage {
+    pub medium: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Recommendations {
+    pub nodes: Vec<RecommendationNode>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct RecommendationNode {
+    pub mediaRecommendation: Option<RecommendationMedia>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct RecommendationMedia {
+    pub title: Title,
+}
+#[derive(Deserialize, Serialize, Clone, Default)]
+pub struct NextAiringEpisode {
+    pub episode: Option<i32>,
+    pub airingAt: Option<i64>,
+}
+
+
 #[derive(Deserialize, Serialize)]
 pub struct Anime {
     pub title: Title,
@@ -62,7 +150,7 @@ impl Anime {
         // Decode HTML entities like &amp;, &#39;, etc.
         let decoded = decode_html_entities(&no_tags);
 
-        return decoded.trim().to_string();
+        decoded.trim().to_string()
     }
     pub fn get_format(&self) -> &str {
         self.format.as_deref().unwrap_or("UNKNOWN")
@@ -77,19 +165,17 @@ impl Anime {
         self.status.as_deref().unwrap_or("UNKNOWN")
     }
     pub fn get_start_date(&self) -> String {
-        if let Some(date) = &self.startDate {
-            if let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
+        if let Some(date) = &self.startDate
+            && let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
                 return format!("{}-{}-{}", day, month, year);
             }
-        }
         "UNKNOWN".to_string()
     }
     pub fn get_end_date(&self) -> String {
-        if let Some(date) = &self.endDate {
-            if let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
+        if let Some(date) = &self.endDate
+            && let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
                 return format!("{}-{}-{}", day, month, year);
             }
-        }
         "UNKNOWN".to_string()
     }
 
@@ -250,89 +336,3 @@ impl Date {
     }
 }
 
-#[derive(Deserialize, Serialize, Default)]
-pub struct Studios {
-    pub nodes: Vec<StudioNode>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct StudioNode {
-    pub name: Option<String>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Tag {
-    pub name: Option<String>,
-    pub rank: Option<i32>,
-    pub isAdult: Option<bool>,
-}
-
-#[derive(Deserialize, Serialize, Default)]
-pub struct CoverImage {
-    pub medium: Option<String>,
-    pub large: Option<String>,
-    pub extraLarge: Option<String>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Relations {
-    pub edges: Vec<RelationEdge>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct RelationEdge {
-    pub relationType: Option<String>,
-    pub node: Option<RelatedAnime>,
-}
-
-#[derive(Deserialize, Serialize, Default)]
-pub struct RelatedAnime {
-    pub title: Title,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Characters {
-    pub edges: Vec<CharacterEdge>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct CharacterEdge {
-    pub role: Option<String>,
-    pub node: CharacterNode,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct CharacterNode {
-    pub name: CharacterName,
-    pub image: Option<CharacterImage>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct CharacterName {
-    pub full: Option<String>,
-}
-
-#[derive(Deserialize, Serialize, Default)]
-pub struct CharacterImage {
-    pub medium: Option<String>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Recommendations {
-    pub nodes: Vec<RecommendationNode>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct RecommendationNode {
-    pub mediaRecommendation: Option<RecommendationMedia>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct RecommendationMedia {
-    pub title: Title,
-}
-#[derive(Deserialize, Serialize, Clone, Default)]
-pub struct NextAiringEpisode {
-    pub episode: Option<i32>,
-    pub airingAt: Option<i64>,
-}

@@ -216,9 +216,9 @@ pub async fn sign_up_fn(
 
         Err(_) => {
             dbg!("Unable to login");
-            return HttpResponse::InternalServerError().json(serde_json::json!({
+            HttpResponse::InternalServerError().json(serde_json::json!({
             "Status": "Unable to login"
-            }));
+            }))
         }
     }
 }
@@ -244,7 +244,7 @@ pub async fn check_username_availability(
     if count != 0 {
         return HttpResponse::Ok().json(&CheckUserNameAvailabilityResponse { available: false });
     }
-    return HttpResponse::Ok().json(&CheckUserNameAvailabilityResponse { available: true });
+    HttpResponse::Ok().json(&CheckUserNameAvailabilityResponse { available: true })
 }
 
 #[get("/check_email_availability")]
@@ -265,8 +265,8 @@ pub async fn check_email_availability(
     };
 
     if count != 0 {
-        return HttpResponse::Ok().json(&CheckEmailAvailabilityResponse { available: false });
+        HttpResponse::Ok().json(&CheckEmailAvailabilityResponse { available: false })
     } else {
-        return HttpResponse::Ok().json(&CheckEmailAvailabilityResponse { available: true });
+        HttpResponse::Ok().json(&CheckEmailAvailabilityResponse { available: true })
     }
 }

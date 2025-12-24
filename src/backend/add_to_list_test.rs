@@ -18,10 +18,10 @@ mod tests {
             '69',
             '69');
         ").await {
-            Ok(a) => return Ok(true),
+            Ok(_) => Ok(true),
             Err(e) => {
                 dbg!(e);
-                return Ok(false);
+                Ok(false)
             }
         }
     }
@@ -52,7 +52,7 @@ mod tests {
             INSERT INTO watch_list_anime(user_id, list_id, anime_id, rank)
             VALUES (1,1,1,10);
         ").await {
-            Ok(a) => {},
+            Ok(_) => {},
             Err(e) => {
                 dbg!(e);
                 panic!();

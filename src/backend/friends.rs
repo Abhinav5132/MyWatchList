@@ -97,7 +97,7 @@ pub async fn send_friend_request(
         }
     };
 
-    if verifier.verify_token(&auth_header).await {
+    if verifier.verify_token(auth_header).await {
         let count = match sqlx::query(
             "SELECT COUNT(1) FROM friend_requests WHERE sender_id = ? AND receiver_id = ?",
         )
@@ -326,7 +326,7 @@ pub async fn get_all_friends(
         }
         return HttpResponse::Ok().json(all_friends);
     }
-    return HttpResponse::Unauthorized().into();
+    HttpResponse::Unauthorized().into()
 }
 
 #[get("/get_all_friends_requests")]
@@ -430,7 +430,7 @@ pub async fn view_friend_profile(
 
     // get the user id using their friend id and then use the user id to get user_details and then get their publicly available list
 
-    if verifier.verify_token(&auth_header).await {
+    if verifier.verify_token(auth_header).await {
         let result = match sqlx::query(
             "
             SELECT 
@@ -526,11 +526,11 @@ pub async fn view_friend_profile(
                 lists: lists,
             };
 
-            return HttpResponse::Ok().json(fullfriend).into();
+            return HttpResponse::Ok().json(fullfriend);
         } else {
             return HttpResponse::InternalServerError().into();
         }
     }
 
-    return HttpResponse::Unauthorized().into();
+    HttpResponse::Unauthorized().into()
 }

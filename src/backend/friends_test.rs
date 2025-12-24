@@ -10,10 +10,9 @@ mod tests {
             setup_db,
             verification_service::{MockVerificationService, TokenVerifier},
         },
-        try_or,
     };
     use reqwest::StatusCode;
-    use sqlx::{Pool, Sqlite, sqlite, *};
+    use sqlx::{Pool, Sqlite, *};
     use std::sync::Arc;
 
     use actix_web::{
@@ -51,8 +50,8 @@ mod tests {
         let _ = pool.execute("DELETE FROM sqlite_sequence;").await;
     }
     async fn fresh_start(pool: &Data<Pool<Sqlite>>) {
-        clean_db(&pool).await;
-        match setup_user(&pool).await {
+        clean_db(pool).await;
+        match setup_user(pool).await {
             Ok(_) => {}
             Err(e) => {
                 panic!("{e}");

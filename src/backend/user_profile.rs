@@ -60,11 +60,11 @@ pub async fn get_user_details(db: web::Data<Pool<Sqlite>>, user_id: Json<UserId>
         HttpResponse::InternalServerError().finish()
     );
 
-    return HttpResponse::Ok().json(&UserDetails {
+    HttpResponse::Ok().json(&UserDetails {
         username: user_name,
         user_email: user_email,
         user_pfp: image,
-    });
+    })
 }
 
 #[post("/logout")]
@@ -80,7 +80,7 @@ pub async fn logout(
             return HttpResponse::Unauthorized().into();
         }
     };
-    let user_id = verifier.get_userid_from_jwt(&auth_header).await;
+    let user_id = verifier.get_userid_from_jwt(auth_header).await;
     if verifier.verify_token(auth_header).await {
         let _ = try_or!(
             sqlx::query(
@@ -94,7 +94,7 @@ pub async fn logout(
             HttpResponse::InternalServerError().finish()
         );
     }
-    return HttpResponse::Ok().into();
+    HttpResponse::Ok().into()
 }
 #[post("/change_username")]
 pub async fn change_username(
@@ -156,7 +156,7 @@ pub async fn change_password(
         );
         return HttpResponse::Ok().into();
     }
-    return HttpResponse::Unauthorized().into();
+    HttpResponse::Unauthorized().into()
 }
 
 #[post("/change_email")]
@@ -185,7 +185,7 @@ pub async fn change_email(
         );
         return HttpResponse::Ok().into();
     }
-    return HttpResponse::Unauthorized().into();
+    HttpResponse::Unauthorized().into()
 }
 
 #[post("/delete_user")]
@@ -211,7 +211,7 @@ pub async fn delete_user(
         );
         return HttpResponse::Ok().into();
     }
-    return HttpResponse::Ok().into();
+    HttpResponse::Ok().into()
 }
 
 #[post("/change_pfp")]
@@ -240,7 +240,7 @@ pub async fn change_pfp(
 
         return HttpResponse::Ok().into();
     }
-    return HttpResponse::Unauthorized().into();
+    HttpResponse::Unauthorized().into()
 }
 // these two are long term
 pub async fn export_all_my_lists() {

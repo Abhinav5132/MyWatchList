@@ -26,7 +26,7 @@ pub struct AnimeMedia {
 /*updates the anime that are already in the db and are finished can be run way more periodically than the rest */
 //TODO this needs to also update its reccommendations and related as those can change.
 pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> {
-    let updatedAt: i64 = sqlx::query(
+    let updated_at: i64 = sqlx::query(
         "SELECT updatedAt 
     FROM anime 
     ORDER BY updatedAt ASC 
@@ -88,13 +88,13 @@ pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>) -> anyhow::Result
             -1
         };
 
-        if updatedAt >= updated_at_anilist {
+        if updated_at >= updated_at_anilist {
             break; // we are up to date
         }
 
         sqlx::query("UPDATE anime SET popularity = ?, updatedAt = ?")
             .bind(popularity_anilist)
-            .bind(updatedAt)
+            .bind(updated_at)
             .execute(&mut *tx)
             .await?;
     }
@@ -105,7 +105,7 @@ pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>) -> anyhow::Result
 
 /*updates anime that are releasing*/
 pub async fn update_ones_not_in_db(db: Data<Pool<Sqlite>>) -> Result<()> {
-    let updatedAt: i64 = sqlx::query(
+    let updated_at: i64 = sqlx::query(
         "SELECT updatedAt 
     FROM anime 
     ORDER BY updatedAt ASC 

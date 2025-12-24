@@ -7,7 +7,7 @@ use actix_web::{
     web::{Data, Json},
 };
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use jsonwebtoken::{EncodingKey, Header, encode};
 use rand_core::OsRng;
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
@@ -118,14 +118,14 @@ pub async fn issue_new_access_token(
                     return HttpResponse::Unauthorized().into();
                 }
             };
-            return HttpResponse::Ok().json(IssueNewAccess {
+            HttpResponse::Ok().json(IssueNewAccess {
                 access_token: access_token,
                 expiry: (chrono::Utc::now() + chrono::Duration::minutes(3)).timestamp() as u64,
-            });
+            })
         }
         Err(e) => {
             dbg!(e);
-            return HttpResponse::Unauthorized().into();
+            HttpResponse::Unauthorized().into()
         }
     }
 }
