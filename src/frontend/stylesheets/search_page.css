@@ -1,10 +1,12 @@
 body{
     background-color: rgb(25, 25, 25);
     font-family: Arial, Helvetica, sans-serif;
-    padding-top: 40px;
-    
+    margin: 0px;
 }
 
+#page_content{
+    padding-top: 40px;
+}
 #header_div_search{
     background-color: rgb(40, 40, 40);
     position:fixed;

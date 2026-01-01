@@ -63,6 +63,8 @@ pub fn FriendPage() -> Element {
     let mut show_friends_dropdown = use_signal(|| false);
     let mut show_remove_friends_popup = use_signal(|| false);
     let mut refresh_page = use_signal(|| false);
+    let mut show_new_friend_search = use_signal(|| false);
+    let mut search_user_query = use_signal(String::new);
     use_future(move || {
         let _ = refresh_page.read();
         let client = Client::new();
@@ -100,7 +102,33 @@ pub fn FriendPage() -> Element {
             id: "Containing_div",
             div {
                 id: "Friends_div",
-                h3 { "Friends" },
+                div {
+                    id:"title_div",
+                    h3 { "Friends" },
+                    if !*show_new_friend_search.read(){
+                        input { 
+                            id: "search_for_user",
+                            type: "text",
+                            value: search_user_query,
+                            oninput: move |evt|{
+                                search_user_query.set(evt.value());
+                            }
+
+                        }
+                    }else{
+                        button { 
+                            id: "new_friends_button",
+                            onclick: move |_| {
+                                show_new_friend_search.set(true);
+                            },
+                            img { 
+                                class:"Feeling_icon",
+                                src: ADDFRIEND,
+                            }
+                        }
+                    }
+                                    
+                }
                 for friend in all_friends.read().clone(){
                     div {
                         class: "Friend_card_div",

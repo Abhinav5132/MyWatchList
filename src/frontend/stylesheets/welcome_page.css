@@ -1,0 +1,316 @@
+:root {
+    --bg-main: #0f0f14;
+    --bg-card: rgba(255, 255, 255, 0.04);
+    --accent: rgb(147, 78, 213);
+    --accent-soft: rgba(147, 78, 213, 0.5);
+    --accent-hover: rgba(147, 78, 213, 0.7);
+    --text-main: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.75);
+}
+@keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.hero {
+    min-height: 50vh;
+    padding: 5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+
+    background: linear-gradient(
+        120deg,
+        rgb(25, 25, 25),
+        rgb(40, 20, 60),
+        rgb(25, 25, 25)
+    );
+
+    color: var(--text-main);
+    animation: gradientShift 18s ease infinite ;
+}
+
+.hero h1 {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.hero p {
+    max-width: 620px;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+}
+
+.primary_cta {
+    background: linear-gradient(
+        135deg,
+        var(--accent),
+        rgb(77, 42, 125)
+    );
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem 2.2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.primary_cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(147, 78, 213, 0.35);
+}
+
+.features {
+    padding: 4rem 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.feature_card {
+    background-color: var(--bg-card);
+    border-radius: 14px;
+    padding: 1.8rem;
+    color: var(--text-main);
+
+    transition:
+        transform 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.feature_card:hover {
+    transform: translateY(-6px);
+    background-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.feature_card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.feature_card p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.privacy {
+    padding: 4rem 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+
+    color: var(--text-main);
+}
+
+.privacy h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.privacy p {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+@keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Main container for the SelectAppType component */
+.select-app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(
+        120deg,
+        rgb(25, 25, 25),
+        rgb(40, 20, 60),
+        rgb(25, 25, 25)
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 18s ease infinite;
+}
+
+@keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Main container for the SelectAppType component */
+.select-app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(
+        120deg,
+        rgb(25, 25, 25),
+        rgb(40, 20, 60),
+        rgb(25, 25, 25)
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 18s ease infinite;
+}
+
+/* Question heading */
+.FirstTimeQuestion {
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* Wrapper for each button option */
+.Button_wrapapper {
+    width: auto;
+    max-width: 600px;
+    min-width: 400px;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+/* App type selection buttons */
+.selectAppTypeButton {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 1.5rem 2rem;
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+    text-align: center;
+    width: auto;
+}
+
+.selectAppTypeButton:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 24px rgba(147, 78, 213, 0.35);
+    border-color: var(--accent-soft);
+}
+
+.selectAppTypeButton:active {
+    box-shadow: 0 4px 16px rgba(147, 78, 213, 0.25);
+}
+
+/* Tooltip for additional information */
+.selectAppTypeButtonToolTip {
+    position: absolute;
+    left: calc(100% + 1rem);
+    top: 0px;
+    width: 300px;
+    padding: 1rem 1.5rem;
+    background-color: rgba(20, 20, 20, 0.95);
+    border: 1px solid var(--accent-soft);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    text-align: left;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    
+    /* Hidden by default */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Show tooltip on hover */
+.Button_wrapapper:hover .selectAppTypeButtonToolTip {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+/* Back button */
+.backButton {
+    margin-top: 2rem;
+    background: transparent;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 0.8rem 2rem;
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        transform 0.2s ease,
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.backButton:hover {
+    transform: translateY(-2px);
+    background-color: var(--accent);
+    color: white;
+    box-shadow: 0 8px 20px rgba(147, 78, 213, 0.3);
+}
+
+.backButton:active {
+    transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .FirstTimeQuestion {
+        font-size: 1.8rem;
+        margin-bottom: 2rem;
+    }
+    
+    .Button_wrapapper {
+        max-width: 100%;
+    }
+    
+    .selectAppTypeButton {
+        padding: 1.2rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Move tooltips below on mobile */
+    .selectAppTypeButtonToolTip {
+        position: relative;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin-top: 0.75rem;
+        transform: translateX(0) translateY(-10px);
+    }
+    
+    .Button_wrapapper:hover .selectAppTypeButtonToolTip {
+        transform: translateX(0) translateY(0);
+    }
+}
