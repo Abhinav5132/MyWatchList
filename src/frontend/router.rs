@@ -4,6 +4,7 @@ use crate::frontend::home_page::HomePage;
 use crate::frontend::list_page::ListPgFn;
 use crate::frontend::lists_page::ListsPgFn;
 use crate::frontend::manage_user_profile::ManageAccount;
+use crate::frontend::video_page::VideoPage;
 use crate::frontend::*;
 use crate::frontend::first_time_page::FirstTimePage;
 // fn names always have to have their first letter capital
@@ -30,4 +31,7 @@ pub enum routes {
 
         #[route("/friends_page")]
         FriendPage {},
+
+        #[route("/video/:id")]
+        VideoPage { id: i64 },
 }

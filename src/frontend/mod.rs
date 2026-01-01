@@ -12,12 +12,14 @@ use std::{fs, path::PathBuf, time::Duration};
 mod details;
 mod home_page;
 mod router;
+mod video_page;
 use router::routes;
 
 use crate::frontend::{
     login_popup::{AuthResponse, get_refresh_token},
     title_bar::TitleBar,
 };
+pub mod first_time_page;
 pub mod friends_page;
 pub mod list_page;
 pub mod lists_page;
@@ -27,7 +29,6 @@ pub mod manage_user_profile;
 mod popup_add_anime;
 pub mod popup_edit_list;
 pub mod title_bar;
-pub mod first_time_page;
 const LOGIN_CSS: Asset = asset!("/src/frontend/stylesheets/login_page.css");
 const DETAILS_CSS: Asset = asset!("/src/frontend/stylesheets/details_page.css");
 const SEARCH_CSS: Asset = asset!("/src/frontend/stylesheets/search_page.css");
@@ -47,7 +48,6 @@ pub const FRIENDS: Asset = asset!("assets/friends.png");
 pub const THREEDOTS: Asset = asset!("assets/three_dots.jpg");
 pub const XICON: Asset = asset!("assets/close.png");
 pub const ADDFRIEND: Asset = asset!("assets/add.png");
-
 
 fn storage_file() -> PathBuf {
     let mut path = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
