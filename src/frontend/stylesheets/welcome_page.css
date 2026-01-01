@@ -314,3 +314,288 @@
         transform: translateX(0) translateY(0);
     }
 }
+
+.ConfigureSyncServer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(
+        120deg,
+        rgb(25, 25, 25),
+        rgb(40, 20, 60),
+        rgb(25, 25, 25)
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 18s ease infinite;
+}
+
+/* Configure local message text */
+#ConfigureLocal {
+    max-width: 650px;
+    font-size: 1.15rem;
+    color: var(--text-main);
+    line-height: 1.8;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding: 2rem;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    border: 1px solid rgba(147, 78, 213, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+/* Continue buttons */
+.continueButton {
+    background: linear-gradient(
+        135deg,
+        var(--accent),
+        rgb(77, 42, 125)
+    );
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem 2.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0.5rem;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.continueButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(147, 78, 213, 0.4);
+}
+
+.continueButton:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 16px rgba(147, 78, 213, 0.3);
+}
+
+/* Responsive for configure sync */
+@media (max-width: 768px) {
+    #ConfigureLocal {
+        font-size: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .continueButton {
+        width: 100%;
+        max-width: 400px;
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+    }
+}
+
+/* ===== UserRegistrations / Login Styles ===== */
+
+/* Select login type container (Login vs Register choice) */
+.selectLoginTypeContainer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(
+        120deg,
+        rgb(25, 25, 25),
+        rgb(40, 20, 60),
+        rgb(25, 25, 25)
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 18s ease infinite;
+}
+
+/* Login type selection buttons */
+.selectLoginTypeButton {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 1.5rem 3rem;
+    color: var(--text-main);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0.75rem;
+    min-width: 300px;
+    text-align: center;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.selectLoginTypeButton:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 24px rgba(147, 78, 213, 0.35);
+    border-color: var(--accent-soft);
+}
+
+/* User registration container */
+.userRegistrationsContainer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(
+        120deg,
+        rgb(25, 25, 25),
+        rgb(40, 20, 60),
+        rgb(25, 25, 25)
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 18s ease infinite;
+}
+
+/* Profile picture container */
+.UserImageContainer {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.Profile_picture {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    cursor: pointer;
+    object-fit: cover;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.Profile_picture:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(147, 78, 213, 0.4);
+}
+
+/* User fields container */
+.UserFieldsContainer {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(147, 78, 213, 0.3);
+    border-radius: 14px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    min-width: 400px;
+    backdrop-filter: blur(10px);
+}
+
+.UserFieldsContainer label {
+    display: block;
+    color: var(--text-main);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+}
+
+.UserFieldsContainer label:first-child {
+    margin-top: 0;
+}
+
+.UserFieldsContainer input {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    color: var(--text-main);
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.UserFieldsContainer input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(147, 78, 213, 0.2);
+}
+
+.UserFieldsContainer input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Error display */
+#ErrorDiv {
+    margin-top: 1rem;
+}
+
+#LoginError {
+    color: #ff6b6b;
+    font-size: 0.95rem;
+    padding: 0.75rem;
+    background-color: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 8px;
+    margin: 0;
+}
+
+/* Buttons container */
+#ButtonsContainer {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Submit button */
+.submitButton {
+    background: linear-gradient(
+        135deg,
+        var(--accent),
+        rgb(77, 42, 125)
+    );
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem 2.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.submitButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(147, 78, 213, 0.4);
+}
+
+.submitButton:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 16px rgba(147, 78, 213, 0.3);
+}
+
+/* Responsive for registration forms */
+@media (max-width: 768px) {
+    .UserFieldsContainer {
+        min-width: 100%;
+        padding: 1.5rem;
+    }
+    
+    .selectLoginTypeButton {
+        min-width: 100%;
+        max-width: 400px;
+    }
+    
+    #ButtonsContainer {
+        width: 100%;
+    }
+    
+    .submitButton,
+    .backButton {
+        flex: 1;
+        min-width: 140px;
+    }
+}

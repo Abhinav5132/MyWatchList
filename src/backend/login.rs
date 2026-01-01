@@ -5,7 +5,7 @@ use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct LoginStruct {
-    username: String,
+    pub username: String,
     pub password: String,
 }
 

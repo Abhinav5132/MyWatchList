@@ -15,6 +15,7 @@ pub struct SignUpStruct {
     user_name: String,
     user_password: String,
     user_email: String,
+    user_pfp: Option<String>,
 }
 // everything here needs to be changed from user_id to user_token
 #[derive(Serialize, Deserialize)]
@@ -276,7 +277,8 @@ pub fn Login(on_close: EventHandler<()>) -> Element {
                                     if let Ok(res) = client.post("http://localhost:3000/Signup").json(&SignUpStruct{
                                         user_name: user_name,
                                         user_email: user_email,
-                                        user_password: user_password
+                                        user_password: user_password,
+                                        user_pfp: None
                                     }).send().await && let Ok(auth_response) = res.json::<AuthResponse>().await {
                                         *TOKEN.write() = auth_response.access_token;
                                         *REFRESHIN.write() = auth_response.expires_in as i64;

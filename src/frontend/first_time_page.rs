@@ -1,4 +1,5 @@
 
+use crate::{backend::sign_up::check_availability, frontend::{login_popup::Login, login_popup::LoginStruct,manage_user_profile::{ChangePfp, choose_image}}};
 pub use crate::frontend::*;
 
 pub enum Steps {
@@ -35,6 +36,42 @@ enum UpdateScehdule{
     Never
 }
 
+#[derive(PartialEq)]
+pub enum LoginError{
+    PasswordNotSame,
+    EmailUnavailable,
+    UsernameUnavailable,
+    None
+}
+
+#[derive(Clone)]
+struct LoginState{
+    username: Signal<String>,
+    password: Signal<String>,
+    email: Signal<String>,
+    password_again: Signal<String>,
+    pfp: Signal<String>,
+}
+
+#[derive(Serialize)]
+pub struct CheckAvailability {
+    username: String,
+    email: String,
+}
+
+#[derive(Deserialize)]
+pub struct AvailabilityResponse {
+    pub username_available: bool,
+    pub email_available: bool,
+}
+
+#[derive(Serialize)]
+pub struct SignUpStruct {
+    user_name: String,
+    user_password: String,
+    user_email: String,
+    user_pfp: Option<String>,
+}
 
 #[component]
 pub fn FirstTimePage() -> Element{
@@ -61,8 +98,9 @@ pub fn FirstTimePage() -> Element{
 
             Steps::USEREGISTRATION => {
                 rsx!(
-                    div { 
-                        "This shit is not done bro"
+                    UserRegistrations { 
+                        on_next: move || step.set(Steps::CHOOSEUPDATESCHEDULE),
+                        on_back: move || step.set(Steps::CONFIGURESYNCSERVER)
                      }
                 )
             },
@@ -87,7 +125,7 @@ pub fn FirstTimePage() -> Element{
 
                     AppType::PUBLICSYNC => {
                         rsx!(
-                            ConfigureSyncServerprivate { 
+                            ConfigureSyncServerPrivate { 
                                 on_next: move || step.set(Steps::USEREGISTRATION),
                                 on_back: move || step.set(Steps::APPTYPE)
                              }
@@ -247,7 +285,7 @@ pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Elem
 }
 
 #[component]
-pub fn ConfigureSyncServerprivate(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
+pub fn ConfigureSyncServerPrivate(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
     rsx!(
 
     )
@@ -293,24 +331,319 @@ pub fn ConfigureSyncServerLocal(on_next: EventHandler<()>, on_back: EventHandler
 }
 
 #[component]
-pub fn user_registrations()-> Element{
+pub fn UserRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>)-> Element{
     let mut state = use_context::<OnboardingState>();
+    let mut username = use_signal(|| "".to_string());
+    let mut password = use_signal(|| "".to_string());
+    let mut password_again = use_signal(|| "".to_string());
+    let mut pfp = use_signal(|| "".to_string());
+    let mut email = use_signal(|| "".to_string());
+
+    provide_context(LoginState{
+        username,
+        password,
+        email,
+        password_again,
+        pfp
+    });
     rsx!(
         match *state.acc_type.read() {
             AccountType::LOCAL =>{
-
+                rsx!( 
+                    FullRegistration { 
+                        on_next: move || on_next.call(()),
+                        on_back: move || on_back.call(())
+                    }
+                )
             }
 
             AccountType::LOGIN => {
-
+                rsx!(
+                    LoginRegistrations { 
+                        on_next: move || on_next.call(()),
+                        on_back: move || on_back.call(())
+                     }
+                )
             }
 
             AccountType::REGISTER => {
-
+                rsx!( 
+                    FullRegistration { 
+                        on_next: move || on_next.call(()),
+                        on_back: move || on_back.call(())
+                    }
+                )
             }
 
             AccountType::TOBEDETERMINED => {
+                rsx!(
+                    div { class: "selectLoginTypeContainer",
+                        div {
+                            class: "selectLoginTypeButton",
+                            onclick: move |_| {
+                                state.acc_type.set(AccountType::LOGIN);
+                            },
+                            "Login"
+                        }
+                        div {
+                            class: "selectLoginTypeButton",
+                            onclick: move |_| {
+                                state.acc_type.set(AccountType::REGISTER);
+                            },
+                            "Register"
+                        }
 
+                        div { 
+                            class: "backButton",
+                            onclick: move |_| {
+                                on_back.call(());
+                            },
+                            "Go back"
+                        }
+                    }
+                )
+            }
+        }
+    )
+}
+
+#[component]
+pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
+    let mut loginState = use_context::<LoginState>();
+    rsx!(
+        div { 
+            class:"userRegistrationsContainer",
+            div { 
+                class: "UserFieldsContainer",
+                label { "Username:" },
+                input{
+                    id: "UserNameInput",
+                    r#type: "text",
+                    oninput: move |evt| {
+                        evt.prevent_default();
+                        loginState.username.set(evt.value());
+                    },
+
+                    onkeydown: move |_| {
+                        let _ = document::eval(r#"document.getElementById('EmailInput').focus();"#);
+                    }
+                }
+
+                label { "Password:" },
+                input{
+                    id: "PasswordInput",
+                    r#type: "text",
+                    oninput: move |evt| {
+                        evt.prevent_default();
+                        loginState.password.set(evt.value());
+                    },
+
+                    onkeydown: move |_| {
+                        let _ = document::eval(r#"document.getElementById('PasswordAgainInput').focus();"#);
+                    }
+                }
+            }
+
+            div { id: "ButtonsContainer",
+                button { class: "submitButton",
+                    onclick: move |_| {
+                        spawn(async move {
+                            let client = Client::new();
+                            let username = loginState.username.read().to_string();
+                            let password = loginState.password.read().to_string();
+                            if let Ok(res) = client.post("http://localhost:3000/login").json(
+                                &LoginStruct{
+                                    username,
+                                    password
+                                }
+                            ).send().await && res.status().is_success(){
+                                on_next.call(());
+                            }
+                        });
+                    }
+                }
+                button { 
+                    class: "backButton",
+                    onclick: move |_| {
+                        on_back.call(());
+                    },
+                    "Go back"
+                }
+            }
+        }
+    )
+}
+
+#[component]
+pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
+    let mut loginState = use_context::<LoginState>();
+    let mut loginError = use_signal(|| LoginError::None);
+    rsx!(
+        div { 
+            class:"userRegistrationsContainer",
+            div {
+                class:"UserImageContainer",
+                img {
+                    class: "Profile_picture", // dosent need css
+                    onclick: move |_| {
+                        spawn(async move{
+                            if let Some(blob) = choose_image().await {
+                                loginState.pfp.set(blob);
+                            }
+                        });
+                    }
+                }
+            }
+            div { 
+                class: "UserFieldsContainer",
+                label { "Username:" },
+                input{
+                    id: "UserNameInput",
+                    r#type: "text",
+                    oninput: move |evt| {
+                        evt.prevent_default();
+                        loginState.username.set(evt.value());
+                    },
+
+                    onkeydown: move |_| {
+                        let _ = document::eval(r#"document.getElementById('EmailInput').focus();"#);
+                    }
+                }
+
+                label { "Email:" },
+                input{
+                    id: "EmailInput",
+                    r#type: "text",
+                    oninput: move |evt| {
+                        evt.prevent_default();
+                        loginState.email.set(evt.value());
+                    },
+
+                    onkeydown: move |_| {
+                        let _ = document::eval(r#"document.getElementById('PasswordInput').focus();"#);
+                    }
+                }
+
+                label { "Password:" },
+                input{
+                    id: "PasswordInput",
+                    r#type: "text",
+                    oninput: move |evt| {
+                        evt.prevent_default();
+                        loginState.password.set(evt.value());
+                    },
+
+                    onkeydown: move |_| {
+                        let _ = document::eval(r#"document.getElementById('PasswordAgainInput').focus();"#);
+                    }
+                }
+                label { "Enter Password again:" },
+                input{
+                    id: "PasswordAgainInput",
+                    r#type: "text",
+                    oninput: move |evt| {
+                        evt.prevent_default();
+                        loginState.password_again.set(evt.value());
+                    },
+
+                    onkeydown: move |_| {
+                        let _ = document::eval(r#"document.getElementById('Input').focus();"#);
+                    }
+                }
+
+                div { 
+                    id: "ErrorDiv",
+                    match *loginError.read(){
+                        LoginError::None => {
+                            rsx!()
+                        },
+                        LoginError::PasswordNotSame => {
+                            rsx!(
+                                p { id:"LoginError",
+                                    "Passwords do not match try again"
+                                }
+                            )
+                        }
+                        LoginError::EmailUnavailable => {
+                            rsx!(
+                                p { id:"LoginError",
+                                    "Email already exists please login or try another email." //this should be unreachable on first use
+                                }
+                            )
+                        }
+                        LoginError::UsernameUnavailable => {
+                            rsx!(
+                                p { 
+                                    id:"LoginError",
+                                    "Username already exits please login or try another username."
+                                }
+                            )
+                        }
+
+                    }
+                }
+            }
+
+            div { id: "ButtonsContainer",
+                button { class: "submitButton",
+                    onclick: move |_| {
+                        spawn(async move {
+                            let client = Client::new();
+                            let username = loginState.username.read().to_string();
+                            let email = loginState.email.read().to_string();
+                            if let Ok(res) = client.get("http://localhost:3000/check_availability").json(
+                                &CheckAvailability{
+                                    username: username,
+                                    email: email
+                            }).send().await {
+                                let results = res.json::<AvailabilityResponse>().await.unwrap_or(
+                                    AvailabilityResponse { 
+                                    username_available: false, email_available: false 
+                                });
+                                
+                                if !results.username_available {
+                                    loginError.set(LoginError::UsernameUnavailable);
+                                    return;
+                                }
+                                else if !results.email_available {
+                                    loginError.set(LoginError::EmailUnavailable);
+                                    return;
+                                }
+
+                                else if loginState.password != loginState.password_again{
+                                    loginError.set(LoginError::PasswordNotSame);
+                                    return;
+                                }
+
+                                else {
+                                    loginError.set(LoginError::None);
+                                }
+
+                                if *loginError.read() == LoginError::None
+                                && let Ok(res2) = client.post("http://localhost:3000/Signup")
+                                    .json(&SignUpStruct{
+                                        user_email: loginState.email.to_string(),
+                                        user_name: loginState.username.to_string(),
+                                        user_password: loginState.password.to_string(),
+                                        user_pfp: Some(loginState.pfp.to_string())
+                                    }).send().await
+                                && res2.status().is_success()
+                                {
+                                    on_next.call(());
+                                }
+                            }
+                        });
+                    },
+                    "Submit"
+                }
+
+                button { 
+                    class: "backButton",
+                    onclick: move |_| {
+                        on_back.call(());
+                    },
+                    "Go back"
+                }
             }
         }
     )

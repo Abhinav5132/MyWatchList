@@ -37,7 +37,7 @@ pub mod add_to_list;
 pub use crate::backend::add_to_list::add_anime_to_list;
 use crate::backend::details::{ReccomendResult, RelatedAnime};
 use crate::backend::friends::get_all_friends;
-use crate::backend::sign_up::{AuthResponse, check_username_availability};
+use crate::backend::sign_up::{AuthResponse, CheckAvailability, check_availability, check_username_availability};
 use crate::backend::user_profile::{
     change_email, change_password, change_pfp, change_username, get_user_details, logout,
 };
@@ -236,6 +236,7 @@ pub async fn setup_backend() -> std::io::Result<()> {
             .service(edit_watch_list)
             .service(remove_watch_list)
             .service(get_all_friends)
+            .service(check_availability)
     })
     .bind("127.0.0.1:3000")?
     .run()

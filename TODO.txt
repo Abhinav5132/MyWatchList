@@ -24,8 +24,11 @@ prod:
     -https certificate
     -the install script should check to see if they ahve a wallet manager if not install one
     
-Nice looking colours:
-#8FD54E
+future-implementations: 
+    -file linking with anime and episodes, 
+    -watch tracking on those files
+    -make a browser extention to track watching from other sources
+    -
 
--- typing is very blocky for  some reason plx fix 
+
 -- not to self: Signal sitrings dont need to be dereferenced

@@ -87,8 +87,8 @@ pub fn HomePage() -> Element {
     });
 
     use_future(move || {
-        let trending_results = trending_results.clone();
-        let mut current_index = current_index.clone();
+        let trending_results = trending_results;
+        let mut current_index = current_index;
         async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(10)).await;

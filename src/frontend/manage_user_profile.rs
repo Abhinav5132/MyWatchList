@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct ChangePfp {
-    pfp: String,
+    pub pfp: String,
 }
 
 #[derive(Serialize, Deserialize)]
