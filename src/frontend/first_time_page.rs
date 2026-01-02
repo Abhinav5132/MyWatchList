@@ -424,8 +424,10 @@ pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) 
                         loginState.username.set(evt.value());
                     },
 
-                    onkeydown: move |_| {
-                        let _ = document::eval(r#"document.getElementById('EmailInput').focus();"#);
+                    onkeydown: move |event| {
+                        if event.code().to_string() == "Enter"{
+                            let _ = document::eval(r#"document.getElementById('EmailInput').focus();"#);
+                        }
                     }
                 }
 
@@ -438,8 +440,10 @@ pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) 
                         loginState.password.set(evt.value());
                     },
 
-                    onkeydown: move |_| {
-                        let _ = document::eval(r#"document.getElementById('PasswordAgainInput').focus();"#);
+                    onkeydown: move |event| {
+                        if event.code().to_string() == "Enter"{
+                            let _ = document::eval(r#"document.getElementById('PasswordAgainInput').focus();"#);
+                        }
                     }
                 }
             }
@@ -505,8 +509,10 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                         loginState.username.set(evt.value());
                     },
 
-                    onkeydown: move |_| {
-                        let _ = document::eval(r#"document.getElementById('EmailInput').focus();"#);
+                    onkeydown: move |event| {
+                        if event.code().to_string() == "Enter"{
+                            let _ = document::eval(r#"document.getElementById('EmailInput').focus();"#);
+                        }
                     }
                 }
 
@@ -519,8 +525,10 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                         loginState.email.set(evt.value());
                     },
 
-                    onkeydown: move |_| {
-                        let _ = document::eval(r#"document.getElementById('PasswordInput').focus();"#);
+                    onkeydown: move |event| {
+                        if event.code().to_string() == "Enter"{
+                            let _ = document::eval(r#"document.getElementById('PasswordInput').focus();"#);
+                        }
                     }
                 }
 
@@ -533,8 +541,10 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                         loginState.password.set(evt.value());
                     },
 
-                    onkeydown: move |_| {
-                        let _ = document::eval(r#"document.getElementById('PasswordAgainInput').focus();"#);
+                    onkeydown: move |event| {
+                        if event.code().to_string() == "Enter"{
+                            let _ = document::eval(r#"document.getElementById('PasswordAgainInput').focus();"#);
+                        }
                     }
                 }
                 label { "Enter Password again:" },
@@ -546,8 +556,10 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                         loginState.password_again.set(evt.value());
                     },
 
-                    onkeydown: move |_| {
-                        let _ = document::eval(r#"document.getElementById('Input').focus();"#);
+                    onkeydown: move |event| {
+                        if event.code().to_string() == "Enter"{
+                            let _ = document::eval(r#"document.getElementById('Input').focus();"#); 
+                        }
                     }
                 }
 
@@ -610,7 +622,7 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                                     return;
                                 }
 
-                                else if loginState.password != loginState.password_again{
+                                else if *loginState.password.read() != *loginState.password_again.read(){
                                     loginError.set(LoginError::PasswordNotSame);
                                     return;
                                 }
