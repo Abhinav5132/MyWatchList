@@ -23,15 +23,15 @@ mod tests {
 
     async fn setup_user(pool: &Data<Pool<Sqlite>>) -> anyhow::Result<bool> {
         match pool.execute("
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test1','test@test.com','pwd','pfp',
             '69',
-            '69');
+            '69', 'NONE');
 
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test2','test1@test.com','pwd','pfp',
             '70',
-            '70');
+            '70', 'NONE');
         ").await {
             Ok(_) => Ok(true),
             Err(e) => {
@@ -302,15 +302,15 @@ mod tests {
         .await;
 
         pool.execute("
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test3','test3@test.com','pwd','pfp',
             '71',
-            '71');
+            '71','NONE');
 
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test4','test4@test.com','pwd','pfp',
             '72',
-            '72');
+            '72','NONE');
         ").await.expect("Failed to insert other test users");
 
         let _ = sqlx::query(
@@ -368,15 +368,15 @@ mod tests {
         .await;
 
         pool.execute("
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test3','test3@test.com','pwd','pfp',
             '71',
-            '71');
+            '71', 'NONE');
 
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test4','test4@test.com','pwd','pfp',
             '72',
-            '72');
+            '72', 'NONE');
         ").await.expect("Failed to insert other test users");
 
         let _ = sqlx::query(

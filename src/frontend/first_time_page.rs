@@ -1,5 +1,7 @@
 
-use crate::{backend::sign_up::check_availability, frontend::{login_popup::Login, login_popup::LoginStruct,manage_user_profile::{ChangePfp, choose_image}}};
+use anyhow::anyhow;
+
+use crate::{backend::sign_up::check_availability, frontend::{self, login_popup::{Login, LoginStruct, SignUpStruct, store_refresh_token}, manage_user_profile::{ChangePfp, choose_image}}};
 pub use crate::frontend::*;
 
 pub enum Steps {
@@ -8,6 +10,7 @@ pub enum Steps {
     USEREGISTRATION, // configure sync server should always be before user registration. As we check if the user is registered on that specific sync server.
     CONFIGURESYNCSERVER, // only encountered if they choose PERSONALSYNC OR PUBLICSYNC
     CHOOSEUPDATESCHEDULE,
+    FINALIZE,
 }
 
 pub enum AccountType {
@@ -16,6 +19,8 @@ pub enum AccountType {
     LOCAL,
     TOBEDETERMINED,
 }
+
+#[derive(Debug)]
 pub enum AppType {
     LOCAL,
     PERSONALSYNC, // personal sync should guide you though installing and setting up your own sync server.
@@ -25,15 +30,29 @@ pub enum AppType {
 struct OnboardingState {
     app_type: Signal<AppType>,
     acc_type: Signal<AccountType>,
+    update_schedule: Signal<UpdateScehdule>,
+    login_state: LoginState
 }
 
 #[derive(Clone)]
-enum UpdateScehdule{
+pub enum UpdateScehdule{
     OnStartUp,
     OnceADay,
     OnceAWeek,
     OnceAMonth,
     Never
+}
+
+impl UpdateScehdule {
+    pub fn as_string(&mut self) -> String {
+        match self {
+            Self::OnStartUp => "ONSTARTUP".to_string(),
+            Self::OnceADay => "ONCEADAY".to_string(),
+            Self::OnceAWeek => "ONCEAWEEK".to_string(),
+            Self::OnceAMonth => "ONCEAMONTH".to_string(),
+            Self::Never => "NEVER".to_string(),
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -45,7 +64,7 @@ pub enum LoginError{
 }
 
 #[derive(Clone)]
-struct LoginState{
+pub struct LoginState{
     username: Signal<String>,
     password: Signal<String>,
     email: Signal<String>,
@@ -65,22 +84,34 @@ pub struct AvailabilityResponse {
     pub email_available: bool,
 }
 
-#[derive(Serialize)]
-pub struct SignUpStruct {
-    user_name: String,
-    user_password: String,
-    user_email: String,
-    user_pfp: Option<String>,
-}
-
+// TODO login should not be asked for update schedule
+//TODO login state should persist on going back and should not allow blank proceeds
+// TODO this shouldnt apprear if they have already loged in / signed up 
 #[component]
 pub fn FirstTimePage() -> Element{
     let mut step = use_signal(|| Steps::WELCOME);
     let mut app_type = use_signal(|| AppType::LOCAL);
     let mut acc_type = use_signal(|| AccountType::LOCAL);
+    let mut update_schedule = use_signal(|| UpdateScehdule::Never);
+    let mut username = use_signal(|| "".to_string());
+    let mut password = use_signal(|| "".to_string());
+    let mut password_again = use_signal(|| "".to_string());
+    let mut pfp = use_signal(|| "".to_string());
+    let mut email = use_signal(|| "".to_string());
+    let mut login_state = LoginState{
+        username,
+        password,
+        email,
+        password_again,
+        pfp
+    };
+
+    let navigator = use_navigator();
     provide_context(OnboardingState {
         app_type,
         acc_type,
+        update_schedule,
+        login_state
     });     
     rsx!(
         match *step.read(){
@@ -135,9 +166,25 @@ pub fn FirstTimePage() -> Element{
             },
             Steps::CHOOSEUPDATESCHEDULE => {
                 rsx!(
-                    div { 
-                        "This shit is not done bro"
-                     }
+                    choose_update_scehdule { 
+                        on_next: move || {
+                            step.set(Steps::FINALIZE);
+                        },
+                        on_back: move || {
+                            step.set(Steps::USEREGISTRATION);
+                        }
+                    }
+                )
+            }
+
+            Steps::FINALIZE => {
+                rsx!(
+                    FinalPage { 
+                        on_back: move || step.set(Steps::CHOOSEUPDATESCHEDULE),
+                        on_next: move || {
+                            navigator.push(crate::frontend::router::routes::HomePage {  });
+                        }
+                    }
                 )
             }
         }  
@@ -333,19 +380,7 @@ pub fn ConfigureSyncServerLocal(on_next: EventHandler<()>, on_back: EventHandler
 #[component]
 pub fn UserRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>)-> Element{
     let mut state = use_context::<OnboardingState>();
-    let mut username = use_signal(|| "".to_string());
-    let mut password = use_signal(|| "".to_string());
-    let mut password_again = use_signal(|| "".to_string());
-    let mut pfp = use_signal(|| "".to_string());
-    let mut email = use_signal(|| "".to_string());
-
-    provide_context(LoginState{
-        username,
-        password,
-        email,
-        password_again,
-        pfp
-    });
+    
     rsx!(
         match *state.acc_type.read() {
             AccountType::LOCAL =>{
@@ -409,7 +444,7 @@ pub fn UserRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>)->
 
 #[component]
 pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
-    let mut loginState = use_context::<LoginState>();
+    let mut loginState = use_context::<OnboardingState>().login_state;
     rsx!(
         div { 
             class:"userRegistrationsContainer",
@@ -451,19 +486,7 @@ pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) 
             div { id: "ButtonsContainer",
                 button { class: "submitButton",
                     onclick: move |_| {
-                        spawn(async move {
-                            let client = Client::new();
-                            let username = loginState.username.read().to_string();
-                            let password = loginState.password.read().to_string();
-                            if let Ok(res) = client.post("http://localhost:3000/login").json(
-                                &LoginStruct{
-                                    username,
-                                    password
-                                }
-                            ).send().await && res.status().is_success(){
-                                on_next.call(());
-                            }
-                        });
+                        on_next.call(());
                     }
                 }
                 button { 
@@ -478,9 +501,103 @@ pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) 
     )
 }
 
+pub async fn login_spawn(username: String, password: String)-> anyhow::Result<()>{
+    let client = Client::new();
+    
+    match client.post("http://localhost:3000/login").json(
+        &LoginStruct{
+            username: username.clone(),
+            password
+        }
+    ).send().await {
+        Ok(res) => {
+            match res.status().is_success(){
+                true=> {
+                    if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                        *TOKEN.write() = auth_response.access_token;
+                        *REFRESHIN.write() = auth_response.expires_in as i64;
+                        *USERNAME.write() = username.clone();
+                        let _ = store_refresh_token(&username, auth_response.refresh_token.as_str());
+                        // do something with this status later.
+                            let path = storage_file();
+                        match fs::write(path, username){
+                            Ok(a)=> {
+                                print!("Successfull wrote the token to");
+                                a
+
+                            }
+                            Err(e)=>{
+                                dbg!("Failed to write token to the disk");
+                                dbg!(e);
+                            }
+                        }
+                        get_userid_from_jwt();
+                    }
+                    Ok(())
+                },
+                false=> {
+                    Err(anyhow!("IDK BRO"))
+                }
+            }
+        },
+        Err(e) => {
+            dbg!(&e);
+            Err(anyhow!(e.to_string()))
+        }
+    }
+}
+
+pub async fn sign_up_spawn(login_state: LoginState, mut update_schedule: UpdateScehdule) -> anyhow::Result<()> {
+    let client = Client::new();
+    let name = login_state.username.to_string();
+    match client.post("http://localhost:3000/Signup")
+        .json(&SignUpStruct{
+            user_email: login_state.email.to_string(),
+            user_name: name.clone(),
+            user_password: login_state.password.to_string(),
+            user_pfp: Some(login_state.pfp.to_string()),
+            chosen_update_schedule: update_schedule.as_string()
+        }).send().await {
+            Ok(res) => {
+                match res.status().is_success(){
+                    true=> {
+                        if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                            *TOKEN.write() = auth_response.access_token;
+                            *REFRESHIN.write() = auth_response.expires_in as i64;
+                            *USERNAME.write() = name.clone();
+                            let _ = store_refresh_token(&name, auth_response.refresh_token.as_str());
+                            // do something with this status later.
+                                let path = storage_file();
+                            match fs::write(path, name){
+                                Ok(a)=> {
+                                    print!("Successfull wrote the token to");
+                                    a
+
+                                }
+                                Err(e)=>{
+                                    dbg!("Failed to write token to the disk");
+                                    dbg!(e);
+                                }
+                            }
+                            get_userid_from_jwt();
+                        }
+                        Ok(())
+                    },
+                    false=> {
+                        Err(anyhow!("IDK BRO"))
+                    }
+                }    
+            },
+            Err(e) => {
+                dbg!(&e);
+                Err(anyhow!(e.to_string()))
+            }
+        }
+}
+
 #[component]
 pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
-    let mut loginState = use_context::<LoginState>();
+    let mut loginState = use_context::<OnboardingState>().login_state;
     let mut loginError = use_signal(|| LoginError::None);
     rsx!(
         div { 
@@ -605,7 +722,7 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                             let email = loginState.email.read().to_string();
                             if let Ok(res) = client.get("http://localhost:3000/check_availability").json(
                                 &CheckAvailability{
-                                    username: username,
+                                    username: username.clone(),
                                     email: email
                             }).send().await {
                                 let results = res.json::<AvailabilityResponse>().await.unwrap_or(
@@ -632,14 +749,6 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                                 }
 
                                 if *loginError.read() == LoginError::None
-                                && let Ok(res2) = client.post("http://localhost:3000/Signup")
-                                    .json(&SignUpStruct{
-                                        user_email: loginState.email.to_string(),
-                                        user_name: loginState.username.to_string(),
-                                        user_password: loginState.password.to_string(),
-                                        user_pfp: Some(loginState.pfp.to_string())
-                                    }).send().await
-                                && res2.status().is_success()
                                 {
                                     on_next.call(());
                                 }
@@ -662,8 +771,209 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
 }
 
 #[component]
-pub fn choose_update_scehdule() -> Element {
-    rsx!(
+pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
 
+    let mut state = use_context::<OnboardingState>();
+    rsx!(
+        div {
+            class: "SelectUpdateScheduleContainer",
+            h3 { 
+                class: "FirstTimeQuestion",
+                "Select how often you want the app data to update"
+            }
+
+            div {
+                class: "Button_wrapapper",
+                div { 
+                    class: "selectAppTypeButton",
+                    onclick: move |_|{
+                        state.update_schedule.set(UpdateScehdule::OnStartUp);
+                        on_next.call(());
+                    },
+                    "Update on startup"
+                }
+                span { 
+                    class: "selectAppTypeButtonToolTip",
+                    "The app will update when opened."
+                }
+            }
+            div {
+                class: "Button_wrapapper",
+                div { 
+                    class: "selectAppTypeButton",
+                    onclick: move |_|{
+                        state.update_schedule.set(UpdateScehdule::OnceADay);
+                        on_next.call(());
+                    },
+                    "Once a day"
+                }
+
+                span { 
+                    class: "selectAppTypeButtonToolTip",
+                    "The app will update every 24 hrs"
+                }
+            }
+            div {
+                class: "Button_wrapapper",
+                div { 
+                    class: "selectAppTypeButton",
+                    onclick: move |_|{
+                        state.update_schedule.set(UpdateScehdule::OnceAWeek);
+                        on_next.call(());
+                    },
+                    "Once a week."
+                }
+
+                span {
+                    class: "selectAppTypeButtonToolTip",
+                    "App will update 7 days after the previous update."
+                }
+            }
+            
+            div {
+                class: "Button_wrapapper",
+                div { 
+                    class: "selectAppTypeButton",
+                    onclick: move |_|{
+                        state.update_schedule.set(UpdateScehdule::OnceAMonth);
+                        on_next.call(());
+                    },
+                    "Once a Month"
+                }
+
+                span {
+                    class: "selectAppTypeButtonToolTip",
+                    "App will update 30 days after the previous update."
+                }
+            }
+
+            div {
+                class: "Button_wrapapper",
+                div { 
+                    class: "selectAppTypeButton",
+                    onclick: move |_|{
+                        state.update_schedule.set(UpdateScehdule::Never);
+                        on_next.call(());
+                    },
+                    "Never"
+                }
+
+                span {
+                    class: "selectAppTypeButtonToolTip",
+                    "App can only be updated manually."
+                }
+            }
+
+            button { 
+                class: "backButton",
+                onclick: move |_| {
+                    on_back.call(());
+                },
+                "Go back"
+            }
+
+        }
+    )
+}
+
+#[component]
+pub fn FinalPage(
+    on_next: EventHandler<()>,
+    on_back: EventHandler<()>,
+) -> Element {
+    let state = use_context::<OnboardingState>();
+    let login = state.login_state.clone();
+    let update_schedule = state.update_schedule.read().to_owned().as_string();
+
+    
+    rsx!(
+        div {
+            class: "FinalizeContainer",
+
+            h3 {
+                class: "FinalizeHeading",
+                "Please review your entered details"
+            }
+
+            div {
+                class: "FinalizedDetailsContainer",
+
+                div { class: "DetailCard",
+                    h4 { "Username" }
+                    p { "{login.username.read()}" }
+                }
+
+                div { class: "DetailCard",
+                    h4 { "Email" }
+                    p { "{login.email.read()}" }
+                }
+
+                if !login.pfp.read().is_empty() {
+                    div { class: "DetailCard",
+                        h4 { "Profile Picture" }
+                        img {
+                            src: "{login.pfp.read()}",
+                            class: "ProfilePreview"
+                        }
+                    }
+                }
+
+                div { class: "DetailCard",
+                    h4 { "Application Type" }
+                    p {
+                        "{state.app_type.read():?}"
+                    }
+                }
+
+                div { class: "DetailCard",
+                    h4 { "Update Frequency" }
+                    p {
+                        "{update_schedule}"
+                    }
+                }
+            }
+
+            div {
+                class: "FinalizeButtons",
+
+                button {
+                    class: "BackButton",
+                    onclick: move |_| on_back.call(()),
+                    "Back"
+                }
+
+                button {
+                    class: "ConfirmButton",
+                    onclick: move |_| {
+                        match *state.acc_type.read() {
+                            AccountType::LOGIN => {
+                                spawn(async move {
+                                    let username = login.username.read().to_string();
+                                    let password = login.password.read().to_string();
+                                    let _ = login_spawn(username, password).await;
+                                });
+                                
+                            },
+                            AccountType::LOCAL | AccountType::REGISTER => {
+                                let login_a = login.clone();
+                                let update_schedule = state.update_schedule.read().cloned();
+                                spawn(async move {
+                                    let _ = sign_up_spawn(login_a, update_schedule).await;
+                                });
+                            }
+                            AccountType::TOBEDETERMINED => {
+                                // this should not be possible
+                                panic!()
+                            }
+                        }
+
+
+
+                        on_next.call(());
+                    },
+                    "Confirm & Finish"
+                }
+            }
+        }
     )
 }

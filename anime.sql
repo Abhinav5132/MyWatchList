@@ -114,7 +114,8 @@ Create TABLE IF NOT EXISTS user (
     user_password TEXT NOT NULL,
     user_access_token TEXT,
     user_refresh_token TEXT,
-    user_pfp TEXT NOT NULL -- should be not null in production
+    user_pfp TEXT NOT NULL, -- should be not null in production
+    chosen_update_schedule TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS friends (

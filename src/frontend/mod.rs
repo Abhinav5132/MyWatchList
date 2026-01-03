@@ -198,7 +198,20 @@ pub fn spawn_token_refreser() {
                         }
                     }
                 } else {
+                    //TODO: THIS WHOLE THING NEEDS TO BE REDONE. (AUTH REWORK COMING SOON)
                     dbg!("No refresh token found, stopping refresher");
+                    let path = storage_file();
+                    match fs::write(path, "{}"){
+                        Ok(a)=> {
+                            print!("Successfull wrote the token to");
+                            a
+
+                        }
+                        Err(e)=>{
+                            dbg!("Failed to write token to the disk");
+                            dbg!(e);
+                        }
+                    }
                     break; // empty the username store here
                 }
             } else {

@@ -13,10 +13,10 @@ mod tests {
 
     async fn setup_user(pool: &Data<Pool<Sqlite>>) -> anyhow::Result<bool> {
         match pool.execute("
-            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token)
+            Insert INTO user(user_name, user_email, user_password, user_pfp, user_access_token, user_refresh_token, chosen_update_schedule)
             VALUES ('test','test@test.com','pwd','pfp',
             '69',
-            '69');
+            '69', 'NONE');
         ").await {
             Ok(_) => Ok(true),
             Err(e) => {

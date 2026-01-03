@@ -16,6 +16,7 @@ pub struct SignUpStruct {
     user_password: String,
     user_email: String,
     user_pfp: Option<String>,
+    chosen_update_schedule: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,12 +103,13 @@ pub async fn sign_up_fn(
     
 
     let user_id = match sqlx::query(
-        "INSERT INTO user (user_name, user_email, user_password, user_pfp) VALUES (?,?,?,?);",
+        "INSERT INTO user (user_name, user_email, user_password, user_pfp, chosen_update_schedule) VALUES (?,?,?,?,?);",
     )
     .bind(&credentials.user_name)
     .bind(&credentials.user_email)
     .bind(hashed_pwd)
     .bind(pfp)
+    .bind(&credentials.chosen_update_schedule)
     .execute(db.as_ref())
     .await
     {

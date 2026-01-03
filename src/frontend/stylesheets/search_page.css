@@ -5,7 +5,8 @@ body{
 }
 
 #page_content{
-    padding-top: 40px;
+    padding-top: 90px;
+    margin: 16px;
 }
 #header_div_search{
     background-color: rgb(40, 40, 40);

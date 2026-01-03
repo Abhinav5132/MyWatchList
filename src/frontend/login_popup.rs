@@ -1,3 +1,4 @@
+use crate::frontend::first_time_page::UpdateScehdule;
 pub use crate::frontend::*;
 use keyring::Entry;
 use reqwest::Client;
@@ -12,10 +13,11 @@ pub struct LoginStruct {
 
 #[derive(Serialize)]
 pub struct SignUpStruct {
-    user_name: String,
-    user_password: String,
-    user_email: String,
-    user_pfp: Option<String>,
+    pub user_name: String,
+    pub user_password: String,
+    pub user_email: String,
+    pub user_pfp: Option<String>,
+    pub chosen_update_schedule: String
 }
 // everything here needs to be changed from user_id to user_token
 #[derive(Serialize, Deserialize)]
@@ -278,7 +280,8 @@ pub fn Login(on_close: EventHandler<()>) -> Element {
                                         user_name: user_name,
                                         user_email: user_email,
                                         user_password: user_password,
-                                        user_pfp: None
+                                        user_pfp: None,
+                                        chosen_update_schedule: UpdateScehdule::Never.as_string()
                                     }).send().await && let Ok(auth_response) = res.json::<AuthResponse>().await {
                                         *TOKEN.write() = auth_response.access_token;
                                         *REFRESHIN.write() = auth_response.expires_in as i64;
@@ -329,7 +332,9 @@ pub fn Login(on_close: EventHandler<()>) -> Element {
     )
 }
 
+
 pub fn store_refresh_token(user_id: &str, refresh_token: &str) -> Result<(), keyring::Error> {
+    // move this logic to the backend.
     let entry = Entry::new("MyWatchList", user_id)?;
     let _ = entry.set_password(refresh_token);
     dbg!("Added refresh token to the store.");
