@@ -77,8 +77,8 @@ pub fn App() -> Element {
     use_future(move || async move {
         let token_val = initial_username.read().clone();
         if !token_val.is_empty()
-            && let Some(refresh_token) = get_refresh_token(&token_val)
-        {
+            && let Some(refresh_token) = get_refresh_token(&token_val) //TODO:  get_refresh_token needs to return a result
+        { 
             let issue_new_token = get_access_token(refresh_token).await;
             *TOKEN.write() = issue_new_token.access_token;
             *REFRESHIN.write() = issue_new_token.expiry as i64;

@@ -86,7 +86,6 @@ pub struct AvailabilityResponse {
 
 // TODO login should not be asked for update schedule
 //TODO login state should persist on going back and should not allow blank proceeds
-// TODO this shouldnt apprear if they have already loged in / signed up 
 #[component]
 pub fn FirstTimePage() -> Element{
     let mut step = use_signal(|| Steps::WELCOME);
@@ -113,6 +112,10 @@ pub fn FirstTimePage() -> Element{
         update_schedule,
         login_state
     });     
+
+    if !(*USERNAME.read()).is_empty(){
+        navigator.push(crate::frontend::router::routes::HomePage {  });
+    }
     rsx!(
         match *step.read(){
             Steps::WELCOME => rsx!(
@@ -549,13 +552,16 @@ pub async fn login_spawn(username: String, password: String)-> anyhow::Result<()
 
 pub async fn sign_up_spawn(login_state: LoginState, mut update_schedule: UpdateScehdule) -> anyhow::Result<()> {
     let client = Client::new();
-    let name = login_state.username.to_string();
+    let name = login_state.username.read().to_string();
+    let email =  login_state.email.read().to_string();
+    let pwd = login_state.password.read().to_string();
+    let pfp = Some(login_state.pfp.read().to_string());
     match client.post("http://localhost:3000/Signup")
         .json(&SignUpStruct{
-            user_email: login_state.email.to_string(),
+            user_email:email,
             user_name: name.clone(),
-            user_password: login_state.password.to_string(),
-            user_pfp: Some(login_state.pfp.to_string()),
+            user_password: pwd,
+            user_pfp: pfp,
             chosen_update_schedule: update_schedule.as_string()
         }).send().await {
             Ok(res) => {
@@ -581,7 +587,7 @@ pub async fn sign_up_spawn(login_state: LoginState, mut update_schedule: UpdateS
                             }
                             get_userid_from_jwt();
                         }
-                        Ok(())
+                        Ok(())                        
                     },
                     false=> {
                         Err(anyhow!("IDK BRO"))
@@ -951,6 +957,7 @@ pub fn FinalPage(
                                     let username = login.username.read().to_string();
                                     let password = login.password.read().to_string();
                                     let _ = login_spawn(username, password).await;
+                                    on_next.call(());
                                 });
                                 
                             },
@@ -958,7 +965,14 @@ pub fn FinalPage(
                                 let login_a = login.clone();
                                 let update_schedule = state.update_schedule.read().cloned();
                                 spawn(async move {
-                                    let _ = sign_up_spawn(login_a, update_schedule).await;
+                                match sign_up_spawn(login_a, update_schedule).await {
+                                    Ok(a) => {
+                                        on_next.call(());
+                                    },
+                                    Err(e) => {
+                                        dbg!(e);
+                                    }
+                                 }
                                 });
                             }
                             AccountType::TOBEDETERMINED => {
@@ -969,7 +983,7 @@ pub fn FinalPage(
 
 
 
-                        on_next.call(());
+                        
                     },
                     "Confirm & Finish"
                 }
