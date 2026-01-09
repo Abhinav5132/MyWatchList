@@ -17,7 +17,7 @@ pub struct SignUpStruct {
     pub user_password: String,
     pub user_email: String,
     pub user_pfp: Option<String>,
-    pub chosen_update_schedule: String
+    pub chosen_update_schedule: String,
 }
 // everything here needs to be changed from user_id to user_token
 #[derive(Serialize, Deserialize)]
@@ -331,7 +331,6 @@ pub fn Login(on_close: EventHandler<()>) -> Element {
         }
     )
 }
-
 
 pub fn store_refresh_token(user_id: &str, refresh_token: &str) -> Result<(), keyring::Error> {
     // move this logic to the backend.

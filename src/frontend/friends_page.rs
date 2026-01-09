@@ -106,7 +106,7 @@ pub fn FriendPage() -> Element {
                     id:"title_div",
                     h3 { "Friends" },
                     if !*show_new_friend_search.read(){
-                        input { 
+                        input {
                             id: "search_for_user",
                             type: "text",
                             value: search_user_query,
@@ -116,18 +116,18 @@ pub fn FriendPage() -> Element {
 
                         }
                     }else{
-                        button { 
+                        button {
                             id: "new_friends_button",
                             onclick: move |_| {
                                 show_new_friend_search.set(true);
                             },
-                            img { 
+                            img {
                                 class:"Feeling_icon",
                                 src: ADDFRIEND,
                             }
                         }
                     }
-                                    
+
                 }
                 for friend in all_friends.read().clone(){
                     div {

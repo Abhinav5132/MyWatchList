@@ -1,15 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use crate::{
-        backend::{
-            friends::{
-                AllFriendRequests, AllFriends, FriendId, FriendRequest, FriendRequestDirection,
-                RequestId, accept_friend_request, decline_friend_request, get_all_friends,
-                get_all_friends_requests, remove_friend, send_friend_request,
-            },
-            setup_db,
-            verification_service::{MockVerificationService, TokenVerifier},
+    use crate::backend::{
+        friends::{
+            AllFriendRequests, AllFriends, FriendId, FriendRequest, FriendRequestDirection,
+            RequestId, accept_friend_request, decline_friend_request, get_all_friends,
+            get_all_friends_requests, remove_friend, send_friend_request,
         },
+        setup_db,
+        verification_service::{MockVerificationService, TokenVerifier},
     };
     use reqwest::StatusCode;
     use sqlx::{Pool, Sqlite, *};

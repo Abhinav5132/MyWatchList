@@ -9,6 +9,7 @@ use sqlx::Pool;
 use sqlx::Sqlite;
 
 use crate::backend::AnimeStructs::Anime;
+use crate::backend::AnimeStructs::PartialUpdate;
 pub use crate::backend::*;
 
 #[derive(Deserialize)]
@@ -26,6 +27,7 @@ pub struct Page {
     pub media: Vec<Anime>,
 }
 
+// save anilist id
 pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
     println!("INITIALIZING");
     /*first lets update finished anime from the last updated date. */
@@ -196,7 +198,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             let large = cover.1;
             let medium = cover.2;
             let duration = entry.get_duration();
-            let averageScore = entry.get_averageScore();
+            let averageScore = entry.get_average_score();
             let popularity = entry.get_popularity();
             let banner_image = entry.get_bannner_image();
             let next = entry.get_airing_at();

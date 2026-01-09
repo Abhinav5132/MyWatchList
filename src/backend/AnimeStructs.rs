@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use std::time::UNIX_EPOCH;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub use crate::backend::*;
 use html_escape::decode_html_entities;
@@ -92,6 +92,102 @@ pub struct NextAiringEpisode {
     pub airingAt: Option<i64>,
 }
 
+pub trait PartialUpdate {
+    fn updated_at(&self) -> Option<i64>;
+    fn episodes(&self) -> Option<u32>;
+    fn status(&self) -> Option<&str>;
+    fn end_date(&self) -> Option<&Date>;
+    fn popularity(&self) -> Option<u64>;
+    fn average_score(&self) -> Option<u32>;
+    fn relations(&self) -> Option<&Relations>;
+    fn next_airing(&self) -> Option<&NextAiringEpisode>;
+    fn recommendations(&self) -> Option<&Recommendations>;
+
+    fn get_updated_at(&self) -> i64 {
+        self.updated_at().unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64
+        })
+    }
+
+    fn get_episodes(&self) -> i32 {
+        self.episodes().map(|e| e as i32).unwrap_or(-1)
+    }
+
+    fn get_status(&self) -> &str {
+        self.status().unwrap_or("UNKNOWN")
+    }
+
+    fn get_popularity(&self) -> i64 {
+        self.popularity().map(|p| p as i64).unwrap_or(-1)
+    }
+
+    fn get_average_score(&self) -> i32 {
+        self.average_score().map(|s| s as i32).unwrap_or(-1)
+    }
+
+    fn get_airing_at(&self) -> (i32, i64) {
+        if let Some(next) = self.next_airing() {
+            (
+                next.episode.unwrap_or(-1),
+                next.airingAt.unwrap_or(-1),
+            )
+        } else {
+            (-1, -1)
+        }
+    }
+
+    fn get_related(&self) -> Vec<(&str, &str)> {
+        let mut out = Vec::new();
+
+        if let Some(rel) = self.relations() {
+            for edge in &rel.edges {
+                let relation_type = edge.relationType.as_deref().unwrap_or("UNKNOWN");
+                let title = edge
+                    .node
+                    .as_ref()
+                    .and_then(|n| n.title.romaji.as_deref())
+                    .unwrap_or("UNKNOWN");
+                out.push((title, relation_type));
+            }
+        }
+
+        out
+    }
+
+    fn get_recommended(&self) -> Vec<String> {
+        let mut recommendations = Vec::new();
+
+        if let Some(recommendations_data) = &self.recommendations() {
+            let node = &recommendations_data.nodes;
+            for node_data in node {
+                let title = node_data
+                    .mediaRecommendation
+                    .as_ref()
+                    .and_then(|m| m.title.romaji.clone())
+                    .unwrap_or_else(|| "UNKNOWN".to_string());
+
+                recommendations.push(title);
+            }
+        }
+
+        recommendations
+    }
+
+    fn get_end_date(&self) -> String {
+        if let Some(date) = self.end_date()
+            && let (Some(d), Some(m), Some(y)) = (date.day, date.month, date.year)
+        {
+            format!("{d}-{m}-{y}")
+        } else {
+            "UNKNOWN".to_string()
+        }
+    }
+}
+
+
 
 #[derive(Deserialize, Serialize)]
 pub struct Anime {
@@ -120,14 +216,46 @@ pub struct Anime {
     pub updatedAt: Option<i64>,
 }
 
-impl Anime {
-    pub fn get_updated_at(&self) -> i64 {
-        let current = std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
-        self.updatedAt.unwrap_or(current)
+impl PartialUpdate for Anime {
+
+    fn recommendations(&self) -> Option<&Recommendations> {
+        self.recommendations.as_ref()
     }
+    fn updated_at(&self) -> Option<i64> {
+        self.updatedAt
+    }
+
+    fn episodes(&self) -> Option<u32> {
+        self.episodes
+    }
+
+    fn status(&self) -> Option<&str> {
+        self.status.as_deref()
+    }
+
+    fn end_date(&self) -> Option<&Date> {
+        self.endDate.as_ref()
+    }
+
+    fn popularity(&self) -> Option<u64> {
+        self.popularity
+    }
+
+    fn average_score(&self) -> Option<u32> {
+        self.averageScore
+    }
+
+    fn relations(&self) -> Option<&Relations> {
+        self.relations.as_ref()
+    }
+
+    fn next_airing(&self) -> Option<&NextAiringEpisode> {
+        self.nextAiringEpisode.as_ref()
+    }
+}
+
+
+impl Anime {
 
     pub fn get_title_romaji(&self) -> &str {
         self.title.romaji.as_deref().unwrap_or("UNKNOWN")
@@ -155,24 +283,9 @@ impl Anime {
     pub fn get_format(&self) -> &str {
         self.format.as_deref().unwrap_or("UNKNOWN")
     }
-    pub fn get_episodes(&self) -> i32 {
-        match self.episodes {
-            Some(ep) => ep as i32,
-            None => -1,
-        }
-    }
-    pub fn get_status(&self) -> &str {
-        self.status.as_deref().unwrap_or("UNKNOWN")
-    }
+   
     pub fn get_start_date(&self) -> String {
         if let Some(date) = &self.startDate
-            && let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
-                return format!("{}-{}-{}", day, month, year);
-            }
-        "UNKNOWN".to_string()
-    }
-    pub fn get_end_date(&self) -> String {
-        if let Some(date) = &self.endDate
             && let (Some(day), Some(month), Some(year)) = (date.day, date.month, date.year) {
                 return format!("{}-{}-{}", day, month, year);
             }
@@ -193,20 +306,6 @@ impl Anime {
     pub fn get_duration(&self) -> i32 {
         match self.duration {
             Some(duration) => duration as i32,
-            None => -1,
-        }
-    }
-
-    pub fn get_popularity(&self) -> i64 {
-        match self.popularity {
-            Some(popularity) => popularity as i64,
-            None => -1,
-        }
-    }
-
-    pub fn get_averageScore(&self) -> i32 {
-        match self.averageScore {
-            Some(score) => score as i32,
             None => -1,
         }
     }
@@ -235,43 +334,6 @@ impl Anime {
         vec![]
     }
 
-    pub fn get_recommended(&self) -> Vec<String> {
-        let mut recommendations = Vec::new();
-
-        if let Some(recommendations_data) = &self.recommendations {
-            let node = &recommendations_data.nodes;
-            for node_data in node {
-                let title = node_data
-                    .mediaRecommendation
-                    .as_ref()
-                    .and_then(|m| m.title.romaji.clone())
-                    .unwrap_or_else(|| "UNKNOWN".to_string());
-
-                recommendations.push(title);
-            }
-        }
-
-        recommendations
-    }
-
-    pub fn get_related(&self) -> Vec<(&str, &str)> {
-        let mut relations = vec![];
-
-        if let Some(rel) = &self.relations {
-            let relation_edges = &rel.edges;
-            for edges in relation_edges {
-                let realtion_type = edges.relationType.as_deref().unwrap_or("UNKNOWN");
-                let relation_name = edges
-                    .node
-                    .as_ref()
-                    .and_then(|n| n.title.romaji.as_deref())
-                    .unwrap_or("UNKNOWN");
-                relations.push((relation_name, realtion_type));
-            }
-        }
-        relations
-    }
-
     pub fn get_characters(&self) -> Vec<(&str, &str, &str)> {
         //name, role, image
         let mut characters = vec![];
@@ -294,14 +356,6 @@ impl Anime {
 
     pub fn get_bannner_image(&self) -> &str {
         self.bannerImage.as_deref().unwrap_or("UNKNOWN")
-    }
-
-    pub fn get_airing_at(&self) -> (i32, i64) {
-        if let Some(ref next) = self.nextAiringEpisode {
-            (next.episode.unwrap_or(-1), next.airingAt.unwrap_or(-1))
-        } else {
-            (-1, -1)
-        }
     }
 
     pub fn get_cover_images(&self) -> (&str, &str, &str) {

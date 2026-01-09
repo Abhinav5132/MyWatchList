@@ -16,7 +16,7 @@ pub struct SignUpStruct {
     user_password: String,
     user_email: String,
     user_pfp: Option<String>,
-    chosen_update_schedule: String
+    chosen_update_schedule: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -58,7 +58,6 @@ pub struct CheckEmailAvailabilityResponse {
     available: bool,
 }
 
-
 #[post("/Signup")]
 pub async fn sign_up_fn(
     db: web::Data<Pool<Sqlite>>,
@@ -78,9 +77,9 @@ pub async fn sign_up_fn(
     dbg!(&entered_pwd);
 
     let user_pfp = credentials.user_pfp.to_owned();
-    let pfp = match user_pfp{
+    let pfp = match user_pfp {
         Some(pfp) => pfp,
-        None =>{
+        None => {
             let no_pfp_blob = match file_to_blob_with_path("assets/No_pfp.jpg") {
                 Ok(pfp) => pfp,
                 Err(e) => {
@@ -100,7 +99,6 @@ pub async fn sign_up_fn(
             no_pfp
         }
     };
-    
 
     let user_id = match sqlx::query(
         "INSERT INTO user (user_name, user_email, user_password, user_pfp, chosen_update_schedule) VALUES (?,?,?,?,?);",
@@ -299,34 +297,35 @@ pub async fn check_email_availability(
 }
 
 #[get("/check_availability")]
-pub async fn check_availability(db: Data<Pool<Sqlite>>, data: Json<CheckAvailability>) -> HttpResponse{
-    let username_count: i64 = match sqlx::query_scalar(
-        "SELECT COUNT(*) FROM user WHERE user_name = ?;"
-    )
-    .bind(&data.username)
-    .fetch_one(db.as_ref())
-    .await
-    {
-        Ok(c) => c,
-        Err(e) => {
-            dbg!(e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+pub async fn check_availability(
+    db: Data<Pool<Sqlite>>,
+    data: Json<CheckAvailability>,
+) -> HttpResponse {
+    let username_count: i64 =
+        match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_name = ?;")
+            .bind(&data.username)
+            .fetch_one(db.as_ref())
+            .await
+        {
+            Ok(c) => c,
+            Err(e) => {
+                dbg!(e);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
 
-    let email_count: i64 = match sqlx::query_scalar(
-        "SELECT COUNT(*) FROM user WHERE user_email = ?;"
-    )
-    .bind(&data.email)
-    .fetch_one(db.as_ref())
-    .await
-    {
-        Ok(c) => c,
-        Err(e) => {
-            dbg!(e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+    let email_count: i64 =
+        match sqlx::query_scalar("SELECT COUNT(*) FROM user WHERE user_email = ?;")
+            .bind(&data.email)
+            .fetch_one(db.as_ref())
+            .await
+        {
+            Ok(c) => c,
+            Err(e) => {
+                dbg!(e);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
 
     let response = AvailabilityResponse {
         username_available: username_count == 0,
@@ -334,5 +333,4 @@ pub async fn check_availability(db: Data<Pool<Sqlite>>, data: Json<CheckAvailabi
     };
 
     HttpResponse::Ok().json(response)
-
 }

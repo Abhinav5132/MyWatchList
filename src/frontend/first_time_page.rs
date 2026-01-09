@@ -1,8 +1,14 @@
-
 use anyhow::anyhow;
 
-use crate::{backend::sign_up::check_availability, frontend::{self, login_popup::{Login, LoginStruct, SignUpStruct, store_refresh_token}, manage_user_profile::{ChangePfp, choose_image}}};
 pub use crate::frontend::*;
+use crate::{
+    backend::sign_up::check_availability,
+    frontend::{
+        self,
+        login_popup::{Login, LoginStruct, SignUpStruct, store_refresh_token},
+        manage_user_profile::{ChangePfp, choose_image},
+    },
+};
 
 pub enum Steps {
     WELCOME,
@@ -24,23 +30,23 @@ pub enum AccountType {
 pub enum AppType {
     LOCAL,
     PERSONALSYNC, // personal sync should guide you though installing and setting up your own sync server.
-    PUBLICSYNC,// act the same way for now
+    PUBLICSYNC,   // act the same way for now
 }
 #[derive(Clone)]
 struct OnboardingState {
     app_type: Signal<AppType>,
     acc_type: Signal<AccountType>,
     update_schedule: Signal<UpdateScehdule>,
-    login_state: LoginState
+    login_state: LoginState,
 }
 
 #[derive(Clone)]
-pub enum UpdateScehdule{
+pub enum UpdateScehdule {
     OnStartUp,
     OnceADay,
     OnceAWeek,
     OnceAMonth,
-    Never
+    Never,
 }
 
 impl UpdateScehdule {
@@ -56,15 +62,15 @@ impl UpdateScehdule {
 }
 
 #[derive(PartialEq)]
-pub enum LoginError{
+pub enum LoginError {
     PasswordNotSame,
     EmailUnavailable,
     UsernameUnavailable,
-    None
+    None,
 }
 
 #[derive(Clone)]
-pub struct LoginState{
+pub struct LoginState {
     username: Signal<String>,
     password: Signal<String>,
     email: Signal<String>,
@@ -87,7 +93,7 @@ pub struct AvailabilityResponse {
 // TODO login should not be asked for update schedule
 //TODO login state should persist on going back and should not allow blank proceeds
 #[component]
-pub fn FirstTimePage() -> Element{
+pub fn FirstTimePage() -> Element {
     let mut step = use_signal(|| Steps::WELCOME);
     let mut app_type = use_signal(|| AppType::LOCAL);
     let mut acc_type = use_signal(|| AccountType::LOCAL);
@@ -97,12 +103,12 @@ pub fn FirstTimePage() -> Element{
     let mut password_again = use_signal(|| "".to_string());
     let mut pfp = use_signal(|| "".to_string());
     let mut email = use_signal(|| "".to_string());
-    let mut login_state = LoginState{
+    let mut login_state = LoginState {
         username,
         password,
         email,
         password_again,
-        pfp
+        pfp,
     };
 
     let navigator = use_navigator();
@@ -110,92 +116,74 @@ pub fn FirstTimePage() -> Element{
         app_type,
         acc_type,
         update_schedule,
-        login_state
-    });     
+        login_state,
+    });
 
-    if !(*USERNAME.read()).is_empty(){
-        navigator.push(crate::frontend::router::routes::HomePage {  });
+    if !(*USERNAME.read()).is_empty() {
+        navigator.push(crate::frontend::router::routes::HomePage {});
     }
-    rsx!(
-        match *step.read(){
-            Steps::WELCOME => rsx!(
-                WelcomePage { 
-                    on_next: move || step.set(Steps::APPTYPE),
-                }
-            ),
-            Steps::APPTYPE => rsx!(
-                SelectAppType { 
-                    on_next: move || step.set(Steps::CONFIGURESYNCSERVER),
-                    on_back: move || step.set(Steps::WELCOME)
-                }
-            ),
+    rsx!(match *step.read() {
+        Steps::WELCOME => rsx!(WelcomePage {
+            on_next: move || step.set(Steps::APPTYPE),
+        }),
+        Steps::APPTYPE => rsx!(SelectAppType {
+            on_next: move || step.set(Steps::CONFIGURESYNCSERVER),
+            on_back: move || step.set(Steps::WELCOME)
+        }),
 
-            Steps::USEREGISTRATION => {
-                rsx!(
-                    UserRegistrations { 
-                        on_next: move || step.set(Steps::CHOOSEUPDATESCHEDULE),
-                        on_back: move || step.set(Steps::CONFIGURESYNCSERVER)
-                     }
-                )
-            },
-            Steps::CONFIGURESYNCSERVER => {
-                match *app_type.read(){
-                    AppType::LOCAL => {
-                        rsx!(
-                            ConfigureSyncServerLocal { 
-                                on_next: move || step.set(Steps::USEREGISTRATION),
-                                on_back: move || step.set(Steps::APPTYPE)
-                            }
-                        )
-                    },
-                    AppType::PERSONALSYNC => {
-                        rsx!(
-                            ConfigureSyncServerPersonal { 
-                                on_next: move || step.set(Steps::USEREGISTRATION),
-                                on_back: move || step.set(Steps::APPTYPE)
-                            }
-                        )
-                    },
-
-                    AppType::PUBLICSYNC => {
-                        rsx!(
-                            ConfigureSyncServerPrivate { 
-                                on_next: move || step.set(Steps::USEREGISTRATION),
-                                on_back: move || step.set(Steps::APPTYPE)
-                             }
-                        )
-                    },
+        Steps::USEREGISTRATION => {
+            rsx!(UserRegistrations {
+                on_next: move || step.set(Steps::CHOOSEUPDATESCHEDULE),
+                on_back: move || step.set(Steps::CONFIGURESYNCSERVER)
+            })
+        }
+        Steps::CONFIGURESYNCSERVER => {
+            match *app_type.read() {
+                AppType::LOCAL => {
+                    rsx!(ConfigureSyncServerLocal {
+                        on_next: move || step.set(Steps::USEREGISTRATION),
+                        on_back: move || step.set(Steps::APPTYPE)
+                    })
                 }
-            },
-            Steps::CHOOSEUPDATESCHEDULE => {
-                rsx!(
-                    choose_update_scehdule { 
-                        on_next: move || {
-                            step.set(Steps::FINALIZE);
-                        },
-                        on_back: move || {
-                            step.set(Steps::USEREGISTRATION);
-                        }
-                    }
-                )
+                AppType::PERSONALSYNC => {
+                    rsx!(ConfigureSyncServerPersonal {
+                        on_next: move || step.set(Steps::USEREGISTRATION),
+                        on_back: move || step.set(Steps::APPTYPE)
+                    })
+                }
+
+                AppType::PUBLICSYNC => {
+                    rsx!(ConfigureSyncServerPrivate {
+                        on_next: move || step.set(Steps::USEREGISTRATION),
+                        on_back: move || step.set(Steps::APPTYPE)
+                    })
+                }
             }
+        }
+        Steps::CHOOSEUPDATESCHEDULE => {
+            rsx!(choose_update_scehdule {
+                on_next: move || {
+                    step.set(Steps::FINALIZE);
+                },
+                on_back: move || {
+                    step.set(Steps::USEREGISTRATION);
+                }
+            })
+        }
 
-            Steps::FINALIZE => {
-                rsx!(
-                    FinalPage { 
-                        on_back: move || step.set(Steps::CHOOSEUPDATESCHEDULE),
-                        on_next: move || {
-                            navigator.push(crate::frontend::router::routes::HomePage {  });
-                        }
-                    }
-                )
-            }
-        }  
-    )
+        Steps::FINALIZE => {
+            rsx!(FinalPage {
+                on_back: move || step.set(Steps::CHOOSEUPDATESCHEDULE),
+                on_next: move || {
+                    navigator.push(crate::frontend::router::routes::HomePage {});
+                }
+            })
+        }
+    })
 }
 
 #[component]
-pub fn WelcomePage(on_next: EventHandler<()>) -> Element{
+pub fn WelcomePage(on_next: EventHandler<()>) -> Element {
     rsx!(
         section { class: "hero",
             h1 { "Your watch list. Your rules." }
@@ -209,7 +197,7 @@ pub fn WelcomePage(on_next: EventHandler<()>) -> Element{
             }
         }
 
-        section { 
+        section {
                 class: "features",
                 FeatureCard {
                     title: "Create Watch Lists",
@@ -229,7 +217,7 @@ pub fn WelcomePage(on_next: EventHandler<()>) -> Element{
                 }
             }
 
-            section { 
+            section {
                 class: "privacy",
                 h2 { "We don't watch you watch." }
                 p {
@@ -251,18 +239,18 @@ fn FeatureCard(title: &'static str, description: &'static str) -> Element {
 }
 
 #[component]
-pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Element{
+pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
     let mut state = use_context::<OnboardingState>();
     rsx!(
-        div { 
+        div {
             class: "select-app-container",
-            h3 { 
+            h3 {
                 class: "FirstTimeQuestion",
                 "Select how you want to use MyWatchList"
-            }   
+            }
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.app_type.set(AppType::LOCAL); // themes and other stuff can be added here.
@@ -271,16 +259,16 @@ pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Elem
                     },
                     "Use the app locally"
                 }
-                span { 
+                span {
                     class: "selectAppTypeButtonToolTip",
-                    "Local apps do not use a sync server to provide content updates or allow social features. 
+                    "Local apps do not use a sync server to provide content updates or allow social features.
                     Everything is stored on your device and the app can be used offline. 
                     Note: the app will need periodic internet access if you want all the latest shows and movies."
                 }
             }
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.app_type.set(AppType::PERSONALSYNC);
@@ -290,9 +278,9 @@ pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Elem
                     "Setup a personal sync server."
                 }
 
-                span { 
+                span {
                     class: "selectAppTypeButtonToolTip",
-                    "Set up a personal MyWatchList sync server allowing you and 
+                    "Set up a personal MyWatchList sync server allowing you and
                     your friends to share recommendations and watch lists while 
                     also cuting down update times significantly. 
                     All the data is stored on the sync server which can only be acessed by you and your friends. 
@@ -302,7 +290,7 @@ pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Elem
             }
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.app_type.set(AppType::PUBLICSYNC);
@@ -314,14 +302,14 @@ pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Elem
 
                 span {
                     class: "selectAppTypeButtonToolTip",
-                    "Use this option if your trying to connect to your friends server or 
+                    "Use this option if your trying to connect to your friends server or
                     use a publically available sync server. Caution all data is 
                     stored on the public sync server and the responsibility 
                     for your data is on the server owner."
                 }
             }
 
-            button { 
+            button {
                 class: "backButton",
                 onclick: move |_| {
                     on_back.call(());
@@ -329,47 +317,45 @@ pub fn SelectAppType(on_next: EventHandler<()>, on_back: EventHandler<()>)->Elem
                 "Go back"
             }
         }
-        
+
 
     )
 }
 
 #[component]
-pub fn ConfigureSyncServerPrivate(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
-    rsx!(
-
-    )
+pub fn ConfigureSyncServerPrivate(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
+    rsx!()
 }
 
 #[component]
-pub fn ConfigureSyncServerPersonal(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
-
-    rsx!(
-        
-    )
+pub fn ConfigureSyncServerPersonal(
+    on_next: EventHandler<()>,
+    on_back: EventHandler<()>,
+) -> Element {
+    rsx!()
 }
 
 #[component]
-pub fn ConfigureSyncServerLocal(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
+pub fn ConfigureSyncServerLocal(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
     rsx!(
-        div { 
+        div {
             class:"ConfigureSyncServer",
-            p { 
+            p {
                 id:"ConfigureLocal",
-                "Using the local app dosent require setting up the sync server. 
+                "Using the local app dosent require setting up the sync server.
                 If you change your mind you can set up a sync server anytime in the settings.
                 You can continue safely OR you can stay here I guess.
                 "
             }
 
-            button { 
+            button {
                 class:"continueButton",
                 onclick: move |_| {
                     on_next.call(());
                 },
                 "This page is redundant take me to the next"
             }
-            button { 
+            button {
                 class:"continueButton",
                 onclick: move |_| {
                     on_back.call(());
@@ -381,77 +367,69 @@ pub fn ConfigureSyncServerLocal(on_next: EventHandler<()>, on_back: EventHandler
 }
 
 #[component]
-pub fn UserRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>)-> Element{
+pub fn UserRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
     let mut state = use_context::<OnboardingState>();
-    
-    rsx!(
-        match *state.acc_type.read() {
-            AccountType::LOCAL =>{
-                rsx!( 
-                    FullRegistration { 
-                        on_next: move || on_next.call(()),
-                        on_back: move || on_back.call(())
-                    }
-                )
-            }
 
-            AccountType::LOGIN => {
-                rsx!(
-                    LoginRegistrations { 
-                        on_next: move || on_next.call(()),
-                        on_back: move || on_back.call(())
-                     }
-                )
-            }
-
-            AccountType::REGISTER => {
-                rsx!( 
-                    FullRegistration { 
-                        on_next: move || on_next.call(()),
-                        on_back: move || on_back.call(())
-                    }
-                )
-            }
-
-            AccountType::TOBEDETERMINED => {
-                rsx!(
-                    div { class: "selectLoginTypeContainer",
-                        div {
-                            class: "selectLoginTypeButton",
-                            onclick: move |_| {
-                                state.acc_type.set(AccountType::LOGIN);
-                            },
-                            "Login"
-                        }
-                        div {
-                            class: "selectLoginTypeButton",
-                            onclick: move |_| {
-                                state.acc_type.set(AccountType::REGISTER);
-                            },
-                            "Register"
-                        }
-
-                        div { 
-                            class: "backButton",
-                            onclick: move |_| {
-                                on_back.call(());
-                            },
-                            "Go back"
-                        }
-                    }
-                )
-            }
+    rsx!(match *state.acc_type.read() {
+        AccountType::LOCAL => {
+            rsx!(FullRegistration {
+                on_next: move || on_next.call(()),
+                on_back: move || on_back.call(())
+            })
         }
-    )
+
+        AccountType::LOGIN => {
+            rsx!(LoginRegistrations {
+                on_next: move || on_next.call(()),
+                on_back: move || on_back.call(())
+            })
+        }
+
+        AccountType::REGISTER => {
+            rsx!(FullRegistration {
+                on_next: move || on_next.call(()),
+                on_back: move || on_back.call(())
+            })
+        }
+
+        AccountType::TOBEDETERMINED => {
+            rsx!(
+                div { class: "selectLoginTypeContainer",
+                    div {
+                        class: "selectLoginTypeButton",
+                        onclick: move |_| {
+                            state.acc_type.set(AccountType::LOGIN);
+                        },
+                        "Login"
+                    }
+                    div {
+                        class: "selectLoginTypeButton",
+                        onclick: move |_| {
+                            state.acc_type.set(AccountType::REGISTER);
+                        },
+                        "Register"
+                    }
+
+                    div {
+                        class: "backButton",
+                        onclick: move |_| {
+                            on_back.call(());
+                        },
+                        "Go back"
+                    }
+                }
+            )
+        }
+    })
 }
 
 #[component]
-pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
+pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
     let mut loginState = use_context::<OnboardingState>().login_state;
     rsx!(
-        div { 
+        div {
             class:"userRegistrationsContainer",
-            div { 
+            div {
                 class: "UserFieldsContainer",
                 label { "Username:" },
                 input{
@@ -492,7 +470,7 @@ pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) 
                         on_next.call(());
                     }
                 }
-                button { 
+                button {
                     class: "backButton",
                     onclick: move |_| {
                         on_back.call(());
@@ -504,32 +482,35 @@ pub fn LoginRegistrations(on_next: EventHandler<()>, on_back: EventHandler<()>) 
     )
 }
 
-pub async fn login_spawn(username: String, password: String)-> anyhow::Result<()>{
+pub async fn login_spawn(username: String, password: String) -> anyhow::Result<()> {
     let client = Client::new();
-    
-    match client.post("http://localhost:3000/login").json(
-        &LoginStruct{
+
+    match client
+        .post("http://localhost:3000/login")
+        .json(&LoginStruct {
             username: username.clone(),
-            password
-        }
-    ).send().await {
+            password,
+        })
+        .send()
+        .await
+    {
         Ok(res) => {
-            match res.status().is_success(){
-                true=> {
+            match res.status().is_success() {
+                true => {
                     if let Ok(auth_response) = res.json::<AuthResponse>().await {
                         *TOKEN.write() = auth_response.access_token;
                         *REFRESHIN.write() = auth_response.expires_in as i64;
                         *USERNAME.write() = username.clone();
-                        let _ = store_refresh_token(&username, auth_response.refresh_token.as_str());
+                        let _ =
+                            store_refresh_token(&username, auth_response.refresh_token.as_str());
                         // do something with this status later.
-                            let path = storage_file();
-                        match fs::write(path, username){
-                            Ok(a)=> {
+                        let path = storage_file();
+                        match fs::write(path, username) {
+                            Ok(a) => {
                                 print!("Successfull wrote the token to");
                                 a
-
                             }
-                            Err(e)=>{
+                            Err(e) => {
                                 dbg!("Failed to write token to the disk");
                                 dbg!(e);
                             }
@@ -537,12 +518,10 @@ pub async fn login_spawn(username: String, password: String)-> anyhow::Result<()
                         get_userid_from_jwt();
                     }
                     Ok(())
-                },
-                false=> {
-                    Err(anyhow!("IDK BRO"))
                 }
+                false => Err(anyhow!("IDK BRO")),
             }
-        },
+        }
         Err(e) => {
             dbg!(&e);
             Err(anyhow!(e.to_string()))
@@ -550,63 +529,67 @@ pub async fn login_spawn(username: String, password: String)-> anyhow::Result<()
     }
 }
 
-pub async fn sign_up_spawn(login_state: LoginState, mut update_schedule: UpdateScehdule) -> anyhow::Result<()> {
+pub async fn sign_up_spawn(
+    login_state: LoginState,
+    mut update_schedule: UpdateScehdule,
+) -> anyhow::Result<()> {
     let client = Client::new();
     let name = login_state.username.read().to_string();
-    let email =  login_state.email.read().to_string();
+    let email = login_state.email.read().to_string();
     let pwd = login_state.password.read().to_string();
     let pfp = Some(login_state.pfp.read().to_string());
-    match client.post("http://localhost:3000/Signup")
-        .json(&SignUpStruct{
-            user_email:email,
+    match client
+        .post("http://localhost:3000/Signup")
+        .json(&SignUpStruct {
+            user_email: email,
             user_name: name.clone(),
             user_password: pwd,
             user_pfp: pfp,
-            chosen_update_schedule: update_schedule.as_string()
-        }).send().await {
-            Ok(res) => {
-                match res.status().is_success(){
-                    true=> {
-                        if let Ok(auth_response) = res.json::<AuthResponse>().await {
-                            *TOKEN.write() = auth_response.access_token;
-                            *REFRESHIN.write() = auth_response.expires_in as i64;
-                            *USERNAME.write() = name.clone();
-                            let _ = store_refresh_token(&name, auth_response.refresh_token.as_str());
-                            // do something with this status later.
-                                let path = storage_file();
-                            match fs::write(path, name){
-                                Ok(a)=> {
-                                    print!("Successfull wrote the token to");
-                                    a
-
-                                }
-                                Err(e)=>{
-                                    dbg!("Failed to write token to the disk");
-                                    dbg!(e);
-                                }
+            chosen_update_schedule: update_schedule.as_string(),
+        })
+        .send()
+        .await
+    {
+        Ok(res) => {
+            match res.status().is_success() {
+                true => {
+                    if let Ok(auth_response) = res.json::<AuthResponse>().await {
+                        *TOKEN.write() = auth_response.access_token;
+                        *REFRESHIN.write() = auth_response.expires_in as i64;
+                        *USERNAME.write() = name.clone();
+                        let _ = store_refresh_token(&name, auth_response.refresh_token.as_str());
+                        // do something with this status later.
+                        let path = storage_file();
+                        match fs::write(path, name) {
+                            Ok(a) => {
+                                print!("Successfull wrote the token to");
+                                a
                             }
-                            get_userid_from_jwt();
+                            Err(e) => {
+                                dbg!("Failed to write token to the disk");
+                                dbg!(e);
+                            }
                         }
-                        Ok(())                        
-                    },
-                    false=> {
-                        Err(anyhow!("IDK BRO"))
+                        get_userid_from_jwt();
                     }
-                }    
-            },
-            Err(e) => {
-                dbg!(&e);
-                Err(anyhow!(e.to_string()))
+                    Ok(())
+                }
+                false => Err(anyhow!("IDK BRO")),
             }
         }
+        Err(e) => {
+            dbg!(&e);
+            Err(anyhow!(e.to_string()))
+        }
+    }
 }
 
 #[component]
-pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element{
+pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
     let mut loginState = use_context::<OnboardingState>().login_state;
     let mut loginError = use_signal(|| LoginError::None);
     rsx!(
-        div { 
+        div {
             class:"userRegistrationsContainer",
             div {
                 class:"UserImageContainer",
@@ -621,7 +604,7 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                     }
                 }
             }
-            div { 
+            div {
                 class: "UserFieldsContainer",
                 label { "Username:" },
                 input{
@@ -681,12 +664,12 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
 
                     onkeydown: move |event| {
                         if event.code().to_string() == "Enter"{
-                            let _ = document::eval(r#"document.getElementById('Input').focus();"#); 
+                            let _ = document::eval(r#"document.getElementById('Input').focus();"#);
                         }
                     }
                 }
 
-                div { 
+                div {
                     id: "ErrorDiv",
                     match *loginError.read(){
                         LoginError::None => {
@@ -708,7 +691,7 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                         }
                         LoginError::UsernameUnavailable => {
                             rsx!(
-                                p { 
+                                p {
                                     id:"LoginError",
                                     "Username already exits please login or try another username."
                                 }
@@ -732,10 +715,10 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                                     email: email
                             }).send().await {
                                 let results = res.json::<AvailabilityResponse>().await.unwrap_or(
-                                    AvailabilityResponse { 
-                                    username_available: false, email_available: false 
+                                    AvailabilityResponse {
+                                    username_available: false, email_available: false
                                 });
-                                
+
                                 if !results.username_available {
                                     loginError.set(LoginError::UsernameUnavailable);
                                     return;
@@ -764,7 +747,7 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
                     "Submit"
                 }
 
-                button { 
+                button {
                     class: "backButton",
                     onclick: move |_| {
                         on_back.call(());
@@ -778,19 +761,18 @@ pub fn FullRegistration(on_next: EventHandler<()>, on_back: EventHandler<()>) ->
 
 #[component]
 pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
-
     let mut state = use_context::<OnboardingState>();
     rsx!(
         div {
             class: "SelectUpdateScheduleContainer",
-            h3 { 
+            h3 {
                 class: "FirstTimeQuestion",
                 "Select how often you want the app data to update"
             }
 
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.update_schedule.set(UpdateScehdule::OnStartUp);
@@ -798,14 +780,14 @@ pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<(
                     },
                     "Update on startup"
                 }
-                span { 
+                span {
                     class: "selectAppTypeButtonToolTip",
                     "The app will update when opened."
                 }
             }
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.update_schedule.set(UpdateScehdule::OnceADay);
@@ -814,14 +796,14 @@ pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<(
                     "Once a day"
                 }
 
-                span { 
+                span {
                     class: "selectAppTypeButtonToolTip",
                     "The app will update every 24 hrs"
                 }
             }
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.update_schedule.set(UpdateScehdule::OnceAWeek);
@@ -835,10 +817,10 @@ pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<(
                     "App will update 7 days after the previous update."
                 }
             }
-            
+
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.update_schedule.set(UpdateScehdule::OnceAMonth);
@@ -855,7 +837,7 @@ pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<(
 
             div {
                 class: "Button_wrapapper",
-                div { 
+                div {
                     class: "selectAppTypeButton",
                     onclick: move |_|{
                         state.update_schedule.set(UpdateScehdule::Never);
@@ -870,7 +852,7 @@ pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<(
                 }
             }
 
-            button { 
+            button {
                 class: "backButton",
                 onclick: move |_| {
                     on_back.call(());
@@ -883,15 +865,11 @@ pub fn choose_update_scehdule(on_next: EventHandler<()>, on_back: EventHandler<(
 }
 
 #[component]
-pub fn FinalPage(
-    on_next: EventHandler<()>,
-    on_back: EventHandler<()>,
-) -> Element {
+pub fn FinalPage(on_next: EventHandler<()>, on_back: EventHandler<()>) -> Element {
     let state = use_context::<OnboardingState>();
     let login = state.login_state.clone();
     let update_schedule = state.update_schedule.read().to_owned().as_string();
 
-    
     rsx!(
         div {
             class: "FinalizeContainer",
@@ -959,7 +937,7 @@ pub fn FinalPage(
                                     let _ = login_spawn(username, password).await;
                                     on_next.call(());
                                 });
-                                
+
                             },
                             AccountType::LOCAL | AccountType::REGISTER => {
                                 let login_a = login.clone();
@@ -983,7 +961,7 @@ pub fn FinalPage(
 
 
 
-                        
+
                     },
                     "Confirm & Finish"
                 }

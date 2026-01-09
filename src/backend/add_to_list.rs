@@ -439,11 +439,10 @@ pub async fn get_if_ranked(
                 {
                     Ok(Some(rank)) => {
                         let last_rank = rank.try_get("rank").unwrap_or(1);
-                        HttpResponse::Ok()
-                            .json(IsRanked {
-                                is_ranked: is_ranked,
-                                last_rank: last_rank,
-                            })
+                        HttpResponse::Ok().json(IsRanked {
+                            is_ranked: is_ranked,
+                            last_rank: last_rank,
+                        })
                     }
 
                     Ok(None) => HttpResponse::Ok().json(IsRanked {
@@ -938,7 +937,7 @@ pub async fn fetch_all_anime_from_list(
                     largeImage: Some(picture),
                 });
             }
-             HttpResponse::Ok().json(json!(AllAnimeSimple { anime: animes }))
+            HttpResponse::Ok().json(json!(AllAnimeSimple { anime: animes }))
         }
         Err(e) => {
             dbg!(e);

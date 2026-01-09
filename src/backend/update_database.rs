@@ -1,221 +1,145 @@
+use std::time::Duration;
+
 pub use crate::backend::AnimeStructs::Anime;
 pub use crate::backend::*;
-use actix_web::web::Data;
-use anyhow::Result;
+pub use crate::backend::partial_update::*;
+use crate::{backend::{AnimeStructs::{Title}}, try_or};
 use reqwest::Client;
 use sqlx::{Pool, Sqlite};
 
-//TODO: This whole thing is shit
-
-#[derive(Deserialize, Debug)]
-pub struct UpdateCurrentResponse {
-    pub data: Option<AnilistData>,
+#[derive(Serialize, Deserialize)]
+pub struct UpdatedAtResult{
+    pub data: DataPage2,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct AnilistData {
-    pub Media: Option<AnimeMedia>,
+#[derive(Serialize, Deserialize)]
+pub struct DataPage2{
+    pub page: Page2
 }
 
-#[derive(Deserialize, Debug)]
-pub struct AnimeMedia {
-    pub updatedAt: Option<i64>,
-    pub popularity: Option<i64>,
+#[derive(Serialize, Deserialize)]
+pub struct Page2 {
+    pub media: Vec<BasicResponse>
 }
 
-/*updates the anime that are already in the db and are finished can be run way more periodically than the rest */
-//TODO this needs to also update its reccommendations and related as those can change.
-pub async fn update_already_in_db(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> {
-    let updated_at: i64 = sqlx::query(
-        "SELECT updatedAt 
-    FROM anime 
-    ORDER BY updatedAt ASC 
-    LIMIT 1",
-    )
-    .fetch_one(db.as_ref())
-    .await?
-    .try_get("updatedAt")?;
+#[derive(Serialize, Deserialize)]
+pub struct BasicResponse {
+    pub title: Title,
+    pub updatedAt: i64
+}
 
-    let current_anime_list =
-        sqlx::query("SELECT title_romanji FROM anime WHERE status = ? ORDER BY updatedAt DESC")
-            .bind("FINISHED")
-            .fetch_all(db.as_ref())
-            .await?;
 
-    let anilist_query = "
-    query ($search: String) {
-        Media(search: $search, type: ANIME, sort: [UPDATED_AT_DESC], status: FINISHED) {
+pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> {
+    let last_uppdated: i64 = match sqlx::query("SELECT updatedAt FROM anime ORDER BY DESC LIMIT 1")
+    .fetch_one(db.as_ref()).await{
+        Ok(res) => try_or!(res.try_get("updatedAt"), Err(anyhow::Error::msg("Failed to serialize db result"))),
+        Err(e) => {
+            dbg!(e);
+            return Err(anyhow::Error::msg("Failed to fetch from the db"));
+        }
+    };
+
+    let anilist_query = 
+    "query ($page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+            media(type: ANIME, sort: [UPDATED_AT_DESC]) {
+            title{
+                romaji
+            }
             updatedAt
-            popularity
+            }
         }
     }";
 
+    let mut page = 1;
+    let per_page = 50;
+
     let client = Client::new();
     let mut tx = db.begin().await?;
-
-    for row in current_anime_list {
-        let current_title: String = row.try_get("title_romanji")?;
-
+    
+    loop {
         let variables = serde_json::json!({
-            "search":current_title
+            "page": page,
+            "perPage": per_page,
         });
+        let json: UpdatedAtResult = loop {
+            let res = client
+                .post("https://graphql.anilist.co")
+                .json(&serde_json::json!({ "query": anilist_query, "variables": variables }))
+                .send()
+                .await?;
 
-        let res = client
-            .post("https://graphql.anilist.co")
-            .json(&serde_json::json!({ "query": anilist_query, "variables": variables }))
-            .send()
-            .await?;
+            let status = res.status();
 
-        let response: UpdateCurrentResponse = res.json().await?;
-
-        let updated_at_anilist = if let Some(ref data) = response.data {
-            if let Some(media) = &data.Media {
-                media.updatedAt.unwrap_or(-1)
-            } else {
-                -1
+            // Check if we got rate limited (429 Too Many Requests)
+            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                println!("Rate limited! Waiting 45 seconds before retry...");
+                tokio::time::sleep(Duration::from_secs(45)).await;
+                continue;
             }
-        } else {
-            -1
-        };
 
-        let popularity_anilist = if let Some(ref data) = response.data {
-            if let Some(media) = &data.Media {
-                media.popularity.unwrap_or(-1)
-            } else {
-                -1
+            // Check for other HTTP errors
+            if !status.is_success() {
+                println!("HTTP error {}: Waiting 5 seconds before retry...", status);
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                continue;
             }
-        } else {
-            -1
-        };
 
-        if updated_at >= updated_at_anilist {
-            break; // we are up to date
+            // Try to parse the response
+            match res.json::<UpdatedAtResult>().await {
+                Ok(data) => break data,
+                Err(e) => {
+                    println!(
+                        "Failed to parse response: {}. Waiting 5 seconds before retry...",
+                        e
+                    );
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    continue;
+                }
+            }
+        };
+        let media = json.data.page.media;
+
+        if media.is_empty() {
+            dbg!("No more anime to fetch. Database Initialization Complete!");
+            break Ok(()); // No completed anime to update  
         }
 
-        sqlx::query("UPDATE anime SET popularity = ?, updatedAt = ?")
-            .bind(popularity_anilist)
-            .bind(updated_at)
-            .execute(&mut *tx)
-            .await?;
+        for entry in media{
+            let title =match entry.title.romaji{
+                Some(romanji ) => romanji,
+                None => continue
+            };
+
+            let updated_at = entry.updatedAt;
+
+            if updated_at >= last_uppdated{
+                // this should end the loop
+            }
+
+            let exists: i64 = match sqlx::query_scalar("SELECT id FROM anime WHERE title_romnji = ?")
+            .bind(&title).fetch_one(db.as_ref()).await {
+                Ok(c) => c,
+                Err(e) => {
+                    dbg!(e);
+                    continue;
+                }
+            };
+
+            if exists != 0 {
+                partial_update(db.clone(), title, exists).await?;
+            }
+            full_update().await?;
+
+        }
     }
 
-    tx.commit().await?;
-    Ok(())
 }
 
-/*updates anime that are releasing*/
-pub async fn update_ones_not_in_db(db: Data<Pool<Sqlite>>) -> Result<()> {
-    let updated_at: i64 = sqlx::query(
-        "SELECT updatedAt 
-    FROM anime 
-    ORDER BY updatedAt ASC 
-    LIMIT 1",
-    )
-    .fetch_one(db.as_ref())
-    .await?
-    .try_get("updatedAt")?;
-
-    let anilist_query = "
-        query ($page: Int, $perPage: Int) {
-            Page(page: $page, perPage: $perPage) {
-                media(type: ANIME, sort: [UPDATED_AT_DESC], status_not: FINISHED) {
-                title{
-                    romaji
-                    english
-                }
-                updatedAt
-                description
-                format
-                episodes
-                status
-                season
-                seasonYear
-                startDate {
-                    year
-                    month
-                    day
-                }
-                endDate {
-                    year
-                    month
-                    day
-                }
-                coverImage {
-                    extraLarge
-                    medium
-                }
-                bannerImage
-                duration
-                popularity
-                averageScore
-                synonyms
-                genres
-                tags {
-                    name
-                    rank
-                    isAdult
-                }
-                studios {
-                    nodes {
-                        name
-                    }
-                }
-                relations {
-                    edges {
-                        relationType
-                        node {
-                            title {
-                                romaji
-                            }
-                            type
-                        }
-                    }
-                }
-                characters(perPage: 10, sort: [ROLE, RELEVANCE]) {
-                    edges {
-                        role
-                        node {
-                            name {
-                                full
-                            }
-                            image {
-                                medium
-                            }
-                        }
-                        voiceActors {
-                            name {
-                                full
-                            }
-                        }
-                    }
-                }
-                trailer {
-                    site
-                    id
-                }
-                recommendations(perPage: 10, sort: [RATING_DESC]) {
-                    nodes {
-                        media {
-                            title {
-                                romaji
-                            }
-                        }
-                        rating
-                    }
-                }
-
-                airingSchedule(notYetAired: true, perPage: 1) {
-                    nodes {
-                        episode
-                        airingAt
-                    }
-                }
-                }
-            }
-            }
-
-    
-    ";
-
-    Ok(())
+pub async fn full_update()-> anyhow::Result<()>{
+    todo!();
 }
+
+// this needs two different logics for if something is already present in the databse and for something that is new. 
+// first we start of by getting the title of a certain thing, then we check if we have something with that exact title in the db
+// if we do then we only update status, end_date, episodes, popularity, next episode, next episode airing at 
