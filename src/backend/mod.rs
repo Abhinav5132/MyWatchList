@@ -1,5 +1,7 @@
 #![allow(clippy::redundant_field_names)]
-use std::sync::Arc;
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use actix_cors::Cors;
 use actix_web::web::{Data, Json};
@@ -23,6 +25,7 @@ pub mod sign_up;
 pub use sign_up::sign_up_fn;
 
 pub use search::trending_search;
+use tokio::time::{Sleep, sleep};
 pub mod friends;
 
 pub mod authenticate;
@@ -38,7 +41,7 @@ pub use crate::backend::add_to_list::add_anime_to_list;
 use crate::backend::details::{ReccomendResult, RelatedAnime};
 use crate::backend::friends::get_all_friends;
 use crate::backend::sign_up::{
-    AuthResponse, CheckAvailability, check_availability, check_username_availability,
+    AuthResponse, check_availability, check_username_availability,
 };
 use crate::backend::user_profile::{
     change_email, change_password, change_pfp, change_username, get_user_details, logout,
@@ -49,6 +52,9 @@ pub mod AnimeStructs;
 pub mod update_database;
 pub mod user_profile;
 pub mod verification_service;
+pub mod full_update;
+use crate::backend::update_database::*;
+
 #[post("/issue_new_access")]
 pub async fn issue_new_access_token(
     db: Data<Pool<Sqlite>>,
@@ -158,6 +164,21 @@ struct FullAnimeResult {
     related_anime: Vec<RelatedAnime>,
 }
 
+pub async fn start_backend_updater(db: Data<Pool<Sqlite>>){
+    let interval = Duration::from_secs(120);
+
+    tokio::spawn(async move {
+        loop {
+            println!("Background task: Checking for anime updates...");
+            if let Err(e) = update_database(db.clone()).await {
+                dbg!(e);
+            }
+
+            sleep(interval).await;
+        }
+    });
+}
+
 pub async fn setup_db() -> Data<Pool<Sqlite>> {
     //database initializations
     let opt = sqlite::SqliteConnectOptions::new()
@@ -191,7 +212,7 @@ pub async fn setup_db() -> Data<Pool<Sqlite>> {
 }
 
 #[actix_web::main]
-pub async fn setup_backend() -> std::io::Result<()> {
+pub async fn setup_backend(tx: Sender<()>) -> std::io::Result<()> {
     let timestamp = chrono::Utc::now().timestamp();
     println!("{timestamp}");
     let db = setup_db().await;
@@ -209,6 +230,8 @@ pub async fn setup_backend() -> std::io::Result<()> {
     }
     env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
     let verifier: Arc<dyn TokenVerifier> = Arc::new(VerificationService { db: db.clone() });
+
+    let _ = tx.send(());
 
     HttpServer::new(move || {
         App::new()

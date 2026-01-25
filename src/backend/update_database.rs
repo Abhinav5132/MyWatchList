@@ -3,12 +3,14 @@ use std::time::Duration;
 pub use crate::backend::AnimeStructs::Anime;
 pub use crate::backend::*;
 pub use crate::backend::partial_update::*;
+pub use crate::backend::full_update::*;
+
 use crate::{backend::{AnimeStructs::{Title}}, try_or};
 use reqwest::Client;
 use sqlx::{Pool, Sqlite};
 
 #[derive(Serialize, Deserialize)]
-pub struct UpdatedAtResult{
+struct UpdatedAtResult{
     pub data: DataPage2,
 }
 
@@ -30,7 +32,7 @@ pub struct BasicResponse {
 
 
 pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> {
-    let last_uppdated: i64 = match sqlx::query("SELECT updatedAt FROM anime ORDER BY DESC LIMIT 1")
+    let last_updated: i64 = match sqlx::query("SELECT updatedAt FROM anime ORDER BY DESC LIMIT 1")
     .fetch_one(db.as_ref()).await{
         Ok(res) => try_or!(res.try_get("updatedAt"), Err(anyhow::Error::msg("Failed to serialize db result"))),
         Err(e) => {
@@ -113,8 +115,9 @@ pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> 
 
             let updated_at = entry.updatedAt;
 
-            if updated_at >= last_uppdated{
+            if updated_at >= last_updated{
                 // this should end the loop
+                break;
             }
 
             let exists: i64 = match sqlx::query_scalar("SELECT id FROM anime WHERE title_romnji = ?")
@@ -127,17 +130,13 @@ pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> 
             };
 
             if exists != 0 {
-                partial_update(db.clone(), title, exists).await?;
+                partial_update(db.clone(), &title, exists).await?;
             }
-            full_update().await?;
+            full_update(db.clone(), &title).await?;
 
         }
     }
 
-}
-
-pub async fn full_update()-> anyhow::Result<()>{
-    todo!();
 }
 
 // this needs two different logics for if something is already present in the databse and for something that is new. 

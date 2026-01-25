@@ -7,7 +7,8 @@ use dioxus::{
 use reqwest::Client;
 use serde::*;
 use serde_json::Value;
-use std::{fs, path::PathBuf, time::Duration};
+use tokio::sync::Notify;
+use std::{fs, path::PathBuf, sync::Arc, time::Duration};
 
 mod details;
 mod home_page;

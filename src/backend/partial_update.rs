@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use reqwest::Client;
 
-use crate::backend::AnimeStructs::{Date, NextAiringEpisode, PartialUpdate, Recommendations, Relations};
+use crate::backend::{AnimeStructs::{Date, NextAiringEpisode, PartialUpdate, Recommendations, Relations}, initialize::{add_recommendations, add_related}};
 pub use crate::backend::*;
 
 #[derive(Serialize, Deserialize)]
@@ -72,7 +72,7 @@ impl PartialUpdate for BasicResponse {
 }
 
 
-pub async fn partial_update(db: web::Data<Pool<Sqlite>>, title: String, id: i64)-> anyhow::Result<()>{
+pub async fn partial_update(db: web::Data<Pool<Sqlite>>, title: &String, id: i64)-> anyhow::Result<()>{
     // this needs to update all the anime that are already in the db. 
     // Most quantities will not change so we only need to change the ones that will change 
 
@@ -189,28 +189,16 @@ pub async fn partial_update(db: web::Data<Pool<Sqlite>>, title: String, id: i64)
     updatedAt = ?
     WHERE title_romanji = ?;")
     .bind(episodes).bind(status).bind(end_date).bind(averageScore).bind(popularity).bind(next_episode)
-    .bind(next_airing_episode_at).bind(updatedAt).bind(title).execute(&mut *tx).await;
+    .bind(next_airing_episode_at).bind(updatedAt).bind(title).execute(&mut *tx).await?;
+
 
     let related = media.get_related();
-    for (name, relation) in related {
-        sqlx::query("INSERT INTO related_anime(anime_id, related_name, relation_type) VALUES (?, ?, ?)")
-            .bind(id)
-            .bind(name)
-            .bind(relation)
-            .execute(&mut *tx)
-            .await?;
-    }
+    add_related(related, id, &mut tx).await?;
 
     let recommendations = media.get_recommended();
-    for name in recommendations {
-        sqlx::query(
-            "INSERT INTO recommendations(anime_id, recommended_title) VALUES (?,?)",
-        )
-        .bind(id)
-        .bind(name)
-        .execute(&mut *tx)
-        .await?;
-    }
+    add_recommendations(recommendations, id, &mut tx).await?;
+
+    tx.commit().await?;
 Ok(())
 
 }
