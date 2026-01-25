@@ -12,13 +12,8 @@ struct UpdatedAtResult{
 }
 
 #[derive(Serialize, Deserialize)]
-struct DataPage2{
-    pub page: Page2
-}
-
-#[derive(Serialize, Deserialize)]
-struct Page2 {
-    pub media: Anime
+struct DataPage2 {
+    pub Media: Anime
 }
 
 pub async fn full_update(db: web::Data<Pool<Sqlite>>, title: &String)-> anyhow::Result<()>{
@@ -147,8 +142,8 @@ pub async fn full_update(db: web::Data<Pool<Sqlite>>, title: &String)-> anyhow::
         match res.json::<UpdatedAtResult>().await {
             Ok(data) => break data,
             Err(e) => {
-                println!(
-                    "Failed to parse response: {}. Waiting 5 seconds before retry...",
+                dbg!(
+                    "Failed to parse response: {}. Waiting 5 seconds before retry(full)",
                     e
                 );
                 tokio::time::sleep(Duration::from_secs(5)).await;
@@ -157,8 +152,20 @@ pub async fn full_update(db: web::Data<Pool<Sqlite>>, title: &String)-> anyhow::
         }
     };
 
-    let entry = json.data.page.media;
-    let id = add_anime(&entry, &mut tx).await?;
+    let entry = json.data.Media;
+    let id = match add_anime(&entry, &mut tx).await{
+        Ok(id) => {
+            id
+        },
+        Err(e) => {
+            dbg!(&e);
+            return Err(e.into());
+        }
+    };
+
+    if id == 0 {
+        return Ok(());
+    }
     // inserting synonyms
     let synonyms = entry.get_synonyms();
     add_synonyms(synonyms, id, &mut tx).await?;

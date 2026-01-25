@@ -16,7 +16,7 @@ struct UpdatedAtResult{
 
 #[derive(Serialize, Deserialize)]
 pub struct DataPage2{
-    pub page: Page2
+    pub Page: Page2
 }
 
 #[derive(Serialize, Deserialize)]
@@ -27,12 +27,12 @@ pub struct Page2 {
 #[derive(Serialize, Deserialize)]
 pub struct BasicResponse {
     pub title: Title,
-    pub updatedAt: i64
+    pub updatedAt: Option<i64>
 }
 
 
 pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> {
-    let last_updated: i64 = match sqlx::query("SELECT updatedAt FROM anime ORDER BY DESC LIMIT 1")
+    let last_updated: i64 = match sqlx::query("SELECT updatedAt FROM anime ORDER BY updatedAt DESC LIMIT 1")
     .fetch_one(db.as_ref()).await{
         Ok(res) => try_or!(res.try_get("updatedAt"), Err(anyhow::Error::msg("Failed to serialize db result"))),
         Err(e) => {
@@ -91,7 +91,7 @@ pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> 
             match res.json::<UpdatedAtResult>().await {
                 Ok(data) => break data,
                 Err(e) => {
-                    println!(
+                    dbg!(
                         "Failed to parse response: {}. Waiting 5 seconds before retry...",
                         e
                     );
@@ -100,7 +100,7 @@ pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> 
                 }
             }
         };
-        let media = json.data.page.media;
+        let media = json.data.Page.media;
 
         if media.is_empty() {
             dbg!("No more anime to fetch. Database Initialization Complete!");
@@ -112,15 +112,17 @@ pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> 
                 Some(romanji ) => romanji,
                 None => continue
             };
+            
+            dbg!(&title);
 
-            let updated_at = entry.updatedAt;
+            let updated_at = entry.updatedAt.unwrap_or(last_updated);
 
             if updated_at >= last_updated{
                 // this should end the loop
                 break;
             }
 
-            let exists: i64 = match sqlx::query_scalar("SELECT id FROM anime WHERE title_romnji = ?")
+            let exists: i64 = match sqlx::query_scalar("SELECT id FROM anime WHERE title_romanji = ?")
             .bind(&title).fetch_one(db.as_ref()).await {
                 Ok(c) => c,
                 Err(e) => {
@@ -130,11 +132,20 @@ pub async fn update_database(db: web::Data<Pool<Sqlite>>) -> anyhow::Result<()> 
             };
 
             if exists != 0 {
-                partial_update(db.clone(), &title, exists).await?;
+                if let Err(e) = partial_update(db.clone(), &title, exists).await {
+                    dbg!(e);
+                    dbg!(&title);
+                }
             }
-            full_update(db.clone(), &title).await?;
+
+            if let Err (e) = full_update(db.clone(), &title).await {
+                dbg!(e);
+                dbg!(&title);
+            }
 
         }
+
+        page += per_page
     }
 
 }

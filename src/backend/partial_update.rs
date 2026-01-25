@@ -11,13 +11,8 @@ struct UpdatedAtResult{
 }
 
 #[derive(Serialize, Deserialize)]
-struct DataPage2{
-    pub page: Page2
-}
-
-#[derive(Serialize, Deserialize)]
-struct Page2 {
-    pub media: BasicResponse
+struct DataPage2 {
+    pub Media: BasicResponse
 }
 
 #[derive(Serialize, Deserialize)]
@@ -124,7 +119,7 @@ pub async fn partial_update(db: web::Data<Pool<Sqlite>>, title: &String, id: i64
 ";
 
     let client = Client::new();
-    let mut tx = db.begin().await?;
+    let mut tx = db.begin().await?; // TODO: nigger transaction shouldnt begin here and should be imported from update_database
 
     let variables = serde_json::json!({
             "title": title
@@ -157,8 +152,8 @@ pub async fn partial_update(db: web::Data<Pool<Sqlite>>, title: &String, id: i64
         match res.json::<UpdatedAtResult>().await {
             Ok(data) => break data,
             Err(e) => {
-                println!(
-                    "Failed to parse response: {}. Waiting 5 seconds before retry...",
+                dbg!(
+                    "Failed to parse response: {}. Waiting 5 seconds before retry(partial)",
                     e
                 );
                 tokio::time::sleep(Duration::from_secs(5)).await;
@@ -167,7 +162,7 @@ pub async fn partial_update(db: web::Data<Pool<Sqlite>>, title: &String, id: i64
         }
     };
 
-    let media = json.data.page.media;
+    let media = json.data.Media;
     let episodes = media.get_episodes();
     let status = media.get_status();
     let end_date = media.get_end_date();

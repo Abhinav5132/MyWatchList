@@ -173,7 +173,7 @@ pub async fn start_backend_updater(db: Data<Pool<Sqlite>>){
             if let Err(e) = update_database(db.clone()).await {
                 dbg!(e);
             }
-
+            println!("Finishined checking sleeping");
             sleep(interval).await;
         }
     });
@@ -230,6 +230,8 @@ pub async fn setup_backend(tx: Sender<()>) -> std::io::Result<()> {
     }
     env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
     let verifier: Arc<dyn TokenVerifier> = Arc::new(VerificationService { db: db.clone() });
+
+    start_backend_updater(db.clone()).await;
 
     let _ = tx.send(());
 
