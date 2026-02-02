@@ -1,4 +1,5 @@
 #![allow(clippy::redundant_field_names)]
+pub use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -166,15 +167,11 @@ struct FullAnimeResult {
 
 pub async fn start_backend_updater(db: Data<Pool<Sqlite>>){
     let interval = Duration::from_secs(120);
-
     tokio::spawn(async move {
         loop {
-            println!("Background task: Checking for anime updates...");
-            if let Err(e) = update_database(db.clone()).await {
+            if let Err(e) = update_database(db.clone(), interval).await {
                 dbg!(e);
             }
-            println!("Finishined checking sleeping");
-            sleep(interval).await;
         }
     });
 }

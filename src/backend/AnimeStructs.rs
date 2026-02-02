@@ -372,7 +372,7 @@ impl Anime {
 }
 
 //Nested Types
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct Title {
     pub romaji: Option<String>,
     pub english: Option<String>,

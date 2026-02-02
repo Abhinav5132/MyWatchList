@@ -162,3 +162,8 @@ CREATE TABLE IF NOT EXISTS watch_list_anime (
     FOREIGN KEY (anime_id) REFERENCES anime(id),
     UNIQUE(user_id, list_id, rank)
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    last_updated_at_time INTEGER NOT NULL
+);

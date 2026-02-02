@@ -318,6 +318,10 @@ pub async fn add_studios(
     tx: &mut Transaction<'_, Sqlite>, 
     studio_cache: &mut HashMap<String, i64>) -> anyhow::Result<()>
 {
+
+    if studios.is_empty(){
+        return Ok(());
+    }
     let mut inserted_studios = std::collections::HashSet::new();
     for studio in studios {
         let studio_id = if let Some(id) = studio_cache.get(&studio) {
@@ -333,16 +337,22 @@ pub async fn add_studios(
         };
         
         if inserted_studios.insert(studio_id){
-            sqlx::query("INSERT INTO anime_studio(anime_id, studio_id) VALUES (?, ?)")
+            match sqlx::query("INSERT INTO anime_studio(anime_id, studio_id) VALUES (?, ?)")
             .bind(id)
             .bind(studio_id)
             .execute(&mut **tx)
-            .await?;
+            .await{
+                Ok(_) => {},
+                Err(e) => {
+                    dbg!(e);
+                }
+            }
         }
     }
 
     Ok(())
 }
+
 
 pub async fn add_related(related: Vec<(&str, &str)>, id: i64, tx: &mut Transaction<'_, Sqlite>) -> anyhow::Result<()> {
     
@@ -410,7 +420,7 @@ pub async fn add_characters(
                 .bind(name)
                 .execute(&mut **tx)
                 .await?
-                .last_insert_rowid();
+                .last_insert_rowid();  
             character_cache.insert(name.to_string(), id);
             id
         };
