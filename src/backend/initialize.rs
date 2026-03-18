@@ -33,6 +33,8 @@ struct Page {
 
 // save anilist id
 pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
+
+    let mut show_count = 0i32;
     println!("INITIALIZING");
     /*first lets update finished anime from the last updated date. */
     let anilist_query = "
@@ -124,7 +126,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
 
     ";
     let mut page = 1;
-    let per_page = 50;
+    let per_page = 50; // 50 is better can fetch about 1500 anime before getting rate limited. 
 
     let client = Client::new();
 
@@ -135,6 +137,14 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
     let mut tx = db.begin().await?;
 
     loop {
+        if show_count >= 1450 {
+            show_count = 0;
+            println!("About to get rate limited waiting for 45 secs");
+            tx.commit().await?; // commit and then start a new transaction
+            tx = db.begin().await?;
+            tokio::time::sleep(Duration::from_secs(45)).await; // we are about to get rate limited wait 
+            // commit here and save the page nuber here to recover and start later since that user might stop the app while we are still updating. 
+        }
         let variables = serde_json::json!({
             "page": page,
             "perPage": per_page,
@@ -186,6 +196,7 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
         for entry in media_list {
             let title_romaji = entry.get_title_romaji();
             dbg!(title_romaji);
+            println!("{}", show_count);
             let is_present: i64 = sqlx::query("SELECT COUNT(1) FROM anime WHERE title_romanji = ?")
                 .bind(title_romaji)
                 .fetch_one(&mut *tx)
@@ -226,12 +237,11 @@ pub async fn initialize_database(db: Data<Pool<Sqlite>>) -> Result<()> {
             //inserting recommendations
             let recommendations = entry.get_recommended();
             add_recommendations(recommendations, id, &mut tx).await?;
-            
+            show_count += 1;
         }
         page += 1;
     }
 
-    tx.commit().await?;
     Ok(())
 }
 
