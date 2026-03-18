@@ -1,10 +1,12 @@
 # MyWatchList
 
 An anime watchlist application built completely in Rust, featuring a local backend and a native desktop interface.
+Home page: 
+<img width="1918" height="1049" alt="image" src="https://github.com/user-attachments/assets/3f505d3c-13f0-4437-bf29-398a91ef90c1" />
 
-<img width="1916" height="1039" alt="App Screenshot" src="https://github.com/user-attachments/assets/b49f2856-a3ae-47e7-b05a-bd28f9efa011" />
+Details page(UI under development):
+<img width="1917" height="1047" alt="image" src="https://github.com/user-attachments/assets/3e3d22e7-f110-4d2e-94bc-4bf7703d3acf" />
 
-*(You can add more screenshots here later)*
 
 ## Features
 
@@ -33,7 +35,7 @@ An anime watchlist application built completely in Rust, featuring a local backe
 2. **Run the application**
    Because MyWatchList bundles both the frontend desktop client and the backend server together, you can launch the app with a single standard cargo command:
    ```bash
-   cargo run
+   dx serve
    ```
    *This command initializes the local backend on a background thread and launches the Dioxus frontend.*
 
